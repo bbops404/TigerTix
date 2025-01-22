@@ -1,6 +1,7 @@
 import React from "react";
 import EventCard from "./components/EventCard";
 import Header from './components/Header';
+import LoginPopup from "./pages/LoginPopup";
 
 function Carousel() {
   return (
@@ -54,9 +55,18 @@ function EventSection({ title, description, events }) {
 }
 
 function App() {
+  const [loginPopup, setLoginPopup] = React.useState(false);
+  const toggleLoginPopup = () => {
+    setLoginPopup((prev) => !prev);
+  };
   return (
     <div className="App bg-[#121212] text-white">
-      <Header />
+       <Header toggleLoginPopup={toggleLoginPopup} />
+      {loginPopup && (
+        <LoginPopup
+          loginPopup={loginPopup}
+          toggleLoginPopup={toggleLoginPopup}
+        />
       <Carousel />
 
       {/* TICKETED EVENTS Section */}
@@ -127,5 +137,4 @@ function App() {
     </div>
   );
 }
-
 export default App;
