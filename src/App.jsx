@@ -1,14 +1,21 @@
 import React from "react";
 import EventCard from "./components/EventCard";
-import Header from './components/Header';
+import Header from "./components/Header";
 import LoginPopup from "./pages/LoginPopup";
 
 function Carousel() {
   return (
-    <div className="relative bg-cover bg-center h-[700px] text-white flex items-center justify-center flex-col" style={{ backgroundImage: `url('/path/to/your/image.jpg')` }}>
+    <div
+      className="relative bg-cover bg-center h-[700px] text-white flex items-center justify-center flex-col"
+      style={{ backgroundImage: `url('/path/to/your/image.jpg')` }}
+    >
       <div className="absolute top-1/2 left-0 right-0 flex justify-between px-5 transform -translate-y-1/2">
-        <span className="font-Poppins text-4xl text-white cursor-pointer">&lt;</span>
-        <span className="font-Poppins text-4xl text-white cursor-pointer">&gt;</span>
+        <span className="font-Poppins text-4xl text-white cursor-pointer">
+          &lt;
+        </span>
+        <span className="font-Poppins text-4xl text-white cursor-pointer">
+          &gt;
+        </span>
       </div>
       <div className="absolute bottom-[60px] right-[100px]">
         <button className="font-Poppins bg-[#F09C32] text-black font-bold py-3 px-7 min-w-[300px] rounded-full uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-yellow-600">
@@ -59,14 +66,17 @@ function App() {
   const toggleLoginPopup = () => {
     setLoginPopup((prev) => !prev);
   };
+
   return (
     <div className="App bg-[#121212] text-white">
-       <Header toggleLoginPopup={toggleLoginPopup} />
+      <Header toggleLoginPopup={toggleLoginPopup} />
       {loginPopup && (
         <LoginPopup
           loginPopup={loginPopup}
           toggleLoginPopup={toggleLoginPopup}
         />
+      )}
+
       <Carousel />
 
       {/* TICKETED EVENTS Section */}
@@ -137,4 +147,5 @@ function App() {
     </div>
   );
 }
+
 export default App;
