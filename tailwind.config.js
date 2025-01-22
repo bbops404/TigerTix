@@ -8,6 +8,7 @@ module.exports = {
       },
       colors: {
         custom_yellow: "#F09C32",
+        custom_black: "#202020",
       },
     },
   },

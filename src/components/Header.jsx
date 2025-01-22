@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import tigertix_logo from "../assets/tigertix_logo.png";
 import { FaSearch } from "react-icons/fa";
 
-const Header = () => {
+const Header = ({ toggleLoginPopup }) => {
   const [data, setData] = useState([]);
   const [filterData, setFilterData] = useState([]);
   const [isFocused, setIsFocused] = useState(false);
@@ -11,7 +11,6 @@ const Header = () => {
     fetch("https://jsonplaceholder.typicode.com/users")
       .then((res) => res.json())
       .then((data) => {
-        console.log(data);
         setData(data);
         setFilterData(data);
       })
@@ -31,11 +30,11 @@ const Header = () => {
         <img src={tigertix_logo} className="w-40" alt="Tigertix Logo" />
 
         <div className="search-top relative">
-          <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-xl border-2 border-[#D8DADC] h-8 w-[700px] transition-all duration-200 ease-in-out focus-within:border-yellow-800">
-            <FaSearch className="w-5 h-5 text-gray-400 transition-colors duration-200 ease-in-out" />
+          <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-xl border-2 border-[#D8DADC] h-8 w-[700px]">
+            <FaSearch className="w-5 h-5 text-gray-400" />
             <input
               type="text"
-              className="focus:border-none focus:outline-none text-sm w-[700px] text-gray-600 focus:text-gray-700 transition-colors duration-200 ease-in-out"
+              className="focus:outline-none text-sm w-[700px] text-gray-600"
               placeholder="Search"
               onFocus={() => setIsFocused(true)}
               onBlur={() => setTimeout(() => setIsFocused(false), 200)}
@@ -57,7 +56,10 @@ const Header = () => {
         </div>
 
         <div className="flex gap-5">
-          <button className="font-Poppins text-[15px] font-medium bg-[#2D2D2D] p-2 px-7 rounded-xl text-white">
+          <button
+            onClick={toggleLoginPopup}
+            className="font-Poppins text-[15px] font-medium bg-[#2D2D2D] p-2 px-7 rounded-xl text-white"
+          >
             LOGIN
           </button>
           <button className="font-Poppins text-[15px] font-medium bg-white p-2 px-7 rounded-xl text-[#2D2D2D]">
