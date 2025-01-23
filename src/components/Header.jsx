@@ -42,7 +42,7 @@ const Header = ({ toggleLoginPopup }) => {
             />
           </div>
           {isFocused && data.length > 0 && (
-            <div className="search-result absolute top-full left-0 w-[700px] bg-white shadow-lg border border-gray-200 rounded-lg mt-1 max-h-60 overflow-y-auto">
+            <div className="text-custom_black search-result absolute top-full left-0 w-[700px] bg-white shadow-lg border border-gray-200 rounded-lg mt-1 h-60 overflow-y-auto">
               {data.map((d, i) => (
                 <div
                   key={i}
