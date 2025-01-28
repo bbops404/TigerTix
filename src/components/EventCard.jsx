@@ -20,4 +20,3 @@ function EventCard({ image, name, location, date, time, buttonText }) {
 }
 
 export default EventCard;
-
