@@ -1,6 +1,13 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 function EventCard({ image, name, location, date, time, buttonText }) {
+  const navigate = useNavigate(); // Initialize useNavigate hook
+
+  const handleButtonClick = () => {
+    navigate("/event-ticketed");
+  };
+
   return (
     <div className="text-white font-Poppins flex flex-col items-center text-center">
       <div
@@ -12,7 +19,10 @@ function EventCard({ image, name, location, date, time, buttonText }) {
       <div className="bg-white text-black text-xs font-bold py-1 px-2 min-w-[280px] rounded-2xl my-1">
         {date} | {time}
       </div>
-      <button className="bg-[#F09C32] text-black text-sm font-bold py-2 px-5 rounded-2xl min-w-[300px] uppercase transition-transform duration-200 hover:bg-[#d58527] hover:scale-105">
+      <button
+        className="bg-[#F09C32] text-black text-sm font-bold py-2 px-5 rounded-2xl min-w-[300px] uppercase transition-transform duration-200 hover:bg-[#d58527] hover:scale-105"
+        onClick={handleButtonClick} // Trigger navigate on button click
+      >
         {buttonText}
       </button>
     </div>
