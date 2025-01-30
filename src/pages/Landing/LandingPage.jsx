@@ -1,9 +1,12 @@
 import React from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
 import EventCard from "../../components/EventCard";
 import Header from "../../components/Header";
 import LoginPopup from "./LoginPopup";
 
 function Carousel() {
+  const navigate = useNavigate(); // Initialize navigation
+
   return (
     <div
       className="relative bg-cover bg-center h-[700px] text-white flex items-center justify-center flex-col"
@@ -18,7 +21,10 @@ function Carousel() {
         </span>
       </div>
       <div className="absolute bottom-[60px] right-[100px]">
-        <button className="font-Poppins bg-[#F09C32] text-black font-bold py-3 px-7 min-w-[300px] rounded-full uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-yellow-600">
+        <button
+          className="font-Poppins bg-[#F09C32] text-black font-bold py-3 px-7 min-w-[300px] rounded-full uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-yellow-600"
+          onClick={() => navigate("/event-ticketed")} // Redirects to Event_Ticketed
+        >
           RESERVE NOW
         </button>
       </div>
