@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import OtpInput from "../../components/OtpInput";
+import { useNavigate } from "react-router-dom";
 
 // Validation Schema (Only Email)
 const schema = yup
@@ -24,6 +25,7 @@ const SignUp = () => {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
+  const [knownOtp] = useState("1234"); // ✅ Hardcoded OTP for testing
 
   const {
     register,
@@ -41,24 +43,20 @@ const SignUp = () => {
     // Send email to backend for verification
   };
 
-  // Handler for OTP submission
-  const onOtpSubmit = (otp) => {
-    setOtp(otp); // Update OTP state
-    console.log("Submitted OTP:", otp);
-    alert(`OTP ${otp} submitted for ${email}`);
-    // Send OTP to backend for validation
-  };
-
   // Handler for confirming OTP via button click
   const handleConfirmOtp = () => {
     if (otp.length === 4) {
-      console.log("Confirming OTP:", otp);
-      alert(`OTP ${otp} confirmed for ${email}`);
-      // You can proceed with further OTP validation here
+      if (otp === knownOtp) {
+        console.log("Confirming OTP:", otp);
+        alert(`OTP ${otp} confirmed for ${email}`);
+        navigate("/SignUp");
+        // Send OTP to backend for validation
+      }
     } else {
       alert("Please enter the complete OTP.");
     }
   };
+  const navigate = useNavigate();
 
   return (
     <div>
@@ -135,16 +133,18 @@ const SignUp = () => {
                 </div>
 
                 <div className="flex justify-center">
-                  <OtpInput length={4} onOtpSubmit={onOtpSubmit} />
+                  <OtpInput length={4} setOtp={setOtp} />
                 </div>
 
                 {/* Confirm OTP Button */}
-                <button
-                  onClick={handleConfirmOtp}
-                  className="bg-custom_black text-white px-4 py-2 mt-5 w-72 text-sm rounded-md font-semibold hover:text-custom_yellow transition-all duration-300 transform hover:scale-105"
-                >
-                  Confirm OTP
-                </button>
+                <div className="flex justify-center">
+                  <button
+                    onClick={handleConfirmOtp}
+                    className="bg-custom_black text-white px-4 py-2 mt-5 w-72 text-sm rounded-md font-semibold hover:text-custom_yellow transition-all duration-300 transform hover:scale-105"
+                  >
+                    Confirm OTP
+                  </button>
+                </div>
               </>
             )}
           </div>
