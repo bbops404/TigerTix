@@ -1,24 +1,42 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import SignUp_VerifyEmail from "./pages/Landing/SignUp_EmailVerification";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import SignUpVerifyEmail from "./pages/Landing/SignUp_EmailVerification";
 import Footer from "./components/Footer";
 import LandingPage from "./pages/Landing/LandingPage";
-import Event_Ticketed from "./pages/Landing/Event_Ticketed";
-import SignUp_UserDetails from "./pages/Landing/SignUp_UserDetails";
+import EventTicketed from "./pages/Landing/Event_Ticketed";
+import SignUpUserDetails from "./pages/Landing/SignUp_UserDetails";
 import ForgetPassword from "./pages/Landing/ForgetPass_EmailVerification";
 import UpdatePassword from "./pages/Landing/ForgetPass_ChangePass";
+import AdminDashboard from "./pages/Admin/Admin_Dashboard";
+import Home from "./pages/EndUser/Home";
+
+const Layout = ({ children }) => {
+  const location = useLocation();
+  const hideFooterRoutes = ["/admin-dashboard"];
+  const shouldShowFooter = !hideFooterRoutes.includes(location.pathname);
+
+  return (
+    <>
+      {children}
+      {shouldShowFooter && <Footer />}
+    </>
+  );
+};
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/verify" element={<SignUp_VerifyEmail />} />
-        <Route path="/event-ticketed" element={<Event_Ticketed />} />
-        <Route path="/SignUp" element={<SignUp_UserDetails />} />
-        <Route path="/ForgetPass_EmailVerification" element={<ForgetPassword />} />
-        <Route path="/ForgetPass_ChangePass" element={<UpdatePassword />} />
-      </Routes>
-      <Footer />
+      <Layout>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/verify" element={<SignUpVerifyEmail />} />
+          <Route path="/event-ticketed" element={<EventTicketed />} />
+          <Route path="/sign-up" element={<SignUpUserDetails />} />
+          <Route path="/forget-password" element={<ForgetPassword />} />
+          <Route path="/change-password" element={<UpdatePassword />} />
+          <Route path="/dashboard" element={<AdminDashboard />} />
+          <Route path="/home" element={<Home />} />
+        </Routes>
+      </Layout>
     </BrowserRouter>
   );
 }

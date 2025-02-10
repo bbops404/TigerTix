@@ -1,12 +1,19 @@
-import React, { useEffect, useRef } from "react";
-import { FaUser } from "react-icons/fa";
-import { FaLock } from "react-icons/fa";
+import React, { useEffect, useRef, useState } from "react";
+import { FaUser, FaLock } from "react-icons/fa";
 import { IoIosCloseCircleOutline } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
+
+const predefinedUsers = [
+  { email: "admin@ust.edu.ph", password: "admin123", role: "admin" },
+  { email: "support@ust.edu.ph", password: "support123", role: "support" },
+  { email: "user@ust.edu.ph", password: "user123", role: "user" },
+];
 
 const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
   const loginPopupRef = useRef(null);
   const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -15,11 +22,27 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [toggleLoginPopup]);
+
+  const handleLogin = () => {
+    const trimmedEmail = email.trim();
+    const user = predefinedUsers.find(
+      (u) => u.email === trimmedEmail && u.password === password
+    );
+
+    if (user) {
+      alert(`Successfully logged in as ${user.role.toUpperCase()}!`);
+      toggleLoginPopup();
+
+      if (user.role === "admin") navigate("/dashboard");
+      else navigate("/home");
+    } else {
+      alert("Invalid email or password. Please try again.");
+    }
+  };
 
   return (
     <>
@@ -39,18 +62,23 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
             <p className="font-extrabold text-3xl text-custom_black pb-3">
               Login
             </p>
+
+            {/* Email Input */}
             <div className="text-left">
-              <p className="text-custom_black mb-1 text-sm">Email/Username</p>
+              <p className="text-custom_black mb-1 text-sm">Email</p>
               <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 border-[#D8DADC] h-10 w-[300px]">
                 <FaUser className="w-4 h-4 text-gray-400" />
                 <input
-                  type="text"
+                  type="email"
                   className="focus:outline-none text-sm w-full text-gray-600"
-                  placeholder="Email/Username"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
             </div>
 
+            {/* Password Input */}
             <div className="text-left">
               <p className="text-custom_black mb-1 text-sm">Password</p>
               <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 border-[#D8DADC] h-10 w-[300px]">
@@ -58,26 +86,37 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
                 <input
                   type="password"
                   className="focus:outline-none text-sm w-full text-gray-600"
-                  placeholder="Password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
             </div>
+
+            {/* Forgot Password */}
             <div className="text-left w-[300px] pb-3">
-              <button className="text-xs text-custom_black hover:underline focus:outline-none"
-               onClick={() => navigate("/ForgetPass_EmailVerification")}>
-                Forget password?
+              <button
+                className="text-xs text-custom_black hover:underline focus:outline-none"
+                onClick={() => navigate("/forget-password")}
+              >
+                Forgot password?
               </button>
             </div>
-            
 
-            <button className="bg-custom_black text-white px-4 py-2 w-[300px] rounded-md font-semibold hover:text-custom_yellow">
+            {/* Login Button */}
+            <button
+              className="bg-custom_black text-white px-4 py-2 w-[300px] rounded-md font-semibold hover:text-custom_yellow"
+              onClick={handleLogin}
+            >
               Login
             </button>
+
+            {/* Sign Up */}
             <div className="flex text-xs text-white pt-2">
               <p className="mr-1 font-light">Don’t have an account?</p>
               <button
                 onClick={() => navigate("/verify")}
-                lassName="font-bold hover:underline focus:outline-none"
+                className="font-bold hover:underline focus:outline-none"
               >
                 Sign Up!
               </button>
