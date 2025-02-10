@@ -35,12 +35,12 @@ function Carousel() {
 function EventSection({ title, description, events }) {
   return (
     <section className="p-5 bg-[#222] text-white font-Poppins text-lg font-semibold">
-      <h2 className="text-left pl-[200px] text-xl">{title}</h2>
-      <h3 className="text-left pl-[220px] text-sm text-gray-400 font-light">
+      <h2 className="text-left pl-[400px] text-[28px] ">{title}</h2>
+      <h3 className="text-left pl-[420px] text-[16px] text-gray-400 font-light">
         {description}
       </h3>
-      <div className="relative flex gap-2 overflow-x-auto scrollbar-hidden py-5 justify-center items-center">
-        <div className="text-2xl cursor-pointer font-Poppins font-semibold absolute top-1/2 left-5 transform -translate-y-1/2 z-10">
+      <div className="relative flex gap-5 overflow-x-auto scrollbar-none py-5 justify-center items-center">
+        <div className="text-2xl cursor-pointer font-Poppins text-[32px] font-semibold absolute top-1/2 left-[300px] transform -translate-y-1/2 z-10">
           &lt;
         </div>
 
@@ -56,7 +56,7 @@ function EventSection({ title, description, events }) {
           />
         ))}
 
-        <div className="text-2xl cursor-pointer font-Poppins font-semibold absolute top-1/2 right-5 transform -translate-y-1/2 z-10">
+        <div className="text-2xl cursor-pointer font-Poppins text-[32px] font-semibold absolute top-1/2 right-[300px] transform -translate-y-1/2 z-10">
           &gt;
         </div>
       </div>

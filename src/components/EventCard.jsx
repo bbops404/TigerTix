@@ -11,7 +11,7 @@ function EventCard({ image, name, location, date, time, buttonText }) {
   return (
     <div className="text-white font-Poppins flex flex-col items-center text-center">
       <div
-        className="w-[300px] h-[350px] bg-gray-300 bg-cover bg-center"
+        className="w-[400px] h-[500px] bg-gray-300 bg-cover bg-center"
         style={{ backgroundImage: `url(${image})` }}
       ></div>
       <p className="text-lg font-bold my-1">{name}</p>

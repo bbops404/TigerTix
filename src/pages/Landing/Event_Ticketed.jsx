@@ -36,7 +36,7 @@ const Event_Ticketed = () => {
         </svg>
       </button>
 
-      <div className="flex justify-center items-center p-4">
+      <div className="flex justify-center items-center p-4 mt-16">
         <div className="text-white p-6 flex max-w-4xl w-full rounded-lg">
           {/* Left Image Placeholder */}
           <div className="bg-gray-300 w-1/2 h-180 rounded-lg"></div>

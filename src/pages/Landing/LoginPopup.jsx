@@ -63,10 +63,12 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
               </div>
             </div>
             <div className="text-left w-[300px] pb-3">
-              <button className="text-xs text-custom_black hover:underline focus:outline-none">
+              <button className="text-xs text-custom_black hover:underline focus:outline-none"
+               onClick={() => navigate("/ForgetPass_EmailVerification")}>
                 Forget password?
               </button>
             </div>
+            
 
             <button className="bg-custom_black text-white px-4 py-2 w-[300px] rounded-md font-semibold hover:text-custom_yellow">
               Login
