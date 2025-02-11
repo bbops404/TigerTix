@@ -1,36 +1,82 @@
-import React from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import EventCard from "../../components/EventCard";
 import Header from "../../components/Header";
 import LoginPopup from "./LoginPopup";
 
+const images = [
+  "src/assets/c1.jpg",
+  "src/assets/c2.jpg",
+  "src/assets/c3.jpg",
+  "src/assets/c4.jpg"
+];
+
 function Carousel() {
-  const navigate = useNavigate(); // Initialize navigation
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const navigate = useNavigate();
+  const [isSliding, setIsSliding] = useState(false);
+
+  const prevSlide = () => {
+    if (isSliding) return;
+    setIsSliding(true);
+    setCurrentIndex((prevIndex) => (prevIndex === 0 ? images.length - 1 : prevIndex - 1));
+    setTimeout(() => setIsSliding(false), 500);
+  };
+
+  const nextSlide = () => {
+    if (isSliding) return;
+    setIsSliding(true);
+    setCurrentIndex((prevIndex) => (prevIndex === images.length - 1 ? 0 : prevIndex + 1));
+    setTimeout(() => setIsSliding(false), 500);
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      nextSlide();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div
-      className="relative bg-cover bg-center h-[700px] text-white flex items-center justify-center flex-col"
-      style={{ backgroundImage: `url('/path/to/your/image.jpg')` }}
-    >
+    <div className="relative w-full h-[700px] overflow-hidden">
+      <div className="flex w-full h-full transition-transform duration-500 ease-in-out"
+        style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+        {images.map((image, index) => (
+          <div key={index} className="relative w-full flex-shrink-0 h-full bg-cover bg-center"
+            style={{ backgroundImage: `url('${image}')` }}>
+            <div className="absolute inset-0 bg-gradient-to-b from-[#010100] via-[#FFAB40] to-[#000000] opacity-80"></div>
+          </div>
+        ))}
+      </div>
       <div className="absolute top-1/2 left-0 right-0 flex justify-between px-5 transform -translate-y-1/2">
-        <span className="font-Poppins text-4xl text-white cursor-pointer">
+        <span className="font-Poppins text-4xl text-white cursor-pointer" onClick={prevSlide}>
           &lt;
         </span>
-        <span className="font-Poppins text-4xl text-white cursor-pointer">
+        <span className="font-Poppins text-4xl text-white cursor-pointer" onClick={nextSlide}>
           &gt;
         </span>
       </div>
       <div className="absolute bottom-[60px] right-[100px]">
         <button
           className="font-Poppins bg-[#F09C32] text-black font-bold py-3 px-7 min-w-[300px] rounded-full uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-yellow-600"
-          onClick={() => navigate("/event-ticketed")} // Redirects to Event_Ticketed
+          onClick={() => navigate("/event-ticketed")}
         >
           RESERVE NOW
         </button>
       </div>
+      <div className="absolute bottom-5 flex space-x-2 w-full justify-center">
+        {images.map((_, index) => (
+          <div
+            key={index}
+            className={`w-3 h-3 rounded-full cursor-pointer transition-all ${index === currentIndex ? "bg-white" : "bg-gray-500"}`}
+            onClick={() => setCurrentIndex(index)}
+          ></div>
+        ))}
+      </div>
     </div>
   );
 }
+
 
 function EventSection({ title, description, events }) {
   return (
@@ -64,8 +110,9 @@ function EventSection({ title, description, events }) {
   );
 }
 
+
 function LandingPage() {
-  const [loginPopup, setLoginPopup] = React.useState(false);
+  const [loginPopup, setLoginPopup] = useState(false);
   const toggleLoginPopup = () => {
     setLoginPopup((prev) => !prev);
   };
@@ -73,19 +120,14 @@ function LandingPage() {
   return (
     <div className="bg-[#121212] text-white">
       <Header toggleLoginPopup={toggleLoginPopup} />
-      {loginPopup && (
-        <LoginPopup
-          loginPopup={loginPopup}
-          toggleLoginPopup={toggleLoginPopup}
-        />
-      )}
+      {loginPopup && <LoginPopup loginPopup={loginPopup} toggleLoginPopup={toggleLoginPopup} />}
       <Carousel />
       <EventSection
         title="TICKETED EVENTS"
         description="Events where tickets must be reserved in advance. Ensure your spot by booking a ticket."
         events={[
           {
-            image: "path/to/image1.jpg",
+            image: "src/assets/event1.jpg",
             name: "UAAP Season 87 Men's Basketball",
             location: "SM Mall of Asia Arena",
             date: "September 4, 2024",
@@ -93,7 +135,7 @@ function LandingPage() {
             buttonText: "Reserve Now",
           },
           {
-            image: "path/to/image2.jpg",
+            image: "src/assets/event2.jpg",
             name: "UAAP Season 87 Women's Basketball",
             location: "Araneta Coliseum",
             date: "September 15, 2024",
@@ -107,7 +149,7 @@ function LandingPage() {
         description="UAAP or other IPEA Events that are open to all without the need for a reservation or ticket. Simply show up!"
         events={[
           {
-            image: "path/to/image1.jpg",
+            image: "src/assets/event3.jpg",
             name: "UAAP Season 87 Men's Basketball",
             location: "SM Mall of Asia Arena",
             date: "September 4, 2024",
