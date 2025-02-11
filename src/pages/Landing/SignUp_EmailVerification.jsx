@@ -49,7 +49,7 @@ const SignUp = () => {
       if (otp === knownOtp) {
         console.log("Confirming OTP:", otp);
         alert(`OTP ${otp} confirmed for ${email}`);
-        navigate("/SignUp");
+        navigate("/sign-up");
         // Send OTP to backend for validation
       }
     } else {
