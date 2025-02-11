@@ -5,10 +5,10 @@ import Header from "../../components/Header";
 import LoginPopup from "./LoginPopup";
 
 const images = [
-  "src/assets/c1.jpg",
-  "src/assets/c2.jpg",
-  "src/assets/c3.jpg",
-  "src/assets/c4.jpg"
+  { src: "src/assets/c1.jpg", title: "UST VS. ADU", description: "Basketball Tournament Round 2" },
+  { src: "src/assets/c2.jpg", title: "UST VS. DLSU", description: "Basketball Tournament Round 3" },
+  { src: "src/assets/c3.jpg", title: "UST VS. UP", description: "Basketball Tournament Round 4" },
+  { src: "src/assets/c4.jpg", title: "UST VS. NU", description: "Basketball Tournament Round 5" }
 ];
 
 function Carousel() {
@@ -30,21 +30,20 @@ function Carousel() {
     setTimeout(() => setIsSliding(false), 500);
   };
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      nextSlide();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <div className="relative w-full h-[700px] overflow-hidden">
-      <div className="flex w-full h-full transition-transform duration-500 ease-in-out"
-        style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+      <div
+        className="flex w-full h-full transition-transform duration-500 ease-in-out"
+        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+      >
         {images.map((image, index) => (
           <div key={index} className="relative w-full flex-shrink-0 h-full bg-cover bg-center"
-            style={{ backgroundImage: `url('${image}')` }}>
+            style={{ backgroundImage: `url('${image.src}')` }}>
             <div className="absolute inset-0 bg-gradient-to-b from-[#010100] via-[#FFAB40] to-[#000000] opacity-80"></div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-10">
+              <h2 className="font - Poppins text-[99px] font-extrabold">{image.title}</h2>
+              <p className="font - Poppins text-[26px] font-semibold mt-2">{image.description}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -78,13 +77,13 @@ function Carousel() {
 }
 
 
+
 function EventSection({ title, description, events }) {
   return (
     <section className="p-5 bg-[#222] text-white font-Poppins text-lg font-semibold">
-      <h2 className="text-left pl-[400px] text-[28px] ">{title}</h2>
-      <h3 className="text-left pl-[420px] text-[16px] text-gray-400 font-light">
-        {description}
-      </h3>
+      <h2 className="text-left pl-[400px] text-[28px]">{title}</h2>
+      <h3 className="text-left pl-[420px] text-[16px] text-gray-400 font-light">{description}</h3>
+
       <div className="relative flex gap-5 overflow-x-auto scrollbar-none py-5 justify-center items-center">
         <div className="text-2xl cursor-pointer font-Poppins text-[32px] font-semibold absolute top-1/2 left-[300px] transform -translate-y-1/2 z-10">
           &lt;
@@ -99,6 +98,7 @@ function EventSection({ title, description, events }) {
             date={event.date}
             time={event.time}
             buttonText={event.buttonText}
+            link={event.link} // Now passing just the string
           />
         ))}
 
@@ -133,6 +133,7 @@ function LandingPage() {
             date: "September 4, 2024",
             time: "2:00 PM",
             buttonText: "Reserve Now",
+            link: "/event-ticketed"
           },
           {
             image: "src/assets/event2.jpg",
@@ -141,6 +142,7 @@ function LandingPage() {
             date: "September 15, 2024",
             time: "11:30 AM",
             buttonText: "Reserve Now",
+            link: "/event-ticketed"
           },
         ]}
       />
@@ -155,6 +157,7 @@ function LandingPage() {
             date: "September 4, 2024",
             time: "2:00 PM",
             buttonText: "View Details",
+            link: "/event-free"
           },
         ]}
       />
@@ -169,6 +172,7 @@ function LandingPage() {
             date: "September 4, 2024",
             time: "2:00 PM",
             buttonText: "View Details",
+            link: "/event-coming-soon"
           },
           {
             image: "path/to/image2.jpg",
@@ -177,6 +181,7 @@ function LandingPage() {
             date: "September 15, 2024",
             time: "11:30 AM",
             buttonText: "View Details",
+            link: "/event-coming-soon"
           },
         ]}
       />
