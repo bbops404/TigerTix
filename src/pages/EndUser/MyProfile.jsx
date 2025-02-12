@@ -1,11 +1,11 @@
 import React from "react";
 import Header from "../../components/Header"; //update header once signed in
-import Footer from "../../components/Footer";
 import { GoArrowLeft } from "react-icons/go";
 import { useNavigate } from "react-router-dom";
 import { VscAccount } from "react-icons/vsc";
+import ChangePasswordPopup from "./ChangePasswordPopup";
 
-//Need configuration from backend
+//Need configuration from backend database
 const Label = ({ label, value }) => {
   return (
     <div className="w-full grid grid-cols-[20%_80%]  items-start py-2 gap-2 font-semibold">
@@ -21,6 +21,12 @@ const Label = ({ label, value }) => {
 
 const MyProfile = () => {
   const navigate = useNavigate();
+  const [showChangePasswordPopup, setShowChangePasswordPopup] = useState(false);
+
+  const toggleChangePasswordPopup = () => {
+    setShowChangePasswordPopup((prev) => !prev);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#202020]">
       {/*Header*/}
@@ -66,15 +72,18 @@ const MyProfile = () => {
               <div>
                 <button
                   className="w-50px py-1 px-5 cursor-pointer hover:bg-[#FFD7A5] hover:text-[#333333] transition duration-300 flex rounded-full ml-auto bg-[#333333] text-[#FFD7A5] shadow-md"
-                  onClick={() => navigate("/change-password")}>
-                  {/*navigate to my change password page*/}
-                  Change Password
+                  onClick={toggleChangePasswordPopup}
+                >
+                {/*navigate to my changePasswordPopup page*/}
+                Change Password
                 </button>
               </div>
             </div>
           </div>
         </div>
       </div>
+      {/* Change Password Popup */}
+      <ChangePasswordPopup showPopup={showChangePasswordPopup} togglePopup={toggleChangePasswordPopup} />
     </div>
   );
 };
