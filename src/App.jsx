@@ -8,6 +8,7 @@ import ForgetPassword from "./pages/Landing/ForgetPass_EmailVerification";
 import UpdatePassword from "./pages/Landing/ForgetPass_ChangePass";
 import AdminDashboard from "./pages/Admin/Admin_Dashboard";
 import Home from "./pages/EndUser/Home";
+import MyProfile from "./pages/EndUser/MyProfile";
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -35,6 +36,7 @@ function App() {
           <Route path="/change-password" element={<UpdatePassword />} />
           <Route path="/dashboard" element={<AdminDashboard />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/my-profile" element={<MyProfile />} />
         </Routes>
       </Layout>
     </BrowserRouter>
