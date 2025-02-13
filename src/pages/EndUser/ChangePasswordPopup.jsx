@@ -18,11 +18,11 @@ const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
 
   return (
     showPopup && (
-      <div className="fixed top-0 left-0 w-full h-full flex justify-center items-center bg-black bg-opacity-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg w-96 z-5">
-          <h2 className="text-xl font-bold mb-4">Change Password</h2>
+      <div className="fixed top-0 left-0 w-full h-full flex justify-center items-center bg-black bg-opacity-50 z-20">
+        <div className="w-[500px] max-w-[90vw] h-auto max-h-[90vh] bg-white p-6 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-4 text-center">CHANGE PASSWORD</h2>
 
-          <div className="mb-3">
+          <div className="mb-3 shadow-md">
             <label className="text-sm font-semibold">Current Password</label>
             <input
               type="password"
@@ -32,7 +32,7 @@ const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
             />
           </div>
 
-          <div className="mb-3">
+          <div className="mb-3 shadow-md">
             <label className="text-sm font-semibold">New Password</label>
             <input
               type="password"
@@ -42,7 +42,7 @@ const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
             />
           </div>
 
-          <div className="mb-3">
+          <div className="mb-3 shadow-md">
             <label className="text-sm font-semibold">Confirm New Password</label>
             <input
               type="password"
@@ -55,11 +55,11 @@ const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <div className="flex justify-end space-x-2 mt-4">
-            <button className="bg-gray-500 text-white px-4 py-2 rounded-md" onClick={togglePopup}>
+            <button className="bg-[#333333] text-[#FFD7A5] hover:bg-[#FFD7A5] hover:text-[#333333] text-white px-4 py-2 rounded-md" onClick={togglePopup}>
               Cancel
             </button>
-            <button className="bg-blue-500 text-white px-4 py-2 rounded-md" onClick={handleChangePassword}>
-              Save
+            <button className="bg-[#333333] text-[#FFD7A5] hover:bg-[#FFD7A5] hover:text-[#333333] text-white px-4 py-2 rounded-md" onClick={handleChangePassword}>
+              UPDATE
             </button>
           </div>
         </div>
