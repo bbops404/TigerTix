@@ -8,6 +8,11 @@ import ForgetPassword from "./pages/Landing/ForgetPass_EmailVerification";
 import UpdatePassword from "./pages/Landing/ForgetPass_ChangePass";
 import AdminDashboard from "./pages/Admin/Admin_Dashboard";
 import Home from "./pages/EndUser/Home";
+import PrivacyPolicy from "./pages/FooterPages/PrivacyPolicy";
+import TermsOfUse from "./pages/FooterPages/TermsOfUse";
+import AboutUs from "./pages/FooterPages/AboutUs";
+import ContactUs from "./pages/FooterPages/ContactUs";
+import FAQs from "./pages/FooterPages/FAQs"; // Import FAQs page
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -35,6 +40,11 @@ function App() {
           <Route path="/change-password" element={<UpdatePassword />} />
           <Route path="/dashboard" element={<AdminDashboard />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-use" element={<TermsOfUse />} />
+          <Route path="/about-us" element={<AboutUs />} />
+          <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/faqs" element={<FAQs />} /> {/* Added FAQs route */}
         </Routes>
       </Layout>
     </BrowserRouter>
