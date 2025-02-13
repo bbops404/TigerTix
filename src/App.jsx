@@ -8,6 +8,7 @@ import ForgetPassword from "./pages/Landing/ForgetPass_EmailVerification";
 import UpdatePassword from "./pages/Landing/ForgetPass_ChangePass";
 import AdminDashboard from "./pages/Admin/Admin_Dashboard";
 import Home from "./pages/EndUser/Home";
+import MyProfile from "./pages/EndUser/MyProfile";
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -27,7 +28,7 @@ function App() {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<MyProfile />} />
           <Route path="/verify" element={<SignUpVerifyEmail />} />
           <Route path="/event-ticketed" element={<EventTicketed />} />
           <Route path="/sign-up" element={<SignUpUserDetails />} />
@@ -35,6 +36,7 @@ function App() {
           <Route path="/change-password" element={<UpdatePassword />} />
           <Route path="/dashboard" element={<AdminDashboard />} />
           <Route path="/home" element={<Home />} />
+          
         </Routes>
       </Layout>
     </BrowserRouter>
