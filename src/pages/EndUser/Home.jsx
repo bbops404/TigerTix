@@ -59,7 +59,7 @@ function Carousel() {
       <div className="absolute bottom-[60px] right-[100px]">
         <button
           className="font-Poppins bg-[#F09C32] text-black font-bold py-3 px-7 min-w-[300px] rounded-full uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-yellow-600"
-          onClick={() => navigate("/event-ticketed")}
+          onClick={() => navigate("/event-ticketed-enduser")}
         >
           RESERVE NOW
         </button>
@@ -149,7 +149,7 @@ function Home() {
             date: "September 4, 2024",
             time: "2:00 PM",
             buttonText: "Reserve Now",
-            link: "/event-ticketed"
+            link: "/event-ticketed-enduser"
           },
           {
             image: "src/assets/event2.jpg",
@@ -158,7 +158,7 @@ function Home() {
             date: "September 15, 2024",
             time: "11:30 AM",
             buttonText: "Reserve Now",
-            link: "/event-ticketed"
+            link: "/event-ticketed-enduser"
           },
         ]}
       />

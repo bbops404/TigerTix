@@ -4,7 +4,7 @@ import Header from "../../components/Header";
 import LoginPopup from "./LoginPopup";
 import TigerTicket from "../../assets/TigerTicket.svg"; // Correct import
 
-const Event_Ticketed = () => {
+const Event_Ticketed_EndUser = () => {
   const [loginPopup, setLoginPopup] = useState(false);
   const navigate = useNavigate(); // Hook for navigation
 
@@ -103,4 +103,4 @@ const Event_Ticketed = () => {
   );
 };
 
-export default Event_Ticketed;
+export default Event_Ticketed_EndUser;
