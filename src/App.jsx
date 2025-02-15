@@ -36,7 +36,8 @@ function App() {
           <Route path="/change-password" element={<UpdatePassword />} />
           <Route path="/dashboard" element={<AdminDashboard />} />
           <Route path="/home" element={<Home />} />
-          
+          <Route path="/my-profile" element={<MyProfile />} />
+
         </Routes>
       </Layout>
     </BrowserRouter>
