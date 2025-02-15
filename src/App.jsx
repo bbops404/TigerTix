@@ -28,7 +28,7 @@ function App() {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<MyProfile />} />
           <Route path="/verify" element={<SignUpVerifyEmail />} />
           <Route path="/event-ticketed" element={<EventTicketed />} />
           <Route path="/sign-up" element={<SignUpUserDetails />} />
@@ -37,6 +37,7 @@ function App() {
           <Route path="/dashboard" element={<AdminDashboard />} />
           <Route path="/home" element={<Home />} />
           <Route path="/my-profile" element={<MyProfile />} />
+
         </Routes>
       </Layout>
     </BrowserRouter>
