@@ -8,11 +8,12 @@ import { FaClock } from "react-icons/fa";
 const ContactUs = () => {
   return (
     <div className="bg-[#202020] text-white min-h-screen font-Poppins">
+      <Header showSearch={false} showAuthButtons={false} />
       <div className="bg-[#D9D9D9] text-black py-16 text-center">
         <h1 className="text-5xl font-bold">Contact Us</h1>
         <h2 className="text-2xl mt-4">Get In Touch With Us</h2>
       </div>
-      
+
       <div className="p-16 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10">
         {/* Phone Box */}
         <div className="bg-[#D9D9D9] text-black p-8 rounded-lg shadow-md flex flex-col items-center text-center">

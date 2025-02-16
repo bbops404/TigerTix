@@ -31,21 +31,25 @@ const MyProfile = () => {
   return (
     <div className="flex flex-col min-h-screen bg-[#202020]">
       {/*Header*/}
-      <Header />
+      <Header showSearch={false} showAuthButtons={false} />
       <button
-          className="absolute top-20 left-4 w-[100px] py-1 px-5 transition duration-300 flex items-center justify-center"
-          onClick={() => navigate("/home")}
-        >
-        <GoArrowLeft size={100} className="text-white" style={{ strokeWidth: 2 }}/>
+        className="absolute top-20 left-4 w-[100px] py-1 px-5 transition duration-300 flex items-center justify-center"
+        onClick={() => navigate("/home")}
+      >
+        <GoArrowLeft
+          size={100}
+          className="text-white"
+          style={{ strokeWidth: 2 }}
+        />
       </button>
 
       {/*Main Container*/}
-      <div className="flex flex-col justify-center items-center flex-grow">   
+      <div className="flex flex-col justify-center items-center flex-grow">
         {/*Center Container*/}
         <div className="w-[90vw] max-w-[1200px] h-[600px] flex flex-col items-center  rounded-lg relative">
           {/*Circle Icon*/}
           <div className="w-60 h-60 border-4 border-[#FFAB40] bg-white rounded-full flex items-center justify-center absolute -top-12 z-10 shadow-lg">
-          <VscAccount size={250} className="text-[#FFAB40]"  />
+            <VscAccount size={250} className="text-[#FFAB40]" />
           </div>
 
           {/* Profile Card */}
@@ -75,8 +79,8 @@ const MyProfile = () => {
                   className="w-50px py-1 px-5 cursor-pointer hover:bg-[#FFD7A5] hover:text-[#333333] transition duration-300 flex rounded-full ml-auto bg-[#333333] text-[#FFD7A5] shadow-md"
                   onClick={toggleChangePasswordPopup}
                 >
-                {/*navigate to my changePasswordPopup page*/}
-                Change Password
+                  {/*navigate to my changePasswordPopup page*/}
+                  Change Password
                 </button>
               </div>
             </div>
@@ -84,7 +88,10 @@ const MyProfile = () => {
         </div>
       </div>
       {/* Change Password Popup */}
-      <ChangePasswordPopup showPopup={showChangePasswordPopup} togglePopup={toggleChangePasswordPopup} />
+      <ChangePasswordPopup
+        showPopup={showChangePasswordPopup}
+        togglePopup={toggleChangePasswordPopup}
+      />
     </div>
   );
 };
