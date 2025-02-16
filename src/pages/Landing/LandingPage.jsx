@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import EventCard from "../../components/EventCard";
 import Header from "../../components/Header";
 import LoginPopup from "./LoginPopup";
+import { IoChevronBackOutline } from "react-icons/io5";
 
 const images = [
   {
@@ -62,12 +63,12 @@ function Carousel() {
             className="relative w-full flex-shrink-0 h-full bg-cover bg-center"
             style={{ backgroundImage: `url('${image.src}')` }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-[#010100] via-[#FFAB40] to-[#000000] opacity-80"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-[#010100] via-[#633904] to-[#000000] opacity-80"></div>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-10">
-              <h2 className="font - Poppins text-[99px] font-extrabold">
+              <h2 className="font-Poppins text-[99px] font-extrabold drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
                 {image.title}
               </h2>
-              <p className="font - Poppins text-[26px] font-semibold mt-2">
+              <p className="font-Poppins text-[26px] font-semibold mt-2 drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
                 {image.description}
               </p>
             </div>
@@ -100,9 +101,8 @@ function Carousel() {
         {images.map((_, index) => (
           <div
             key={index}
-            className={`w-3 h-3 rounded-full cursor-pointer transition-all ${
-              index === currentIndex ? "bg-white" : "bg-gray-500"
-            }`}
+            className={`w-3 h-3 rounded-full cursor-pointer transition-all ${index === currentIndex ? "bg-white" : "bg-gray-500"
+              }`}
             onClick={() => setCurrentIndex(index)}
           ></div>
         ))}
@@ -114,8 +114,8 @@ function Carousel() {
 function EventSection({ title, description, events }) {
   return (
     <section className="p-5 bg-[#222] text-white font-Poppins text-lg font-semibold">
-      <h2 className="text-left pl-[400px] text-[28px]">{title}</h2>
-      <h3 className="text-left pl-[420px] text-[16px] text-gray-400 font-light">
+      <h2 className="text-left pl-[330px] text-[28px] mt-[30px]">{title}</h2>
+      <h3 className="text-left pl-[340px] text-[16px] text-gray-400 font-light">
         {description}
       </h3>
 
@@ -196,7 +196,7 @@ function LandingPage() {
             date: "September 4, 2024",
             time: "2:00 PM",
             buttonText: "View Details",
-            link: "/event-free",
+            link: "/event-free-landing",
           },
         ]}
       />
