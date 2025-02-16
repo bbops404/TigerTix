@@ -17,6 +17,7 @@ import EventComingSoon_Landing from "./pages/Landing/Event_ComingSoon";
 import SignUpUserDetails from "./pages/Landing/SignUp_UserDetails";
 import ForgetPassword from "./pages/Landing/ForgetPass_EmailVerification";
 import UpdatePassword from "./pages/Landing/ForgetPass_ChangePass";
+import RequestReceipt from "./pages/EndUser/RequestReceipt"; 
 
 // ========================== ENDUSER PAGES ==========================
 import Home from "./pages/EndUser/Home";
@@ -81,6 +82,7 @@ function App() {
           <Route path="/my-profile" element={<MyProfile />} />
           <Route path="/confirm" element={<Home />} />
           <Route path="/reservation" element={<Reservation />} />
+          <Route path="/request-receipt" element={<RequestReceipt/>} />
 
           {/* ========================== ADMIN PAGES ========================== */}
           <Route path="/dashboard" element={<AdminDashboard />} />
