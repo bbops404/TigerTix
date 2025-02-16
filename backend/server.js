@@ -22,4 +22,8 @@ app.get("/api/data", (req, res) => {
   res.send(data);
 });
 
+app.post('/', (req, res) => {
+  const newEntry = req, body
+})
+
 app.listen(PORT, () => console.log(`Server has started on: ${PORT}`));
