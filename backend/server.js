@@ -1,29 +1,31 @@
-const express = require("express");
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+
 const app = express();
-const PORT = 8383;
+const port = process.env.PORT || 5001;
 
-let data = {
-  name: "James",
-};
-
-app.get("/", (req, res) => {
-  res.send(`<body style="background:pink; color:blue;">
-    <h1>DATA:</h1>
-    <p>${JSON.stringify(data)}</p>
-    </body>`);
+// Database connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
 });
 
-app.get("/dashboard", (req, res) => {
-  res.send("<h1>dashboard</h1>");
+// Test database connection
+pool.connect()
+  .then(() => console.log('Connected to PostgreSQL successfully! 🎉'))
+  .catch(err => console.error('Database connection error:', err));
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Sample route to test API
+app.get('/', (req, res) => {
+  res.send('Server is running! 🚀');
 });
 
-app.get("/api/data", (req, res) => {
-  console.log("This one was for data");
-  res.send(data);
+// Start the server
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
-
-app.post('/', (req, res) => {
-  const newEntry = req, body
-})
-
-app.listen(PORT, () => console.log(`Server has started on: ${PORT}`));
