@@ -130,4 +130,58 @@ router.post("/signUp", async (req, res) => {
     }
 });
 
+// Route to User login
+router.post("/login", async (req, res) => {
+    console.log("Received POST request:", req.body);  
+
+    try {
+        const { email, username, password } = req.body;
+
+        // Ensure at least one of the fields is provided
+        if (!email && !username || !password) {
+            return res.status(400).json({ message: "Email/Username and Password are required" });
+        }
+
+        // Find user by email or username (case insensitive)
+        const user = await User.findOne({
+            where: {
+                [Sequelize.Op.or]: [
+                    { email: email }, // search by email
+                    { username: username } // search by username
+                ]
+            }
+        });
+
+        // If no user found, send error response
+        if (!user) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        // Compare the provided password with the stored hashed password
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        // Generate JWT token (make sure to replace 'yourSecret' with your actual secret)
+        const token = jwt.sign(
+            { userId: user.id, email: user.email, username: user.username, role: user.role },
+             process.env.JWT_SECRET, // secret key for JWT
+            { expiresIn: '1h' } // set token expiry
+        );
+
+        // Send response with the token
+        res.status(200).json({
+            message: "Login successful",
+            token: token, // return the token for frontend to store
+            user: { email: user.email, username: user.username, role: user.role }
+        });
+
+    } catch (error) {
+        console.error("Error logging in:", error);
+        res.status(500).json({ message: "Failed to log in. Please try again." });
+    }
+});
+
 module.exports = router;
