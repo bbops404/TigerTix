@@ -18,6 +18,9 @@ const User = sequelize.define('User', {
   email: {
     type: DataTypes.STRING,
     allowNull: false,
+    validate: {
+        isEmail: true, // Ensure the email is valid
+      },
     unique: true,
   },
   username: {
@@ -41,9 +44,19 @@ const User = sequelize.define('User', {
     type: DataTypes.INTEGER,
     defaultValue: 0,
   },
+  createdAt: {
+    type: DataTypes.DATE,
+    field: 'created_at' // this tells Sequelize to map to the 'created_at' column in the DB
+  },
 }, {
   tableName: 'users',
   timestamps: true,
+  underscored: true, // Uses snake_case for column names
 });
+
+// Synchronize model with the database
+User.sync()
+  .then(() => console.log('User model synchronized with the database.'))
+  .catch((err) => console.error('Error syncing User model:', err));
 
 module.exports = User;

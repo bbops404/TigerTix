@@ -2,19 +2,19 @@ require('dotenv').config();
 const express = require('express'); // Make sure express is required first
 const cors = require('cors');
 const pool = require('./config/db'); // Import the database connection
-const db = require('./models');
+const db = require('./models/Users');
 
 const Redis = require("ioredis");
 const redisClient = new Redis(); // Default Redis connection on localhost:6379
 
 
 const app = express(); // Now create the express app
-
 const port = process.env.PORT || 5002;
 
 // Middleware
-app.use(cors()); // Enable CORS
-app.use(express.json()); // Parse JSON requests
+app.use(cors());
+app.use(express.json());  // This will parse the JSON body
+
 app.use(express.urlencoded({ extended: true })); // Ensure form data can be parsed
 
 const authRoutes = require("./routes/auth");

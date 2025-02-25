@@ -7,6 +7,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import OtpInput from "../../components/OtpInput";
 import { useNavigate } from "react-router-dom";
+import axios from "axios"; // Import Axios
 
 // Validation Schema (Only Email)
 const schema = yup
@@ -26,6 +27,7 @@ const SignUp = () => {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [knownOtp] = useState("1234"); // ✅ Hardcoded OTP for testing
+  const navigate = useNavigate();
 
   const {
     register,
@@ -36,27 +38,43 @@ const SignUp = () => {
   });
 
   // Handler for email submission
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     setEmail(data.email); // Store the email
     setShowOtpInput(true); // Show OTP input
     alert(`Verification code sent to: ${data.email}`);
-    // Send email to backend for verification
+
+    try {
+      // Send email to backend for OTP generation
+      const response = await axios.post("http://localhost:5002/auth/send-otp", { email: data.email });
+      
+      if (response.status === 200) {
+        alert("OTP sent successfully! Please check your email.");
+      }
+    } catch (error) {
+      console.error("Error sending OTP:", error);
+      alert("Failed to send OTP. Please try again.");
+    }
   };
 
   // Handler for confirming OTP via button click
-  const handleConfirmOtp = () => {
-    if (otp.length === 4) {
-      if (otp === knownOtp) {
-        console.log("Confirming OTP:", otp);
-        alert(`OTP ${otp} confirmed for ${email}`);
-        navigate("/sign-up");
+  const handleConfirmOtp = async () => {
+    if (otp.length === 6) {
+      try {
         // Send OTP to backend for validation
+        const response = await axios.post("http://localhost:5002/auth/validate-otp", { email, otp });
+        
+        if (response.status === 200) {
+          alert("OTP confirmed successfully.");
+          navigate("/sign-up"); // Navigate to the next page
+        }
+      } catch (error) {
+        console.error("Error confirming OTP:", error);
+        alert("Invalid OTP. Please try again.");
       }
     } else {
       alert("Please enter the complete OTP.");
     }
   };
-  const navigate = useNavigate();
 
   return (
     <div>
@@ -133,7 +151,7 @@ const SignUp = () => {
                 </div>
 
                 <div className="flex justify-center">
-                  <OtpInput length={4} setOtp={setOtp} />
+                  <OtpInput length={6} setOtp={setOtp} />
                 </div>
 
                 {/* Confirm OTP Button */}
