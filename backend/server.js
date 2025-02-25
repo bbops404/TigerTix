@@ -1,20 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
+const pool = require('./config/db'); // Import the database connection
+const db = require('./models');
 
 const app = express();
-const port = process.env.PORT || 5001;
-
-// Database connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-// Test database connection
-pool.connect()
-  .then(() => console.log('Connected to PostgreSQL successfully! 🎉'))
-  .catch(err => console.error('Database connection error:', err));
+const port = process.env.PORT || 5002;
 
 // Middleware
 app.use(cors());
@@ -29,3 +20,7 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+db.sequelize.authenticate()
+  .then(() => console.log('Sequelize connected to the database successfully! 🎉'))
+  .catch(err => console.error('Sequelize connection error:', err));
