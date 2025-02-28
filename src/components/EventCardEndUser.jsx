@@ -23,13 +23,13 @@ function EventCardEndUser({ image, name, location, date, time, buttonText, link 
 
       {/* Container for date | time and notification button */}
       <div className="flex items-center justify-between min-w-[300px] my-1">
-        <div className="bg-white text-black text-xs font-bold py-1 px-2 rounded-2xl">
+        <div className="bg-white text-black text-xs font-bold py-1 px-4 rounded-2xl w-full text-center">
           {date} | {time}
         </div>
         {/* Notification Button */}
         {notification && (
           <button
-            className="bg-white p-1 rounded-full transition-transform duration-200 hover:bg-gray-200 hover:scale-105"
+            className="bg-white p-1 rounded-full transition-transform duration-200 hover:bg-gray-200 hover:scale-105 ml-1"
             onClick={() => setNotification(true)}
           >
             <IoNotifications className="text-xl text-[#F09C32]" />
