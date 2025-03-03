@@ -18,6 +18,18 @@ const Reservation = () => {
     };
 
     const navigate = useNavigate();
+
+    const handleReceipt = () => {
+        const reservationDetails = {
+            ticketType,
+            ticketCount,
+            ticketPrices,
+            emails,
+            timeSlot
+        };
+    
+        navigate("/request-receipt", { state: reservationDetails });
+    };
     
     return (
         <div className="bg-[#121212] text-white min-h-screen">
@@ -250,7 +262,7 @@ const Reservation = () => {
                     {/* Confirm Button */}
                     <div className="mt-8 text-center">
                         <button className="font-Poppins bg-black text-[#F09C32] font-bold text-lg py-3 px-7 min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600"
-                        onClick={() => navigate("/confirm ")} // Change to ticket details - this is for visualization only
+                        onClick={handleReceipt} // Change to ticket details - this is for visualization only
                         >
                             CONFIRM
                         </button>
