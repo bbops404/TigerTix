@@ -17,7 +17,6 @@ import EventComingSoon_Landing from "./pages/Landing/Event_ComingSoon";
 import SignUpUserDetails from "./pages/Landing/SignUp_UserDetails";
 import ForgetPassword from "./pages/Landing/ForgetPass_EmailVerification";
 import UpdatePassword from "./pages/Landing/ForgetPass_ChangePass";
-import RequestReceipt from "./pages/EndUser/RequestReceipt"; 
 
 // ========================== ENDUSER PAGES ==========================
 import Home from "./pages/EndUser/Home";
@@ -31,12 +30,12 @@ import RequestReceipt from "./pages/EndUser/RequestReceipt";
 
 // ========================== ADMIN PAGES ==========================
 import AdminDashboard from "./pages/Admin/Admin_Dashboard";
-import AdminEventsManagment from "./pages/Admin/Admin_EventsManagement"
-import AdminReservations from "./pages/Admin/Admin_Reservations"
-import AdminUser from "./pages/Admin/Admin_UserPage"
-import AdminProfile from "./pages/Admin/Admin_ProfilePage"
-import AuditTrails from "./pages/Admin/Admin_AuditTrails"
-import AdminEventReports from "./pages/Admin/Admin_EventReports"
+import AdminEventsManagment from "./pages/Admin/Admin_EventsManagement";
+import AdminReservations from "./pages/Admin/Admin_Reservations";
+import AdminUser from "./pages/Admin/Admin_UserPage";
+import AdminProfile from "./pages/Admin/Admin_ProfilePage";
+import AuditTrails from "./pages/Admin/Admin_AuditTrails";
+import AdminEventReports from "./pages/Admin/Admin_EventReports";
 
 // ========================== SUPPORT STAFF PAGES ==========================
 // (Add support staff routes here when available)
@@ -90,17 +89,16 @@ function App() {
           <Route path="/confirm" element={<Home />} />
           <Route path="/reservation" element={<Reservation />} />
 
-          <Route path="/request-receipt" element={<RequestReceipt/>} />
-
+          <Route path="/request-receipt" element={<RequestReceipt />} />
 
           {/* ========================== ADMIN PAGES ========================== */}
           <Route path="/dashboard" element={<AdminDashboard />} />
           <Route path="/event-management" element={<AdminEventsManagment />} />
-          <Route path="/reservations" element={<AdminReservations/>} />
-          <Route path="/user" element={<AdminUser/>} />
-          <Route path="/adminprofile" element={<AdminProfile/>} />
-          <Route path="/audit-trails" element={<AuditTrails/>} />
-          <Route path="/event-report" element={<AdminEventReports/>} />
+          <Route path="/reservations" element={<AdminReservations />} />
+          <Route path="/user" element={<AdminUser />} />
+          <Route path="/adminprofile" element={<AdminProfile />} />
+          <Route path="/audit-trails" element={<AuditTrails />} />
+          <Route path="/event-report" element={<AdminEventReports />} />
 
           {/* ========================== FOOTER PAGES ========================== */}
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
