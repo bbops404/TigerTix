@@ -6,6 +6,7 @@ import Header from "../../components/Header";
 const TermsOfUse = () => {
   return (
     <div className="bg-[#202020] text-white min-h-screen">
+
       <Header />
       
       {/* Back Button */}
@@ -33,11 +34,14 @@ const TermsOfUse = () => {
               <li>Use the platform for unlawful purposes.</li>
               <li>Tamper with or hack the system.</li>
               <li>Misrepresent your identity or provide false information.</li>
-              <li>Resell tickets or exploit the platform for commercial purposes.</li>
+              <li>
+                Resell tickets or exploit the platform for commercial purposes.
+              </li>
             </ul>
           </section>
 
           <section className="text-left">
+
             <h3 className="text-xl font-bold">2. Reservations and Payments</h3>
             <p className="mt-2 font-bold">2.1 Ticket Availability</p>
             <p>Ticket reservations are subject to availability and are allocated on a first-come, first-served basis.</p>
@@ -57,14 +61,20 @@ const TermsOfUse = () => {
           <section className="text-left">
             <h3 className="text-xl font-bold">4. Liability Disclaimer</h3>
             <p>TigerTix is provided on an "as-is" and "as-available" basis. We make no warranties of any kind, express or implied, about:</p>
+
             <ul className="list-disc pl-8">
               <li>The accuracy or reliability of the platform.</li>
               <li>The uninterrupted or error-free operation of the system.</li>
             </ul>
-            <p>To the extent permitted by law, we are not liable for damages arising from your use of TigerTix, including data loss, unauthorized access, or issues with third-party services.</p>
+            <p>
+              To the extent permitted by law, we are not liable for damages
+              arising from your use of TigerTix, including data loss,
+              unauthorized access, or issues with third-party services.
+            </p>
           </section>
 
           <section className="text-left">
+
             <h3 className="text-xl font-bold">5. Termination</h3>
             <p>We reserve the right to suspend or terminate your access to TigerTix at our discretion if you violate these Terms of Use or engage in activities that harm the platform or its users.</p>
           </section>
@@ -83,11 +93,15 @@ const TermsOfUse = () => {
             <h3 className="text-xl font-bold">8. Contact Us</h3>
             <p>If you have any questions or concerns regarding these Terms of Use, contact us at:</p>
             <p className="mt-2 font-bold">TigerTix Support Team</p>
+
             <p>Email: [Insert Email Address]</p>
             <p>Phone: [Insert Phone Number]</p>
           </section>
 
-          <p className="mt-10 text-center">By using TigerTix, you agree to these Terms of Use. If you do not agree, please refrain from using our services.</p>
+          <p className="mt-10 text-center">
+            By using TigerTix, you agree to these Terms of Use. If you do not
+            agree, please refrain from using our services.
+          </p>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import { Link } from "react-router-dom";
 import Header from "../../components/Header";
 import { FaChevronDown, FaArrowLeft } from "react-icons/fa";
@@ -11,6 +12,7 @@ const FAQs = () => {
   };
 
   const faqs = [
+
     { question: "How do I claim my tickets?", answer: "You can claim your tickets by presenting your reservation confirmation at the event entrance." },
     { question: "How do I reserve as an alumni?", answer: "Alumni can reserve tickets by logging in with their alumni credentials and following the reservation process." },
     { question: "What to do when my account is restricted?", answer: "If your account is restricted, please contact support for assistance in resolving the issue." },
@@ -54,6 +56,7 @@ const FAQs = () => {
 
       <div className="flex justify-center pb-16">
         <button className="mt-8 px-6 py-3 bg-[#FFAB40] text-black rounded-lg font-medium hover:bg-[#e69a36] transition">
+
           View More
         </button>
       </div>
