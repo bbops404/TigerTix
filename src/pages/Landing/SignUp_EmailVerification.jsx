@@ -9,7 +9,6 @@ import OtpInput from "../../components/OtpInput";
 import { useNavigate } from "react-router-dom";
 import axios from "axios"; // Import Axios
 
-// Validation Schema (Only Email)
 const schema = yup
   .object({
     email: yup
@@ -45,8 +44,10 @@ const SignUp = () => {
 
     try {
       // Send email to backend for OTP generation
-      const response = await axios.post("http://localhost:5002/auth/send-otp", { email: data.email });
-      
+      const response = await axios.post("http://localhost:5002/auth/send-otp", {
+        email: data.email,
+      });
+
       if (response.status === 200) {
         alert("OTP sent successfully! Please check your email.");
       }
@@ -61,8 +62,11 @@ const SignUp = () => {
     if (otp.length === 6) {
       try {
         // Send OTP to backend for validation
-        const response = await axios.post("http://localhost:5002/auth/validate-otp", { email, otp });
-        
+        const response = await axios.post(
+          "http://localhost:5002/auth/validate-otp",
+          { email, otp }
+        );
+
         if (response.status === 200) {
           alert("OTP confirmed successfully.");
           navigate("/sign-up"); // Navigate to the next page
