@@ -6,6 +6,7 @@ import Header from "../../components/Header";
 const TermsOfUse = () => {
   return (
     <div className="bg-[#202020] text-white min-h-screen">
+
       <Header />
       
       {/* Back Button */}
@@ -40,12 +41,15 @@ const TermsOfUse = () => {
           </section>
 
           <section className="text-left">
+
+
             <h3 className="text-xl font-bold">2. Reservations and Payments</h3>
             <p className="mt-2 font-bold">2.1 Ticket Availability</p>
             <p>Ticket reservations are subject to availability and are allocated on a first-come, first-served basis.</p>
 
             <p className="mt-2 font-bold">2.2 Fees and Payments</p>
             <p>Some events may require payment. All transactions are final unless otherwise stated. We are not responsible for errors in payment processing by third-party services.</p>
+
 
             <p className="mt-2 font-bold">2.3 Cancellations and Refunds</p>
             <p>Cancellation and refund policies vary by event. Refer to the event organizer’s terms for specifics.</p>
@@ -59,6 +63,7 @@ const TermsOfUse = () => {
           <section className="text-left">
             <h3 className="text-xl font-bold">4. Liability Disclaimer</h3>
             <p>TigerTix is provided on an "as-is" and "as-available" basis. We make no warranties of any kind, express or implied, about:</p>
+
             <ul className="list-disc pl-8">
               <li>The accuracy or reliability of the platform.</li>
               <li>The uninterrupted or error-free operation of the system.</li>
@@ -71,6 +76,7 @@ const TermsOfUse = () => {
           </section>
 
           <section className="text-left">
+
             <h3 className="text-xl font-bold">5. Termination</h3>
             <p>We reserve the right to suspend or terminate your access to TigerTix at our discretion if you violate these Terms of Use or engage in activities that harm the platform or its users.</p>
           </section>
@@ -89,6 +95,7 @@ const TermsOfUse = () => {
             <h3 className="text-xl font-bold">8. Contact Us</h3>
             <p>If you have any questions or concerns regarding these Terms of Use, contact us at:</p>
             <p className="mt-2 font-bold">TigerTix Support Team</p>
+
             <p>Email: [Insert Email Address]</p>
             <p>Phone: [Insert Phone Number]</p>
           </section>

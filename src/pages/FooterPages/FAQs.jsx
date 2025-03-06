@@ -11,6 +11,7 @@ const FAQs = () => {
   };
 
   const faqs = [
+
     { question: "How do I claim my tickets?", answer: "You can claim your tickets by presenting your reservation confirmation at the event entrance." },
     { question: "How do I reserve as an alumni?", answer: "Alumni can reserve tickets by logging in with their alumni credentials and following the reservation process." },
     { question: "What to do when my account is restricted?", answer: "If your account is restricted, please contact support for assistance in resolving the issue." },

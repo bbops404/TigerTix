@@ -30,21 +30,27 @@ const PrivacyPolicy = () => {
               <li>University/School ID Number</li>
               <li>Profile Photo (if applicable)</li>
             </ul>
+
             <p className="mt-2 font-bold">1.2 Non-Personal Information</p>
             <ul className="list-disc pl-8 font-normal">
+
               <li>Device Information (e.g., browser type, operating system)</li>
               <li>Usage Data (e.g., pages visited, features used)</li>
               <li>Cookies and similar tracking technologies</li>
             </ul>
+
             <p className="mt-2 font-bold">1.3 Payment Information</p>
             <p className="font-normal">
               If applicable, we may collect payment details for ticket reservations. Payment processing is handled by third-party providers and is subject to their privacy policies.
+
             </p>
           </section>
 
           <section className="text-left">
+
             <h3 className="text-xl font-bold">2. How We Use Your Information</h3>
             <ul className="list-disc pl-8 font-normal">
+
               <li>Facilitate ticket reservations and event registration.</li>
               <li>Communicate with you regarding your reservations.</li>
               <li>
@@ -57,6 +63,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section className="text-left">
+
             <h3 className="text-xl font-bold">3. How We Share Your Information</h3>
             <p className="font-normal">
               We do not sell or rent your personal information. We may share your data with:
@@ -69,9 +76,11 @@ const PrivacyPolicy = () => {
           </section>
 
           <section className="text-left">
+
             <h3 className="text-xl font-bold">4. Data Retention</h3>
             <p className="font-normal">
               We retain your information only as long as necessary for the purposes outlined in this Privacy Policy or as required by law. Upon request, we will delete your data unless it is required for legitimate business or legal purposes.
+
             </p>
           </section>
 
@@ -81,38 +90,48 @@ const PrivacyPolicy = () => {
               Depending on your location, you may have the following rights:
             </p>
             <ul className="list-disc pl-8 font-normal">
+
               <li>Access, update, or delete your personal information.</li>
               <li>Opt-out of marketing communications.</li>
               <li>Restrict or object to certain data processing activities.</li>
               <li>Withdraw consent for data collection and use.</li>
             </ul>
+
             <p className="font-normal">
+
               To exercise these rights, contact us at [Insert Contact Email].
             </p>
           </section>
 
           <section className="text-left">
+
             <h3 className="text-xl font-bold">6. Security Measures</h3>
             <p className="font-normal">
               We implement appropriate technical and organizational measures to protect your data from unauthorized access, alteration, disclosure, or destruction. However, no method of transmission or storage is 100% secure.
+
             </p>
           </section>
 
           <section className="text-left">
+
             <h3 className="text-xl font-bold">7. Third-Party Links</h3>
             <p className="font-normal">
               TigerTix may contain links to third-party websites or services. We are not responsible for their privacy practices or content. Please review their privacy policies before sharing your information.
+
             </p>
           </section>
 
           <section className="text-left">
+
             <h3 className="text-xl font-bold">8. Updates to This Privacy Policy</h3>
             <p className="font-normal">
               We may update this Privacy Policy from time to time. Any changes will be posted on this page with the updated effective date. We encourage you to review this policy periodically.
+
             </p>
           </section>
 
           <section className="text-left">
+
             <h3 className="text-xl font-bold">9. Contact Us</h3>
             <p className="font-normal">
               If you have any questions or concerns about this Privacy Policy, please contact us at:
@@ -124,6 +143,7 @@ const PrivacyPolicy = () => {
 
           <p className="mt-10 text-center font-normal">
             By using TigerTix, you agree to the terms of this Privacy Policy. If you do not agree, please refrain from using our services.
+
           </p>
         </div>
       </div>

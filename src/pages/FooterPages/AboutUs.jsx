@@ -7,7 +7,9 @@ import tigertix_logo from "../../assets/tigertix_logo.png";
 const AboutUs = () => {
   return (
     <div className="bg-[#202020] text-white min-h-screen">
-      <Header />
+
+     <Header showSearch={false} showAuthButtons={false} />
+
 
       {/* Return Button (Icon Only) */}
       <div className="px-6 mt-6">
@@ -20,6 +22,7 @@ const AboutUs = () => {
         <h1 className="text-4xl font-bold text-center">About Us</h1>
 
         <div className="mt-10 flex flex-col md:flex-row items-center gap-10">
+
           <div className="md:w-1/2 text-white text-justify">
             <p>
               TigerTix is the premier ticket reservation platform designed
@@ -51,6 +54,7 @@ const AboutUs = () => {
               convenience and accessibility for all.
             </p>
           </div>
+
 
           <div className="bg-gradient-to-b from-transparent to-custom_yellow p-8 rounded-lg shadow-md text-white">
             <h2 className="text-2xl font-semibold text-center">Vision</h2>
