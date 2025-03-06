@@ -42,12 +42,14 @@ const TermsOfUse = () => {
 
           <section className="text-left">
 
+
             <h3 className="text-xl font-bold">2. Reservations and Payments</h3>
             <p className="mt-2 font-bold">2.1 Ticket Availability</p>
             <p>Ticket reservations are subject to availability and are allocated on a first-come, first-served basis.</p>
 
             <p className="mt-2 font-bold">2.2 Fees and Payments</p>
             <p>Some events may require payment. All transactions are final unless otherwise stated. We are not responsible for errors in payment processing by third-party services.</p>
+
 
             <p className="mt-2 font-bold">2.3 Cancellations and Refunds</p>
             <p>Cancellation and refund policies vary by event. Refer to the event organizer’s terms for specifics.</p>

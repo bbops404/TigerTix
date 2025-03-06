@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-
 import { Link } from "react-router-dom";
 import Header from "../../components/Header";
 import { FaChevronDown, FaArrowLeft } from "react-icons/fa";
@@ -56,7 +55,6 @@ const FAQs = () => {
 
       <div className="flex justify-center pb-16">
         <button className="mt-8 px-6 py-3 bg-[#FFAB40] text-black rounded-lg font-medium hover:bg-[#e69a36] transition">
-
           View More
         </button>
       </div>

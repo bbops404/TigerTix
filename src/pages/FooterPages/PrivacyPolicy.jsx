@@ -6,7 +6,6 @@ import Header from "../../components/Header";
 const PrivacyPolicy = () => {
   return (
     <div className="bg-[#202020] text-white min-h-screen">
-
       <Header />
 
       {/* Back Button */}
@@ -86,7 +85,6 @@ const PrivacyPolicy = () => {
           </section>
 
           <section className="text-left">
-
             <h3 className="text-xl font-bold">5. Your Privacy Rights</h3>
             <p className="font-normal">
               Depending on your location, you may have the following rights:

@@ -10,12 +10,14 @@ const AboutUs = () => {
 
      <Header showSearch={false} showAuthButtons={false} />
 
+
       {/* Return Button (Icon Only) */}
       <div className="px-6 mt-6">
         <Link to="/" className="flex items-center text-white text-xl hover:opacity-80 transition-opacity">
           <FaArrowLeft className="text-2xl" />
         </Link>
       </div>
+
       <div className="p-16 max-w-6xl mx-auto font-Poppins">
         <h1 className="text-4xl font-bold text-center">About Us</h1>
 

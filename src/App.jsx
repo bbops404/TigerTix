@@ -29,6 +29,12 @@ import EventComingSoon_Enduser from "./pages/EndUser/Event_ComingSoon";
 
 // ========================== ADMIN PAGES ==========================
 import AdminDashboard from "./pages/Admin/Admin_Dashboard";
+import AdminEventsManagment from "./pages/Admin/Admin_EventsManagement"
+import AdminReservations from "./pages/Admin/Admin_Reservations"
+import AdminUser from "./pages/Admin/Admin_UserPage"
+import AdminProfile from "./pages/Admin/Admin_ProfilePage"
+import AuditTrails from "./pages/Admin/Admin_AuditTrails"
+import AdminEventReports from "./pages/Admin/Admin_EventReports"
 
 // ========================== SUPPORT STAFF PAGES ==========================
 // (Add support staff routes here when available)
@@ -84,6 +90,12 @@ function App() {
 
           {/* ========================== ADMIN PAGES ========================== */}
           <Route path="/dashboard" element={<AdminDashboard />} />
+          <Route path="/event-management" element={<AdminEventsManagment />} />
+          <Route path="/reservations" element={<AdminReservations/>} />
+          <Route path="/user" element={<AdminUser/>} />
+          <Route path="/adminprofile" element={<AdminProfile/>} />
+          <Route path="/audit-trails" element={<AuditTrails/>} />
+          <Route path="/event-report" element={<AdminEventReports/>} />
 
           {/* ========================== FOOTER PAGES ========================== */}
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />

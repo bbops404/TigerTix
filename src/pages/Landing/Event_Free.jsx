@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; // For back navigation
 import Header from "../../components/Header";
 import LoginPopup from "./LoginPopup";
+import { IoChevronBackOutline } from "react-icons/io5";
 
 const Event_Free = () => {
   const [loginPopup, setLoginPopup] = useState(false);
@@ -23,22 +24,13 @@ const Event_Free = () => {
         onClick={() => navigate(-1)}
         className="absolute top-[100px] left-4 text-white font-Poppins font-bold"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2}
-          stroke="currentColor"
-          className="w-6 h-6"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
+        <IoChevronBackOutline className="text-3xl" />
       </button>
 
-      <div className="flex justify-center items-center p-4 mt-16">
-        <div className="text-white p-6 flex max-w-4xl w-full rounded-lg">
+      <div className="flex justify-center items-center p-5 mt-10">
+        <div className="text-white p-6 flex max-w-7xl w-full rounded-lg">
           {/* Left Image Placeholder */}
-          <div className="bg-gray-300 w-1/2 h-180 rounded-lg"></div>
+          <div className="bg-gray-300 min-w-[300px] max-w-[300px] min-h-[450px] max-h-[450px] rounded-lg ml-[50px]"></div>
 
           {/* Right Content */}
           <div className="w-2/3 pl-6">
@@ -77,9 +69,9 @@ const Event_Free = () => {
             </p>
 
             {/* Login Message */}
-            <p className="text-center font-bold font-Poppins mt-4 text-sm">
+            <p className="text-center font-Poppins mt-4 text-sm">
               To be notified for free events, please login{" "}
-              <a href="#" onClick={toggleLoginPopup} className="text-[#F09C32]">
+              <a href="#" onClick={toggleLoginPopup} className="text-[#F09C32] hover:underline">
                 here
               </a>
             </p>
