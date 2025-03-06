@@ -7,21 +7,28 @@ import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 
 
-// NEED TO ADD CODE FOR QR
-// NEED TO ADD CODE FOR EVENT RESERVATION AND DATE
-// NEED TO ADD CODE FOR RESERVATION ID
+
+{/*NEED TO ADD CODE FOR QR*/}
+{/*NEED TO ADD CODE FOR EVENT RESERVATION AND DATE*/}
+{/*NEED TO ADD CODE FOR RESERVATION ID*/}
 
 
-const Label = ({ label, value }) => (
+
+const Label = ({ label, value }) => {
+  return (
     <div className="w-full grid grid-cols-[20%_70%] items-start text-sm py-1">
-      <label className="font-Poppins block text-gray-700 text-left font-bold mb-1">
+      <label className="block text-gray-700 text-left font-bold mb-1">
         {label}
       </label>
-      <div className="font-Poppins text-gray-900 text-left rounded-lg font-semibold">
+      <div className="text-gray-900 text-left rounded-lg font-semibold">
+
         {value}
       </div>
     </div>
   );
+
+};
+
 
 const ReservationReceipt = () => {
   const location = useLocation();
@@ -36,20 +43,26 @@ const ReservationReceipt = () => {
     <div className="flex flex-col min-h-screen bg-[#202020]">
 
     {/*HEADER*/}
+
     <Header showSearch={false} showAuthButtons={false}/>
+
 
         {/*Main Container*/}
         <div className=" flex flex-col justify-center items-center flex-grow">
             {/*Gray Container*/}
+
             <div className= "font-Poppins w-[80vw] h-[70vh] bg-[#D9D9D9] flex flex-col justify-start text-center text-4xl font-bold p-5 gap-6">
+
                 Reservation Receipt
                 {/*White Container*/}
                 <div className="w-[90%] h-[70%] bg-white self-center grid grid-cols-[40%_60%] p-4">
 
                     {/*QR Container*/}
+
                     <div className="font-Poppins text-center justify-start font-bold text-lg">
                         YOUR QR CODE:  
                         <div className="font-Poppins w-full h-[70%] justify-center">
+
                             {/*INSERT QR CODE HERE*/}
                         </div>
                         RESERVATION ID:
@@ -73,11 +86,13 @@ const ReservationReceipt = () => {
                 </div>
                 {/*Download and Back Buttons*/}
                 <div className=" flex flex-col items-center gap-2 text-lg">
+
                     <button className="font-Poppins w-[30%] py-2 bg-[#000000] text-[#FFAB40] hover:bg-[#FFAB40] hover:text-[#000000] transition duration-300 font-bold rounded-md shadow-xl">
                         DOWNLOAD
                     </button>
                     <button className="font-Poppins w-[30%] py-2 bg-[#FFFFFF] text-[#000000] hover:bg-[#FFAB40] hover:text-[#000000] transition duration-300 font-bold rounded-md shadow-xl"
                     onClick={() => navigate("/reservation")}>
+
                         Go Back
                     </button>
                 </div>
@@ -87,4 +102,6 @@ const ReservationReceipt = () => {
   );
 };
 
+
 export default ReservationReceipt;
+

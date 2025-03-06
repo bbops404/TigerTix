@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // For back navigatio
+import { useNavigate } from "react-router-dom"; // For back navigation
 import Header from "../../components/Header";
 import { PiTagBold } from "react-icons/pi";
 
@@ -16,7 +16,6 @@ const Reservation = () => {
         console.log("Reservation Added", { ticketType, ticketCount, emails, timeSlot });
         setShowSummary(true);
     };
-
     const navigate = useNavigate();
 
     const handleReceipt = () => {
