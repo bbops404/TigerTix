@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"; // For back navigation
 import Header from "../../components/Header";
 import LoginPopup from "./LoginPopup";
 import TigerTicket from "../../assets/TigerTicket.svg"; // Correct import
+import { IoChevronBackOutline } from "react-icons/io5";
 
 const Event_Ticketed = () => {
   const [loginPopup, setLoginPopup] = useState(false);
@@ -24,22 +25,13 @@ const Event_Ticketed = () => {
         onClick={() => navigate(-1)}
         className="absolute top-[100px] left-4 text-white font-Poppins font-bold"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2}
-          stroke="currentColor"
-          className="w-6 h-6"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
+        <IoChevronBackOutline className="text-3xl" />
       </button>
 
-      <div className="flex justify-center items-center p-4 mt-16">
-        <div className="text-white p-6 flex max-w-4xl w-full rounded-lg">
+      <div className="flex justify-center items-center p-5 mt-10">
+        <div className="text-white p-6 flex max-w-7xl w-full rounded-lg">
           {/* Left Image Placeholder */}
-          <div className="bg-gray-300 w-1/2 h-180 rounded-lg"></div>
+          <div className="bg-gray-300 min-w-[300px] max-w-[300px] min-h-[450px] max-h-[450px] rounded-lg ml-[50px]"></div>
 
           {/* Right Content */}
           <div className="w-2/3 pl-6">
@@ -81,27 +73,28 @@ const Event_Ticketed = () => {
             </p>
 
             {/* Ticket Prices */}
-            <div className="bg-[#694C26] p-4 rounded-lg flex justify-between text-sm">
-              {[
-                { price: "₱100", label: "General Admission" },
-                { price: "₱200", label: "Upper Box" },
-                { price: "₱300", label: "Lower Box" },
-                { price: "₱400", label: "Patron" },
-              ].map((ticket, index) => (
-                <div key={index} className="flex items-center space-x-2 text-left font-Poppins">
-                  <img src={TigerTicket} alt="Ticket Icon" className="w-6 h-6" />
-                  <div>
-                    <p className="font-bold">{ticket.price}</p>
-                    <p>{ticket.label}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+<div className="bg-[#694C26] p-4 rounded-lg flex text-sm">
+  {[
+    { price: "₱100", label: "General Admission" },
+    { price: "₱200", label: "Upper Box" },
+    { price: "₱300", label: "Lower Box" },
+    { price: "₱400", label: "Patron" },
+  ].map((ticket, index) => (
+    <div key={index} className="flex-1 flex items-center space-x-2 text-left font-Poppins">
+      <img src={TigerTicket} alt="Ticket Icon" className="w-6 h-6" />
+      <div>
+        <p className="font-bold">{ticket.price}</p>
+        <p>{ticket.label}</p>
+      </div>
+    </div>
+  ))}
+</div>
+
 
             {/* Login Message */}
-            <p className="text-center font-bold font-Poppins mt-4 text-sm">
+            <p className="text-center font-Poppins mt-4 text-sm">
               To reserve or view availability, please login{" "}
-              <a href="#" onClick={toggleLoginPopup} className="text-[#F09C32]">
+              <a href="#" onClick={toggleLoginPopup} className="text-[#F09C32] hover:underline">
                 here
               </a>
             </p>

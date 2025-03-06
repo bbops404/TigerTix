@@ -9,14 +9,14 @@ import { VscAccount } from "react-icons/vsc";
 const Reservation = ({ event, status }) => {
   return (
     <div className="w-full grid grid-cols-[65%_17%_18%]  items-start py-2 gap-4">
-      <div className="block bg-gray-100 text-gray-700 text-center p-4 font-bold mb-1 shadow-lg">
+      <div className="font-Poppins block bg-gray-100 text-gray-700 text-center p-4 font-bold mb-1 shadow-lg">
         {event}
       </div>
-      <div className="bg-gray-100 text-gray-900 text-center font-bold p-4 rounded-lg ">
+      <div className="font-Poppins bg-gray-100 text-gray-900 text-center font-bold p-4 rounded-lg ">
         {status}
       </div>
       <div>
-        <button className="w-full bg-[#FFAB40] hover:bg-[#E99A3A] rounded-[20px] text-center font-bold pt-4 pb-4 px-2 shadow-md">
+        <button className="font-Poppins w-full bg-[#FFAB40] hover:bg-[#E99A3A] rounded-[20px] text-center font-bold pt-4 pb-4 px-2 shadow-md">
           View Receipt
           {/*Need configuration to view receipt*/}
         </button>
@@ -32,11 +32,11 @@ const MyReservations = () => {
       {/*Header*/}
       <Header showSearch={false} showAuthButtons={false} />
       <button
-        className="absolute top-20 left-4 w-[100px] py-1 px-5 transition duration-300 flex items-center justify-center"
+        className="absolute top-28 left-4 w-[100px] py-1 px-5 transition duration-300 flex items-center justify-center"
         onClick={() => navigate("/home")}
       >
         <GoArrowLeft
-          size={100}
+          size={40}
           className="text-white"
           style={{ strokeWidth: 2 }}
         />
@@ -55,13 +55,13 @@ const MyReservations = () => {
           <div className="w-full h-[75%] pt-12 md:pt-13 lg:pt-16 pl-3 pr-1 md:pl-9 md:pr-1 pb-9 bg-white flex flex-row rounded-lg shadow-lg text-center mt-auto">
             <div className="w-[30%] max-w-[300px] h-full flex flex-col justify-start items-center py-6 px-7 gap-6 text-lg font-semibold text-gray-900">
               <button
-                className="w-full py-1 px-5 justify-center cursor-pointer transition duration-300 flex rounded-full bg-[#F1F1F1] hover:bg-[#FFAB40] shadow-md"
+                className="font-Poppins w-full py-1 px-5 justify-center cursor-pointer transition duration-300 flex rounded-full bg-[#F1F1F1] hover:bg-[#FFAB40] shadow-md"
                 onClick={() => navigate("/my-profile")}
               >
                 Account Details
                 {/*navigate to my Account details page*/}
               </button>
-              <button className="w-full py-1 px-5 justify-center cursor-pointer bg-[#FFAB40] transition duration-300 flex rounded-full shadow-md">
+              <button className="font-Poppins w-full py-1 px-5 justify-center cursor-pointer bg-[#FFAB40] transition duration-300 flex rounded-full shadow-md">
                 {" "}
                 My Reservations
               </button>
