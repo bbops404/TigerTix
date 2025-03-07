@@ -121,6 +121,7 @@ const ReservationEventCard = ({
                         onChange={(e) => setTimeSlot(e.target.value)}
                         className="w-3/8 p-2 border rounded-xl mt-2 text-black"
                     >
+                        <option value="" disabled>Select your preferred time</option>
                         <option>7:00 AM - 9:00 AM</option>
                         <option>9:00 AM - 11:00 AM</option>
                         <option>1:00 PM - 3:00 PM</option>

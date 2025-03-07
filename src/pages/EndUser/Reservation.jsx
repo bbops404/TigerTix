@@ -19,11 +19,11 @@ const Reservation = () => {
     };
 
     const navigate = useNavigate();
-    
+
     return (
         <div className="bg-[#121212] text-white min-h-screen">
             <Header showSearch={false} showAuthButtons={true} />
-            
+
             {/* Back Button (Upper Left) */}
             <button
                 onClick={() => navigate(-1)}
@@ -31,8 +31,9 @@ const Reservation = () => {
             >
                 <IoChevronBackOutline className="text-3xl" />
             </button>
-            
-            <div className="w-full flex px-20 py-8 font-Poppins">
+
+            {/* Main Content */}
+            <div className="w-full flex flex-col lg:flex-row px-4 lg:px-20 py-8 font-Poppins">
                 <ReservationEventCard
                     ticketPrices={ticketPrices}
                     ticketType={ticketType}
@@ -49,15 +50,14 @@ const Reservation = () => {
 
             {/* Reservation Summary (Shown Only After Clicking ADD) */}
             {showSummary && (
-                <div className="">   
-                    <hr className="w-[calc(100%-160px)] mx-auto mt-10"/>
+                <div className="">
+                    <hr className="w-[calc(100%-40px)] lg:w-[calc(100%-160px)] mx-auto mt-10" />
 
-                    <div className="w-full flex px-20 py-8 font-Poppins">
-                        
+                    <div className="w-full flex flex-col lg:flex-row px-4 lg:px-20 py-8 font-Poppins">
                         {/* Left Column */}
-                        <div className="w-1/2 p-4 ml-6 mt-12">
-                            <h2 className="text-2xl font-bold">NOTICE TO ALL ONLINE CUSTOMERS</h2>
-                            <h3 className="text-xl font-semibold mt-6">Guidelines for Online Ticket Reservation</h3>
+                        <div className="w-full lg:w-1/2 p-4 lg:ml-6 mt-12">
+                            <h2 className="text-xl lg:text-2xl font-bold">NOTICE TO ALL ONLINE CUSTOMERS</h2>
+                            <h3 className="text-lg lg:text-xl font-semibold mt-6">Guidelines for Online Ticket Reservation</h3>
                             <ol className="list-decimal ml-5 mt-2 text-sm space-y-2">
                                 <li>Sign up using your active UST email to access the reservation system.</li>
                                 <li>Select the event and preferred ticket type.</li>
@@ -71,67 +71,69 @@ const Reservation = () => {
                         </div>
 
                         {/* Right Column */}
-                        <div className="w-1/2 p-4 ml-6">
-                            <h2 className="font-bold text-3xl text-center">RESERVATION SUMMARY</h2>
-                            <div className="mt-6 m-8 p-4 border bg-gray-200 text-black text-center text-xl">
+                        <div className="w-full lg:w-1/2 p-4 lg:ml-6">
+                            <h2 className="font-bold text-2xl lg:text-3xl text-center">RESERVATION SUMMARY</h2>
+                            <div className="mt-6 m-4 lg:m-8 p-4 border bg-gray-200 text-black text-center text-lg lg:text-xl">
                                 <h3>
                                     <u>UAAP Season 87 Men's Basketball</u>
                                 </h3>
 
                                 {/* Table for the summary */}
-                                <table className="w-full mt-10 border border-gray-200 text-center text-xs">
-                                    <tbody>
-                                        <tr>
-                                            <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Name:</td>
-                                            <td className="bg-gray-300 border border-white">FirstName LastName</td>
-                                        </tr>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full mt-10 border border-gray-200 text-center text-xs lg:text-sm">
+                                        <tbody>
+                                            <tr>
+                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Name:</td>
+                                                <td className="bg-gray-300 border border-white">FirstName LastName</td>
+                                            </tr>
 
-                                        <tr>
-                                            <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Email:</td>
-                                            <td className="bg-gray-300 border border-white">person0@ust.edu.ph</td>
-                                        </tr>
+                                            <tr>
+                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Email:</td>
+                                                <td className="bg-gray-300 border border-white">email0@ust.edu.ph</td>
+                                            </tr>
 
-                                        <tr>
-                                            <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Quantity:</td>
-                                            <td className="bg-gray-300 border border-white">{ticketCount}</td>
-                                        </tr>
+                                            <tr>
+                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Quantity:</td>
+                                                <td className="bg-gray-300 border border-white">{ticketCount}</td>
+                                            </tr>
 
-                                        <tr>
-                                            <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Reserved For:</td>
-                                            <td className="bg-gray-300 border border-white">
-                                                {emails.map((email, index) => (
-                                                    <div key={index}>{email}</div>
-                                                ))}
-                                            </td>
-                                        </tr>
+                                            <tr>
+                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Reserved For:</td>
+                                                <td className="bg-gray-300 border border-white">
+                                                    {emails.map((email, index) => (
+                                                        <div key={index}>{email}</div>
+                                                    ))}
+                                                </td>
+                                            </tr>
 
-                                        <tr>
-                                            <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Batch:</td>
-                                            <td className="bg-gray-300 border border-white">{timeSlot}</td>
-                                        </tr>
-                                        
-                                        <tr>
-                                            <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Claiming Venue:</td>
-                                            <td className="bg-gray-300 border border-white">UST IPEA</td>
-                                        </tr>
+                                            <tr>
+                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Batch:</td>
+                                                <td className="bg-gray-300 border border-white">{timeSlot}</td>
+                                            </tr>
 
-                                        <tr>
-                                            <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Total Amount to be Paid:</td>
-                                            <td className="bg-gray-300 border border-white">₱{ticketType ? ticketPrices[ticketType] * ticketCount : 0}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                            <tr>
+                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Claiming Venue:</td>
+                                                <td className="bg-gray-300 border border-white">UST IPEA</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Total Amount to be Paid:</td>
+                                                <td className="bg-gray-300 border border-white">₱{ticketType ? ticketPrices[ticketType] * ticketCount : 0}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
 
                             {/* Confirm Button */}
                             <div className="mt-8 text-center">
-                                <button className="font-Poppins bg-black text-[#F09C32] font-bold text-lg py-3 px-7 min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600"
-                                onClick={() => navigate("/confirm")} // Change to ticket details - this is for visualization only
+                                <button
+                                    className="font-Poppins bg-black text-[#F09C32] font-bold text-lg py-3 px-7 w-full lg:min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600"
+                                    onClick={() => navigate("/confirm")} // Change to ticket details - this is for visualization only
                                 >
                                     CONFIRM
                                 </button>
                             </div>
-
                         </div>
                     </div>
                 </div>
