@@ -4,6 +4,7 @@ import EventCard from "../../components/EventCard";
 import Header from "../../components/Header";
 import LoginPopup from "./LoginPopup";
 
+
 const images = [
   {
     src: "src/assets/c1.jpg",
@@ -27,6 +28,7 @@ const images = [
   },
 ];
 
+
 function Carousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const navigate = useNavigate();
@@ -49,6 +51,10 @@ function Carousel() {
     );
     setTimeout(() => setIsSliding(false), 500);
   };
+
+
+
+
 
   return (
     <div className="relative w-full h-[700px] overflow-hidden">
@@ -146,20 +152,34 @@ function EventSection({ title, description, events }) {
 }
 
 function LandingPage() {
+  // 🔹 State for login popup
   const [loginPopup, setLoginPopup] = useState(false);
+
+  // 🔹 Function to toggle the login popup
   const toggleLoginPopup = () => {
     setLoginPopup((prev) => !prev);
   };
 
+  // 🔹 Check if login popup should be shown on load
+  useEffect(() => {
+    const shouldShowLogin = localStorage.getItem("showLoginPopup");
+    if (shouldShowLogin === "true") {
+      setLoginPopup(true);
+      localStorage.removeItem("showLoginPopup");
+    }
+  }, []);
+
   return (
     <div className="bg-[#121212] text-white">
       <Header toggleLoginPopup={toggleLoginPopup} />
+      
       {loginPopup && (
-        <LoginPopup
-          loginPopup={loginPopup}
-          toggleLoginPopup={toggleLoginPopup}
+        <LoginPopup 
+          loginPopup={loginPopup} 
+          toggleLoginPopup={toggleLoginPopup} 
         />
       )}
+
       <Carousel />
       <EventSection
         title="TICKETED EVENTS"

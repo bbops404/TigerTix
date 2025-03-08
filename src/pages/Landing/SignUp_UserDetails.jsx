@@ -3,6 +3,8 @@ import Header from "../../components/Header";
 import sample_image from "../../assets/sample_image.png";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 import axios from "axios";
+import LoginPopup from "./LoginPopup";
+import SuccessModal from "../../components/SuccessModal";
 
 const SignUp_UserDetails = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,6 +19,12 @@ const SignUp_UserDetails = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const dropdownRef = useRef(null);
 
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+
+  const [loginPopup, setLoginPopup] = useState(false);  
+  const toggleLoginPopup = () => {
+    setLoginPopup((prev) => !prev);
+  };
   const navigate = useNavigate();
 
   const options = ["Student", "Employee", "Alumni"];
@@ -33,60 +41,65 @@ const SignUp_UserDetails = () => {
 
   const userRole = role.toLowerCase();  
 
-
-// Function to handle form submission
-const handleSubmit = async (e) => {
-  console.log("Form submitted");
-  e.preventDefault();
-
-  // Validate form fields
-  if (!email || !username || !firstName || !lastName || !password || !confirmPassword || !role) {
-    setErrorMessage("Please fill in all fields.");
-    return;
-  }
-
-  if (password !== confirmPassword) {
-    setErrorMessage("Passwords do not match.");
-    return;
-  }
-
-  // Clear any previous error messages
-  setErrorMessage("");
-
-  // Submit form to backend
-  try {
-    const response = await axios.post('http://localhost:5002/auth/signUp', {
-      email,
-      username,
-      firstName,
-      lastName,
-      password,
-      role: userRole, // Ensure the role is properly set here
-    });
-
-    console.log("Response Status:", response.status);  // Log the status code
-
-    // Check if the response is successful (200-299 range)
-    if (response.status >= 200 && response.status < 300) {
-      // If successful, navigate to login page
-      navigate("/home");
-      console.log("User created successfully:", response.data);
-    } else {
-      // Handle error if response status is not in 200-299 range
-      setErrorMessage(response.data.message || "Failed to create account.");
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+  
+    // Validate form fields
+    if (!email || !username || !firstName || !lastName || !password || !confirmPassword || !role) {
+      setErrorMessage("Please fill in all fields.");
+      return;
     }
-  } catch (error) {
-    // Log error details and display user-friendly message
-    console.log("Inside catch block");
-    console.error("Error during signup:", error);
-    setErrorMessage("Something went wrong. Please try again.");
-  }
-};
+  
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      return;
+    }
+  
+    setErrorMessage(""); // Clear previous errors
+  
+    try {
+      const response = await axios.post("http://localhost:5002/auth/signUp", {
+        email,
+        username,
+        firstName,
+        lastName,
+        password,
+        role: userRole,
+      });
+  
+      if (response.status >= 200 && response.status < 300) {
+        setIsSuccessModalOpen(true);
+  
+        setTimeout(() => {
+          setIsSuccessModalOpen(false);
+          // Save to local storage before redirect
+          localStorage.setItem("showLoginPopup", "true");
+          navigate("/"); // Redirect to landing page
+        }, 3000);
+      } else {
+        setErrorMessage(response.data.message || "Failed to create account.");
+      }
+    } catch (error) {
+      console.error("Error during signup:", error);
+      setErrorMessage("Something went wrong. Please try again.");
+    }
+  };
+  
+  
 
 
   return (
     <div>
       <Header showSearch={false} showAuthButtons={false} />
+      {loginPopup && (
+        <LoginPopup
+          loginPopup={loginPopup}
+          toggleLoginPopup={toggleLoginPopup}
+        />
+      )}
+      {loginPopup && <LoginPopup toggleLoginPopup={toggleLoginPopup} />}
+
       <div className="flex">
         {/* Left Image Section */}
         <div className="w-1/2 relative h-[90vh]">
@@ -243,6 +256,19 @@ const handleSubmit = async (e) => {
   Make Account!
 </button>
 
+<SuccessModal
+  isOpen={isSuccessModalOpen}
+  onClose={() => setIsSuccessModalOpen(false)}
+  onRedirect={() => {
+    setIsSuccessModalOpen(false);
+    navigate("/");
+    setTimeout(() => setLoginPopup(true), 500);
+  }}
+  title="Success!"
+  message="Your account has been created successfully. Please log in."
+/>
+
+
             </form>
           </div>
         </div>
@@ -250,5 +276,6 @@ const handleSubmit = async (e) => {
     </div>
   );
 };
+
 
 export default SignUp_UserDetails;

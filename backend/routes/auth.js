@@ -22,6 +22,26 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+router.post("/check-user", async (req, res) => {
+    try {
+      const { email } = req.body;
+  
+      // ✅ Find user in the database
+      const existingUser = await User.findOne({ where: { email } });
+  
+      if (existingUser) {
+        return res.status(200).json({ exists: true });
+      }
+  
+      return res.status(200).json({ exists: false });
+    } catch (error) {
+      console.error("Error checking user:", error);
+      return res.status(500).json({ message: "Server error. Please try again." });
+    }
+  });
+  
+  
+
 // Send OTP Route
 router.post("/send-otp", async (req, res) => {
   try {
@@ -31,6 +51,13 @@ router.post("/send-otp", async (req, res) => {
     if (!email.endsWith("@ust.edu.ph")) {
       return res.status(400).json({ message: "Only UST emails are allowed!" });
     }
+
+    //check if the email is registered
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email is already registered. Please log in instead." });
+    }
+
 
     // Generate and store OTP in Redis with a 5-minute expiry
     const otp = generateOTP();

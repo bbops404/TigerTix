@@ -8,6 +8,7 @@ import * as yup from "yup";
 import OtpInput from "../../components/OtpInput";
 import { useNavigate } from "react-router-dom";
 import axios from "axios"; // Import Axios
+import LoginPopup from "./LoginPopup";
 
 // Validation Schema (Only Email)
 const schema = yup
@@ -22,6 +23,7 @@ const schema = yup
   })
   .required();
 
+ 
 const SignUp = () => {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [email, setEmail] = useState("");
@@ -29,32 +31,65 @@ const SignUp = () => {
   const [knownOtp] = useState("1234"); // ✅ Hardcoded OTP for testing
   const navigate = useNavigate();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    resolver: yupResolver(schema),
-  });
-
-  // Handler for email submission
+ 
+   const {
+     register,
+     handleSubmit,
+     formState: { errors },
+   } = useForm({
+     resolver: yupResolver(schema),
+     
+   });
+   const [loginPopup, setLoginPopup] = useState(false);
+   const toggleLoginPopup = () => {
+     setLoginPopup((prev) => !prev);
+   };
+   
   const onSubmit = async (data) => {
-    setEmail(data.email); // Store the email
-    setShowOtpInput(true); // Show OTP input
-    alert(`Verification code sent to: ${data.email}`);
+    event.preventDefault(); // Prevent default form submission
 
     try {
-      // Send email to backend for OTP generation
+      // Check if the email is already registered before sending OTP
+      const checkResponse = await axios.post("http://localhost:5002/auth/check-user", { email: data.email });
+  
+        
+      if (checkResponse.data.exists) { 
+        alert("This email is already registered. Please log in instead.");
+
+        // put code for the hyper link nung user if want mag log in instead sa ngayon alert pa lang 
+        setLoginPopup(true); // ✅ Show the login pop-up
+        return;
+      }
+          
+  
+      setEmail(data.email); // Store the email
+      setShowOtpInput(true); // Show OTP input
+      alert(`Verification code sent to: ${data.email}`);
+  
+      // ✅ Send email to backend for OTP generation
       const response = await axios.post("http://localhost:5002/auth/send-otp", { email: data.email });
-      
+  
       if (response.status === 200) {
         alert("OTP sent successfully! Please check your email.");
       }
-    } catch (error) {
-      console.error("Error sending OTP:", error);
+  }
+  catch (error) {
+      console.error("Error processing request:", error);
+  
+      // 🔍 Check if error is from check-user or send-otp
+      if (error.response) {
+        console.log("Error response:", error.response);
+        if (error.response.status === 400) {
+          alert("This email is already registered. Please log in instead.");
+          return;
+        }
+      }
+      
       alert("Failed to send OTP. Please try again.");
     }
   };
+  
+  
 
   // Handler for confirming OTP via button click
   const handleConfirmOtp = async () => {
@@ -79,6 +114,14 @@ const SignUp = () => {
   return (
     <div>
       <Header showSearch={false} showAuthButtons={false} />
+      {loginPopup && (
+        <LoginPopup
+          loginPopup={loginPopup}
+          toggleLoginPopup={toggleLoginPopup}
+        />
+      )}
+      {loginPopup && <LoginPopup toggleLoginPopup={toggleLoginPopup} />}
+
       <div className="flex">
         {/* Left Image Section */}
         <div className="w-1/2 relative h-[90vh]">
@@ -171,5 +214,6 @@ const SignUp = () => {
     </div>
   );
 };
+
 
 export default SignUp;
