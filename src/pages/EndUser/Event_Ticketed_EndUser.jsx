@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; // For back navigation
 import Header from "../../components/Header";
-import LoginPopup from "./LoginPopup";
 import TigerTicket from "../../assets/TigerTicket.svg"; // Correct import
 import { IoChevronBackOutline } from "react-icons/io5";
 
@@ -15,10 +14,7 @@ const Event_Ticketed_EndUser = () => {
 
   return (
     <div className="bg-[#121212] text-white min-h-screen">
-      <Header toggleLoginPopup={toggleLoginPopup} />
-      {loginPopup && (
-        <LoginPopup loginPopup={loginPopup} toggleLoginPopup={toggleLoginPopup} />
-      )}
+      <Header showSearch={false} showAuthButtons={false} />
 
       {/* Back Button (Upper Left) */}
       <button
@@ -30,7 +26,6 @@ const Event_Ticketed_EndUser = () => {
 
       <div className="flex justify-center items-center p-4 mt-4">
         <div className="text-white p-6 flex max-w-7xl w-full rounded-lg">
-          
           {/* Left Image Placeholder */}
           <div className="bg-gray-300 min-w-[300px] max-w-[300px] min-h-[450px] max-h-[450px] rounded-lg ml-[50px]"></div>
 
@@ -40,14 +35,21 @@ const Event_Ticketed_EndUser = () => {
               UAAP SEASON 87 MEN’S BASKETBALL
             </div>
 
-            <h2 className="font-bold font-Poppins text-lg mb-2">EVENT DETAILS:</h2>
+            <h2 className="font-bold font-Poppins text-lg mb-2">
+              EVENT DETAILS:
+            </h2>
             <p className="font-Poppins text-justify text-sm text-gray-300 mb-4">
-            Get ready to roar, UST community! The UAAP Season 87 Men's Basketball tournament kicks off with a clash of champions, 
-            and the UST Growling Tigers are set to take center stage at the iconic Mall of Asia Arena. Witness the fast-paced action, 
-            gravity-defying plays, and unyielding determination that make UAAP basketball the most thrilling collegiate league in the country.
-            Whether you're cheering courtside or from the stands, wear your gold and white loud and proud! Together, let's rally behind our team 
-            as they fight for victory and represent the Thomasian spirit with heart and passion.
-            </p>  
+              Get ready to roar, UST community! The UAAP Season 87 Men's
+              Basketball tournament kicks off with a clash of champions, and the
+              UST Growling Tigers are set to take center stage at the iconic
+              Mall of Asia Arena. Witness the fast-paced action, gravity-defying
+              plays, and unyielding determination that make UAAP basketball the
+              most thrilling collegiate league in the country. Whether you're
+              cheering courtside or from the stands, wear your gold and white
+              loud and proud! Together, let's rally behind our team as they
+              fight for victory and represent the Thomasian spirit with heart
+              and passion.
+            </p>
 
             <hr></hr>
 
@@ -69,8 +71,15 @@ const Event_Ticketed_EndUser = () => {
                 { price: "₱300", label: "Lower Box" },
                 { price: "₱400", label: "Patron" },
               ].map((ticket, index) => (
-                <div key={index} className="flex items-center space-x-2 text-left font-Poppins">
-                  <img src={TigerTicket} alt="Ticket Icon" className="w-6 h-6" />
+                <div
+                  key={index}
+                  className="flex items-center space-x-2 text-left font-Poppins"
+                >
+                  <img
+                    src={TigerTicket}
+                    alt="Ticket Icon"
+                    className="w-6 h-6"
+                  />
                   <div>
                     <p className="font-bold">{ticket.price}</p>
                     <p>{ticket.label}</p>

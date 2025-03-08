@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; // For back navigation
 import Header from "../../components/Header";
-import LoginPopup from "./LoginPopup";
 import { IoNotifications } from "react-icons/io5";
 import { IoChevronBackOutline } from "react-icons/io5";
 
-const Event_Free = () => {
+const EventFree = () => {
   const [loginPopup, setLoginPopup] = useState(false);
   const navigate = useNavigate(); // Hook for navigation
 
@@ -15,10 +14,7 @@ const Event_Free = () => {
 
   return (
     <div className="bg-[#121212] text-white min-h-screen">
-      <Header toggleLoginPopup={toggleLoginPopup} />
-      {loginPopup && (
-        <LoginPopup loginPopup={loginPopup} toggleLoginPopup={toggleLoginPopup} />
-      )}
+      <Header showSearch={false} showAuthButtons={false} />
 
       {/* Back Button (Upper Left) */}
       <button
@@ -39,22 +35,32 @@ const Event_Free = () => {
               UAAP SEASON 87 MEN’S BASKETBALL
             </div>
 
-            <h2 className="font-bold font-Poppins text-lg mb-2">EVENT DETAILS:</h2>
+            <h2 className="font-bold font-Poppins text-lg mb-2">
+              EVENT DETAILS:
+            </h2>
             <p className="font-Poppins text-justify text-sm text-gray-300 mb-4">
-            Get ready to ignite the pride as we mark the beginning of another electrifying season of the University Athletic
-            Association of the Philippines! UAAP Season 87 Kickoff is here to celebrate the spirit of sportsmanship, excellence, 
-            and camaraderie among the finest student-athletes from across the league. Experience an unforgettable opening ceremony 
-            packed with high-energy performances, inspiring messages, and a vibrant parade of teams, each showcasing their university's 
-            unique colors and culture. This year’s theme, "Elevating Excellence, Uniting Passion," reflects the dedication and resilience of 
-            the UAAP community in its pursuit of greatness on and off the field. Be part of the action as we introduce this season's host 
-            school, unveil exciting new initiatives, and officially begin the much-awaited competition. Join us in cheering for your favorite 
-            teams and athletes as they embark on their journey to glory!
-            <br/>
-            <br/>
-            Let’s show the world what it means to embody school pride and unity. See you there!
+              Get ready to ignite the pride as we mark the beginning of another
+              electrifying season of the University Athletic Association of the
+              Philippines! UAAP Season 87 Kickoff is here to celebrate the
+              spirit of sportsmanship, excellence, and camaraderie among the
+              finest student-athletes from across the league. Experience an
+              unforgettable opening ceremony packed with high-energy
+              performances, inspiring messages, and a vibrant parade of teams,
+              each showcasing their university's unique colors and culture. This
+              year’s theme, "Elevating Excellence, Uniting Passion," reflects
+              the dedication and resilience of the UAAP community in its pursuit
+              of greatness on and off the field. Be part of the action as we
+              introduce this season's host school, unveil exciting new
+              initiatives, and officially begin the much-awaited competition.
+              Join us in cheering for your favorite teams and athletes as they
+              embark on their journey to glory!
+              <br />
+              <br />
+              Let’s show the world what it means to embody school pride and
+              unity. See you there!
             </p>
 
-            <hr></hr>
+            <hr />
 
             <p className="text-sm mt-4 mb-2 font-Poppins">
               <strong>Location:</strong> UST Quadricentennial Pavillion
@@ -72,7 +78,6 @@ const Event_Free = () => {
                 className="font-Poppins bg-black text-[#F09C32] font-bold py-3 px-7 min-w-[300px] 
                 rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform 
                 hover:scale-105 hover:bg-black-600 flex items-center justify-center"
-                
               >
                 Be notified!
                 <IoNotifications className="text-2xl ml-2 bg-white p-1 rounded-full" />
@@ -85,4 +90,4 @@ const Event_Free = () => {
   );
 };
 
-export default Event_Free;
+export default EventFree;

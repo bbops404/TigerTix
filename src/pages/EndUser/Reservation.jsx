@@ -1,145 +1,207 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // For back navigation
+import { useNavigate } from "react-router-dom"; // For back navigatio
 import Header from "../../components/Header";
 import ReservationEventCard from "../../components/ReservationEventCard"; // Import the new component
 import { IoChevronBackOutline } from "react-icons/io5";
 
 const Reservation = () => {
-    const [ticketType, setTicketType] = useState("");
-    const [ticketCount, setTicketCount] = useState(1);
-    const [emails, setEmails] = useState([""]);
-    const [timeSlot, setTimeSlot] = useState("");
-    const [showSummary, setShowSummary] = useState(false);
+  const [ticketType, setTicketType] = useState("");
+  const [ticketCount, setTicketCount] = useState(1);
+  const [emails, setEmails] = useState([""]);
+  const [timeSlot, setTimeSlot] = useState("");
+  const [showSummary, setShowSummary] = useState(false);
 
-    const ticketPrices = { "Gen Ad": 100, "Upper Box": 200, "Lower Box": 300, "Patron": 500 };
+  const ticketPrices = {
+    "Gen Ad": 100,
+    "Upper Box": 200,
+    "Lower Box": 300,
+    Patron: 500,
+  };
 
-    const handleAddReservation = () => {
-        console.log("Reservation Added", { ticketType, ticketCount, emails, timeSlot });
-        setShowSummary(true);
-    };
+  const handleAddReservation = () => {
+    console.log("Reservation Added", {
+      ticketType,
+      ticketCount,
+      emails,
+      timeSlot,
+    });
+    setShowSummary(true);
+  };
+  const navigate = useNavigate();
 
-    const navigate = useNavigate();
+  return (
+    <div className="bg-[#121212] text-white min-h-screen">
+      <Header showSearch={false} showAuthButtons={true} />
 
-    return (
-        <div className="bg-[#121212] text-white min-h-screen">
-            <Header showSearch={false} showAuthButtons={true} />
+      {/* Back Button (Upper Left) */}
+      <button
+        onClick={() => navigate(-1)}
+        className="absolute top-[100px] left-4 text-white font-Poppins font-bold"
+      >
+        <IoChevronBackOutline className="text-3xl" />
+      </button>
 
-            {/* Back Button (Upper Left) */}
-            <button
-                onClick={() => navigate(-1)}
-                className="absolute top-[100px] left-4 text-white font-Poppins font-bold"
-            >
-                <IoChevronBackOutline className="text-3xl" />
-            </button>
+      {/* Main Content */}
+      <div className="w-full flex flex-col lg:flex-row px-4 lg:px-20 py-8 font-Poppins">
+        <ReservationEventCard
+          ticketPrices={ticketPrices}
+          ticketType={ticketType}
+          setTicketType={setTicketType}
+          ticketCount={ticketCount}
+          setTicketCount={setTicketCount}
+          emails={emails}
+          setEmails={setEmails}
+          timeSlot={timeSlot}
+          setTimeSlot={setTimeSlot}
+          handleAddReservation={handleAddReservation}
+        />
+      </div>
 
-            {/* Main Content */}
-            <div className="w-full flex flex-col lg:flex-row px-4 lg:px-20 py-8 font-Poppins">
-                <ReservationEventCard
-                    ticketPrices={ticketPrices}
-                    ticketType={ticketType}
-                    setTicketType={setTicketType}
-                    ticketCount={ticketCount}
-                    setTicketCount={setTicketCount}
-                    emails={emails}
-                    setEmails={setEmails}
-                    timeSlot={timeSlot}
-                    setTimeSlot={setTimeSlot}
-                    handleAddReservation={handleAddReservation}
-                />
+      {/* Reservation Summary (Shown Only After Clicking ADD) */}
+      {showSummary && (
+        <div className="">
+          <hr className="w-[calc(100%-40px)] lg:w-[calc(100%-160px)] mx-auto mt-10" />
+
+          <div className="w-full flex flex-col lg:flex-row px-4 lg:px-20 py-8 font-Poppins">
+            {/* Left Column */}
+            <div className="w-full lg:w-1/2 p-4 lg:ml-6 mt-12">
+              <h2 className="text-xl lg:text-2xl font-bold">
+                NOTICE TO ALL ONLINE CUSTOMERS
+              </h2>
+              <h3 className="text-lg lg:text-xl font-semibold mt-6">
+                Guidelines for Online Ticket Reservation
+              </h3>
+              <ol className="list-decimal ml-5 mt-2 text-sm space-y-2">
+                <li>
+                  Sign up using your active UST email to access the reservation
+                  system.
+                </li>
+                <li>Select the event and preferred ticket type.</li>
+                <li>
+                  Input the full names and UST emails of all ticket holders for
+                  verification.
+                </li>
+                <li>Review your reservation details before confirming.</li>
+                <li>
+                  Check your email for the confirmation and QR code for
+                  claiming.
+                </li>
+                <li>
+                  Present a valid UST ID and the confirmation email upon
+                  claiming.
+                </li>
+                <li>
+                  Failure to claim the reserved ticket may result in account
+                  restrictions.
+                </li>
+                <li>
+                  Contact support for any inquiries or issues regarding the
+                  reservation.
+                </li>
+              </ol>
             </div>
 
-            {/* Reservation Summary (Shown Only After Clicking ADD) */}
-            {showSummary && (
-                <div className="">
-                    <hr className="w-[calc(100%-40px)] lg:w-[calc(100%-160px)] mx-auto mt-10" />
+            {/* Right Column */}
+            <div className="w-full lg:w-1/2 p-4 lg:ml-6">
+              <h2 className="font-bold text-2xl lg:text-3xl text-center">
+                RESERVATION SUMMARY
+              </h2>
+              <div className="mt-6 m-4 lg:m-8 p-4 border bg-gray-200 text-black text-center text-lg lg:text-xl">
+                <h3>
+                  <u>UAAP Season 87 Men's Basketball</u>
+                </h3>
 
-                    <div className="w-full flex flex-col lg:flex-row px-4 lg:px-20 py-8 font-Poppins">
-                        {/* Left Column */}
-                        <div className="w-full lg:w-1/2 p-4 lg:ml-6 mt-12">
-                            <h2 className="text-xl lg:text-2xl font-bold">NOTICE TO ALL ONLINE CUSTOMERS</h2>
-                            <h3 className="text-lg lg:text-xl font-semibold mt-6">Guidelines for Online Ticket Reservation</h3>
-                            <ol className="list-decimal ml-5 mt-2 text-sm space-y-2">
-                                <li>Sign up using your active UST email to access the reservation system.</li>
-                                <li>Select the event and preferred ticket type.</li>
-                                <li>Input the full names and UST emails of all ticket holders for verification.</li>
-                                <li>Review your reservation details before confirming.</li>
-                                <li>Check your email for the confirmation and QR code for claiming.</li>
-                                <li>Present a valid UST ID and the confirmation email upon claiming.</li>
-                                <li>Failure to claim the reserved ticket may result in account restrictions.</li>
-                                <li>Contact support for any inquiries or issues regarding the reservation.</li>
-                            </ol>
-                        </div>
+                {/* Table for the summary */}
+                <div className="overflow-x-auto">
+                  <table className="w-full mt-10 border border-gray-200 text-center text-xs lg:text-sm">
+                    <tbody>
+                      <tr>
+                        <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">
+                          Name:
+                        </td>
+                        <td className="bg-gray-300 border border-white">
+                          FirstName LastName
+                        </td>
+                      </tr>
 
-                        {/* Right Column */}
-                        <div className="w-full lg:w-1/2 p-4 lg:ml-6">
-                            <h2 className="font-bold text-2xl lg:text-3xl text-center">RESERVATION SUMMARY</h2>
-                            <div className="mt-6 m-4 lg:m-8 p-4 border bg-gray-200 text-black text-center text-lg lg:text-xl">
-                                <h3>
-                                    <u>UAAP Season 87 Men's Basketball</u>
-                                </h3>
+                      <tr>
+                        <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">
+                          Email:
+                        </td>
+                        <td className="bg-gray-300 border border-white">
+                          email0@ust.edu.ph
+                        </td>
+                      </tr>
 
-                                {/* Table for the summary */}
-                                <div className="overflow-x-auto">
-                                    <table className="w-full mt-10 border border-gray-200 text-center text-xs lg:text-sm">
-                                        <tbody>
-                                            <tr>
-                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Name:</td>
-                                                <td className="bg-gray-300 border border-white">FirstName LastName</td>
-                                            </tr>
+                      <tr>
+                        <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">
+                          Quantity:
+                        </td>
+                        <td className="bg-gray-300 border border-white">
+                          {ticketCount}
+                        </td>
+                      </tr>
 
-                                            <tr>
-                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Email:</td>
-                                                <td className="bg-gray-300 border border-white">email0@ust.edu.ph</td>
-                                            </tr>
+                      <tr>
+                        <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">
+                          Reserved For:
+                        </td>
+                        <td className="bg-gray-300 border border-white">
+                          {emails.map((email, index) => (
+                            <div key={index}>{email}</div>
+                          ))}
+                        </td>
+                      </tr>
 
-                                            <tr>
-                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Quantity:</td>
-                                                <td className="bg-gray-300 border border-white">{ticketCount}</td>
-                                            </tr>
+                      <tr>
+                        <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">
+                          Batch:
+                        </td>
+                        <td className="bg-gray-300 border border-white">
+                          {timeSlot}
+                        </td>
+                      </tr>
 
-                                            <tr>
-                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Reserved For:</td>
-                                                <td className="bg-gray-300 border border-white">
-                                                    {emails.map((email, index) => (
-                                                        <div key={index}>{email}</div>
-                                                    ))}
-                                                </td>
-                                            </tr>
+                      <tr>
+                        <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">
+                          Claiming Venue:
+                        </td>
+                        <td className="bg-gray-300 border border-white">
+                          UST IPEA
+                        </td>
+                      </tr>
 
-                                            <tr>
-                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Batch:</td>
-                                                <td className="bg-gray-300 border border-white">{timeSlot}</td>
-                                            </tr>
-
-                                            <tr>
-                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Claiming Venue:</td>
-                                                <td className="bg-gray-300 border border-white">UST IPEA</td>
-                                            </tr>
-
-                                            <tr>
-                                                <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">Total Amount to be Paid:</td>
-                                                <td className="bg-gray-300 border border-white">₱{ticketType ? ticketPrices[ticketType] * ticketCount : 0}</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            {/* Confirm Button */}
-                            <div className="mt-8 text-center">
-                                <button
-                                    className="font-Poppins bg-black text-[#F09C32] font-bold text-lg py-3 px-7 w-full lg:min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600"
-                                    onClick={() => navigate("/confirm")} // Change to ticket details - this is for visualization only
-                                >
-                                    CONFIRM
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                      <tr>
+                        <td className="font-semibold bg-black text-white pt-2 border border-white w-1/3">
+                          Total Amount to be Paid:
+                        </td>
+                        <td className="bg-gray-300 border border-white">
+                          ₱
+                          {ticketType
+                            ? ticketPrices[ticketType] * ticketCount
+                            : 0}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-            )}
+              </div>
+
+              {/* Confirm Button */}
+              <div className="mt-8 text-center">
+                <button
+                  className="font-Poppins bg-black text-[#F09C32] font-bold text-lg py-3 px-7 w-full lg:min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600"
+                  onClick={() => navigate("/confirm")} // Change to ticket details - this is for visualization only
+                >
+                  CONFIRM
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
 export default Reservation;
