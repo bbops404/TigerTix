@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; // For back navigation
 import Header from "../../components/Header";
 import { IoNotifications } from "react-icons/io5";
+import { IoChevronBackOutline } from "react-icons/io5";
 
 const EventFree = () => {
   const [loginPopup, setLoginPopup] = useState(false);
@@ -20,26 +21,13 @@ const EventFree = () => {
         onClick={() => navigate(-1)}
         className="absolute top-[100px] left-4 text-white font-Poppins font-bold"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2}
-          stroke="currentColor"
-          className="w-6 h-6"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
+        <IoChevronBackOutline className="text-3xl" />
       </button>
 
       <div className="flex justify-center items-center p-4 mt-16">
-        <div className="text-white p-6 flex max-w-4xl w-full rounded-lg">
+        <div className="text-white p-6 flex max-w-7xl w-full rounded-lg">
           {/* Left Image Placeholder */}
-          <div className="bg-gray-300 w-1/2 h-[450px] rounded-lg"></div>
+          <div className="bg-gray-300 min-w-[300px] max-w-[300px] min-h-[450px] max-h-[450px] rounded-lg ml-[50px]"></div>
 
           {/* Right Content */}
           <div className="w-2/3 pl-6">
