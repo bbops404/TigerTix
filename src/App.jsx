@@ -88,7 +88,6 @@ function App() {
           <Route path="/my-profile" element={<MyProfile />} />
           <Route path="/confirm" element={<Home />} />
           <Route path="/reservation" element={<Reservation />} />
-
           <Route path="/request-receipt" element={<RequestReceipt />} />
 
           {/* ========================== ADMIN PAGES ========================== */}

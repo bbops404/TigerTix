@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
 import { IoNotifications } from "react-icons/io5";
+import EventCard from "../../components/EventCardEndUser";
 
 const images = [
   {
@@ -137,17 +138,6 @@ function EventSection({ title, description, events }) {
               buttonText={event.buttonText}
               link={event.link} // Now passing just the string
             />
-            {/* Notification Button */}
-            {notification && (
-              <div className="absolute bottom-9 right-7 flex">
-                <button
-                  className="bg-white p-1 rounded-full transition-transform duration-200 hover:bg-gray-200 hover:scale-105"
-                  onClick={() => setNotification(false)} // Example toggle
-                >
-                  <IoNotifications className="text-xl text-[#F09C32]" />
-                </button>
-              </div>
-            )}
           </div>
         ))}
 

@@ -17,8 +17,7 @@ const Reservation = ({ event, status }) => {
       </div>
       <div>
         <button className="font-Poppins w-full bg-[#FFAB40] hover:bg-[#E99A3A] rounded-[20px] text-center font-bold pt-4 pb-4 px-2 shadow-md">
-          View Receipt
-          {/*Need configuration to view receipt*/}
+          View Receipt onClick={() => navigate("/request-receipt")}
         </button>
       </div>
     </div>

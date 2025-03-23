@@ -191,7 +191,7 @@ const Reservation = () => {
               <div className="mt-8 text-center">
                 <button
                   className="font-Poppins bg-black text-[#F09C32] font-bold text-lg py-3 px-7 w-full lg:min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600"
-                  onClick={() => navigate("/confirm")} // Change to ticket details - this is for visualization only
+                  onClick={() => navigate("/request-receipt")} // Change to ticket details - this is for visualization only
                 >
                   CONFIRM
                 </button>
