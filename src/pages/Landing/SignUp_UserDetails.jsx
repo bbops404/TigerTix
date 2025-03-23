@@ -9,7 +9,6 @@ import SuccessModal from "../../components/SuccessModal";
 const SignUp_UserDetails = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState("Select an option"); // Default text
-  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -18,6 +17,7 @@ const SignUp_UserDetails = () => {
   const [role, setRole] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const dropdownRef = useRef(null);
+ 
 
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
@@ -44,9 +44,16 @@ const SignUp_UserDetails = () => {
   
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+    const verifiedEmail = sessionStorage.getItem("verifiedEmail");
+
+    if (!verifiedEmail) {
+      alert("Email verification required. Please verify your email first.");
+      navigate("/sign-up"); // Redirect if email is missing
+      return;
+    }
+    
     // Validate form fields
-    if (!email || !username || !firstName || !lastName || !password || !confirmPassword || !role) {
+    if (!username || !firstName || !lastName || !password || !confirmPassword || !role) {
       setErrorMessage("Please fill in all fields.");
       return;
     }
@@ -60,7 +67,7 @@ const SignUp_UserDetails = () => {
   
     try {
       const response = await axios.post("http://localhost:5002/auth/signUp", {
-        email,
+        email: verifiedEmail,
         username,
         firstName,
         lastName,
@@ -128,21 +135,7 @@ const SignUp_UserDetails = () => {
 
             {/* Form Inputs */}
             <form onSubmit={handleSubmit}>
-              <div className="flex">
-                <div className="flex flex-col mr-2">
-                  <p className="text-xs">Email</p>
-                  <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-md border-2 border-[#D8DADC] h-8 w-56">
-                    <input
-                      type="email"
-                      className="focus:outline-none text-xs w-full text-gray-600"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
+             
               <div className="flex">
                 <div className="flex flex-col mr-2">
                   <p className="text-xs">Username</p>

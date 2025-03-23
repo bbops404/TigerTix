@@ -17,7 +17,7 @@ const schema = yup
       .string()
       .matches(
         /^[a-zA-Z0-9._%+-]+@ust\.edu\.ph$/,
-        "Email must be a valid @ust.edu.ph address"
+        "Email must be a valid UST email address"
       )
       .required("Email is required"),
   })
@@ -100,7 +100,8 @@ const SignUp = () => {
         
         if (response.status === 200) {
           alert("OTP confirmed successfully.");
-          navigate("/sign-up"); // Navigate to the next page
+          sessionStorage.setItem("verifiedEmail", email);
+          navigate("/sign-up", { state: { email } });
         }
       } catch (error) {
         console.error("Error confirming OTP:", error);
