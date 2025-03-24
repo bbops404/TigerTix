@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import EventCard from "../../components/EventCard";
+import Header from "../../components/Header";
 import { IoNotifications } from "react-icons/io5";
-import Header_User from "../../components/Header_User";
+import EventCard from "../../components/EventCardEndUser";
 
 const images = [
   {
@@ -50,6 +50,15 @@ function Carousel() {
     setTimeout(() => setIsSliding(false), 500);
   };
 
+  // Prevent default behavior for navigation to avoid page shifts
+  const handleReserveNow = (e) => {
+    e.preventDefault();
+    // Optional: smooth transition before navigation
+    setTimeout(() => {
+      navigate("/event-ticketed-enduser");
+    }, 100);
+  };
+
   return (
     <div className="relative w-full h-[700px] overflow-hidden">
       <div
@@ -62,12 +71,12 @@ function Carousel() {
             className="relative w-full flex-shrink-0 h-full bg-cover bg-center"
             style={{ backgroundImage: `url('${image.src}')` }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-[#010100] via-[#FFAB40] to-[#000000] opacity-80"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-[#010100] via-[#633904] to-[#000000] opacity-80"></div>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-10">
-              <h2 className="font - Poppins text-[99px] font-extrabold">
+              <h2 className="font-Poppins text-[99px] font-extrabold drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
                 {image.title}
               </h2>
-              <p className="font - Poppins text-[26px] font-semibold mt-2">
+              <p className="font-Poppins text-[26px] font-semibold mt-2 drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
                 {image.description}
               </p>
             </div>
@@ -91,7 +100,7 @@ function Carousel() {
       <div className="absolute bottom-[60px] right-[100px]">
         <button
           className="font-Poppins bg-[#F09C32] text-black font-bold py-3 px-7 min-w-[300px] rounded-full uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-yellow-600"
-          onClick={() => navigate("/event-ticketed-enduser")}
+          onClick={handleReserveNow}
         >
           RESERVE NOW
         </button>
@@ -112,48 +121,111 @@ function Carousel() {
 }
 
 function EventSection({ title, description, events }) {
-  const [notification, setNotification] = useState(true);
+  const navigate = useNavigate();
+  const scrollContainerRef = useRef(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(events.length > 3);
+
+  // Custom navigation function to prevent scrollbar jumps
+  const handleNavigation = (path, e) => {
+    if (e) e.preventDefault();
+
+    // Use a slight delay to ensure smooth transition
+    setTimeout(() => {
+      navigate(path);
+    }, 100);
+  };
+
+  // Scroll handlers for the navigation buttons
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -300, behavior: "smooth" });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 300, behavior: "smooth" });
+    }
+  };
+
+  // Monitor scroll position to show/hide navigation arrows
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } =
+        scrollContainerRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.addEventListener("scroll", handleScroll);
+      // Initialize arrow visibility
+      handleScroll();
+      return () => scrollContainer.removeEventListener("scroll", handleScroll);
+    }
+  }, [events]);
+
+  // Determine if content needs to be centered (1-2 events)
+  const centerContent = events.length <= 2;
 
   return (
-    <section className="p-5 bg-[#222] text-white font-Poppins text-lg font-semibold">
-      <h2 className="text-left pl-[400px] text-[28px]">{title}</h2>
-      <h3 className="text-left pl-[420px] text-[16px] text-gray-400 font-light">
-        {description}
-      </h3>
+    <section className="p-5 bg-[#222] text-white font-Poppins">
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-left text-[28px] font-semibold mt-[30px]">
+          {title}
+        </h2>
+        <h3 className="text-left text-[16px] text-gray-400 font-light">
+          {description}
+        </h3>
 
-      <div className="relative flex gap-5 overflow-x-auto scrollbar-none py-5 justify-center items-center">
-        <div className="text-2xl cursor-pointer font-Poppins text-[32px] font-semibold absolute top-1/2 left-[300px] transform -translate-y-1/2 z-10">
-          &lt;
-        </div>
+        <div className="relative py-5">
+          {/* Left navigation button - only show when not at the beginning and when there are more than 2 events */}
+          {!centerContent && showLeftArrow && (
+            <button
+              onClick={scrollLeft}
+              className="absolute left-0 top-1/2 -translate-y-1/2 text-[32px] font-semibold cursor-pointer z-10 bg-[#222] bg-opacity-70 px-2 rounded-l transition-opacity duration-300"
+              aria-label="Previous events"
+            >
+              &lt;
+            </button>
+          )}
 
-        {events.map((event, index) => (
-          <div key={index} className="relative">
-            <EventCard
-              key={index}
-              image={event.image}
-              name={event.name}
-              location={event.location}
-              date={event.date}
-              time={event.time}
-              buttonText={event.buttonText}
-              link={event.link} // Now passing just the string
-            />
-            {/* Notification Button */}
-            {notification && (
-              <div className="absolute bottom-9 right-7 flex">
-                <button
-                  className="bg-white p-1 rounded-full transition-transform duration-200 hover:bg-gray-200 hover:scale-105"
-                  onClick={() => setNotification(false)} // Example toggle
-                >
-                  <IoNotifications className="text-xl text-[#F09C32]" />
-                </button>
-              </div>
-            )}
+          {/* Event cards container with proper overflow and centering when needed */}
+          <div
+            ref={scrollContainerRef}
+            className={`flex gap-5 overflow-x-auto scrollbar-none py-2 px-10 ${
+              centerContent ? "justify-center" : "justify-start"
+            }`}
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {events.map((event, index) => (
+              <EventCard
+                key={index}
+                image={event.image}
+                name={event.name}
+                location={event.location}
+                date={event.date}
+                time={event.time}
+                buttonText={event.buttonText}
+                onClick={(e) => handleNavigation(event.link, e)}
+              />
+            ))}
           </div>
-        ))}
 
-        <div className="text-2xl cursor-pointer font-Poppins text-[32px] font-semibold absolute top-1/2 right-[300px] transform -translate-y-1/2 z-10">
-          &gt;
+          {/* Right navigation button - only show when not at the end and when there are more than 2 events */}
+          {!centerContent && showRightArrow && (
+            <button
+              onClick={scrollRight}
+              className="absolute right-0 top-1/2 -translate-y-1/2 text-[32px] font-semibold cursor-pointer z-10 bg-[#222] bg-opacity-70 px-2 rounded-r transition-opacity duration-300"
+              aria-label="Next events"
+            >
+              &gt;
+            </button>
+          )}
         </div>
       </div>
     </section>
@@ -220,7 +292,7 @@ function Home() {
         description="Upcoming events that will require a reservation. Ticket and reservation details are not yet available."
         events={[
           {
-            image: "path/to/image1.jpg",
+            image: "src/assets/event4.jpg",
             name: "UAAP Season 87 Men's Basketball",
             location: "SM Mall of Asia Arena",
             date: "September 4, 2024",
@@ -229,7 +301,7 @@ function Home() {
             link: "/event-coming-soon",
           },
           {
-            image: "path/to/image2.jpg",
+            image: "src/assets/event5.jpg",
             name: "UAAP Season 87 Women's Basketball",
             location: "Araneta Coliseum",
             date: "September 15, 2024",

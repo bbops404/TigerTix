@@ -16,7 +16,7 @@ function EventCard({ image, name, location, date, time, buttonText, link }) {
         className="w-[400px] h-[500px] bg-gray-300 bg-cover bg-center rounded-lg shadow-md"
         style={{ backgroundImage: `url(${image})` }} // Fixed syntax
       ></div>
-      <p className="text-lg font-bold">{name}</p>
+      <p className="text-lg font-bold pt-2">{name}</p>
       <p className="text-sm text-gray-400 font-light">{location}</p>
       <div className="bg-white text-black text-xs font-bold py-1 px-2 min-w-[280px] rounded-2xl my-1">
         {date} | {time}

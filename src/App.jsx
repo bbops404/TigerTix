@@ -26,7 +26,7 @@ import EventTicketedEndUser from "./pages/EndUser/Event_Ticketed_EndUser";
 import Reservation from "./pages/EndUser/Reservation";
 import EventFree_Enduser from "./pages/EndUser/Event_Free";
 import EventComingSoon_Enduser from "./pages/EndUser/Event_ComingSoon";
-import RequestReceipt from "./pages/EndUser/RequestReceipt";
+import ReservationReceipt from "./pages/EndUser/ReservationReceipt";
 
 // ========================== ADMIN PAGES ==========================
 import AdminDashboard from "./pages/Admin/Admin_Dashboard";
@@ -88,8 +88,7 @@ function App() {
           <Route path="/my-profile" element={<MyProfile />} />
           <Route path="/confirm" element={<Home />} />
           <Route path="/reservation" element={<Reservation />} />
-
-          <Route path="/request-receipt" element={<RequestReceipt />} />
+          <Route path="/reservation-receipt" element={<ReservationReceipt />} />
 
           {/* ========================== ADMIN PAGES ========================== */}
           <Route path="/dashboard" element={<AdminDashboard />} />
