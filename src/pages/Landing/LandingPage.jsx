@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import EventCard from "../../components/EventCard";
 import Header from "../../components/Header";
 import LoginPopup from "./LoginPopup";
+import { IoChevronBackOutline } from "react-icons/io5";
 
 
 const images = [
@@ -53,7 +54,14 @@ function Carousel() {
   };
 
 
-
+  // Prevent default behavior for navigation to avoid page shifts
+  const handleReserveNow = (e) => {
+    e.preventDefault();
+    // Optional: smooth transition before navigation
+    setTimeout(() => {
+      navigate("/event-ticketed");
+    }, 100);
+  };
 
 
   return (
@@ -68,12 +76,12 @@ function Carousel() {
             className="relative w-full flex-shrink-0 h-full bg-cover bg-center"
             style={{ backgroundImage: `url('${image.src}')` }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-[#010100] via-[#FFAB40] to-[#000000] opacity-80"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-[#010100] via-[#633904] to-[#000000] opacity-80"></div>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-10">
-              <h2 className="font - Poppins text-[99px] font-extrabold">
+              <h2 className="font-Poppins text-[99px] font-extrabold drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
                 {image.title}
               </h2>
-              <p className="font - Poppins text-[26px] font-semibold mt-2">
+              <p className="font-Poppins text-[26px] font-semibold mt-2 drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
                 {image.description}
               </p>
             </div>
@@ -97,7 +105,7 @@ function Carousel() {
       <div className="absolute bottom-[60px] right-[100px]">
         <button
           className="font-Poppins bg-[#F09C32] text-black font-bold py-3 px-7 min-w-[300px] rounded-full uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-yellow-600"
-          onClick={() => navigate("/event-ticketed")}
+          onClick={handleReserveNow}
         >
           RESERVE NOW
         </button>
@@ -118,33 +126,111 @@ function Carousel() {
 }
 
 function EventSection({ title, description, events }) {
+  const navigate = useNavigate();
+  const scrollContainerRef = useRef(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(events.length > 3);
+
+  // Custom navigation function to prevent scrollbar jumps
+  const handleNavigation = (path, e) => {
+    if (e) e.preventDefault();
+
+    // Use a slight delay to ensure smooth transition
+    setTimeout(() => {
+      navigate(path);
+    }, 100);
+  };
+
+  // Scroll handlers for the navigation buttons
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -300, behavior: "smooth" });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 300, behavior: "smooth" });
+    }
+  };
+
+  // Monitor scroll position to show/hide navigation arrows
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } =
+        scrollContainerRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.addEventListener("scroll", handleScroll);
+      // Initialize arrow visibility
+      handleScroll();
+      return () => scrollContainer.removeEventListener("scroll", handleScroll);
+    }
+  }, [events]);
+
+  // Determine if content needs to be centered (1-2 events)
+  const centerContent = events.length <= 2;
+
   return (
-    <section className="p-5 bg-[#222] text-white font-Poppins text-lg font-semibold">
-      <h2 className="text-left pl-[400px] text-[28px]">{title}</h2>
-      <h3 className="text-left pl-[420px] text-[16px] text-gray-400 font-light">
-        {description}
-      </h3>
+    <section className="p-5 bg-[#222] text-white font-Poppins">
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-left text-[28px] font-semibold mt-[30px]">
+          {title}
+        </h2>
+        <h3 className="text-left text-[16px] text-gray-400 font-light">
+          {description}
+        </h3>
 
-      <div className="relative flex gap-5 overflow-x-auto scrollbar-none py-5 justify-center items-center">
-        <div className="text-2xl cursor-pointer font-Poppins text-[32px] font-semibold absolute top-1/2 left-[300px] transform -translate-y-1/2 z-10">
-          &lt;
-        </div>
+        <div className="relative py-5">
+          {/* Left navigation button - only show when not at the beginning and when there are more than 2 events */}
+          {!centerContent && showLeftArrow && (
+            <button
+              onClick={scrollLeft}
+              className="absolute left-0 top-1/2 -translate-y-1/2 text-[32px] font-semibold cursor-pointer z-10 bg-[#222] bg-opacity-70 px-2 rounded-l transition-opacity duration-300"
+              aria-label="Previous events"
+            >
+              &lt;
+            </button>
+          )}
 
-        {events.map((event, index) => (
-          <EventCard
-            key={index}
-            image={event.image}
-            name={event.name}
-            location={event.location}
-            date={event.date}
-            time={event.time}
-            buttonText={event.buttonText}
-            link={event.link} // Now passing just the string
-          />
-        ))}
+          {/* Event cards container with proper overflow and centering when needed */}
+          <div
+            ref={scrollContainerRef}
+            className={`flex gap-5 overflow-x-auto scrollbar-none py-2 px-10 ${
+              centerContent ? "justify-center" : "justify-start"
+            }`}
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {events.map((event, index) => (
+              <EventCard
+                key={index}
+                image={event.image}
+                name={event.name}
+                location={event.location}
+                date={event.date}
+                time={event.time}
+                buttonText={event.buttonText}
+                onClick={(e) => handleNavigation(event.link, e)}
+              />
+            ))}
+          </div>
 
-        <div className="text-2xl cursor-pointer font-Poppins text-[32px] font-semibold absolute top-1/2 right-[300px] transform -translate-y-1/2 z-10">
-          &gt;
+          {/* Right navigation button - only show when not at the end and when there are more than 2 events */}
+          {!centerContent && showRightArrow && (
+            <button
+              onClick={scrollRight}
+              className="absolute right-0 top-1/2 -translate-y-1/2 text-[32px] font-semibold cursor-pointer z-10 bg-[#222] bg-opacity-70 px-2 rounded-r transition-opacity duration-300"
+              aria-label="Next events"
+            >
+              &gt;
+            </button>
+          )}
         </div>
       </div>
     </section>
@@ -155,7 +241,28 @@ function LandingPage() {
   // 🔹 State for login popup
   const [loginPopup, setLoginPopup] = useState(false);
 
-  // 🔹 Function to toggle the login popup
+
+  useEffect(() => {
+    // Create a fixed-size wrapper to prevent layout shifts
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "auto";
+    document.body.style.height = "100vh";
+
+    // Add a padding-right to body to account for scrollbar width
+    // This prevents content from shifting when scrollbar appears/disappears
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.paddingRight = `${scrollbarWidth}px`;
+
+    return () => {
+      // Cleanup when component unmounts
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+      document.body.style.height = "";
+      document.body.style.paddingRight = "";
+    };
+  }, []);
+
   const toggleLoginPopup = () => {
     setLoginPopup((prev) => !prev);
   };
@@ -170,7 +277,7 @@ function LandingPage() {
   }, []);
 
   return (
-    <div className="bg-[#121212] text-white">
+    <div className="bg-[#121212] text-white min-h-screen">
       <Header toggleLoginPopup={toggleLoginPopup} />
       
       {loginPopup && (
@@ -203,6 +310,24 @@ function LandingPage() {
             buttonText: "Reserve Now",
             link: "/event-ticketed",
           },
+          {
+            image: "src/assets/event2.jpg",
+            name: "UAAP Season 87 Women's Basketball",
+            location: "Araneta Coliseum",
+            date: "September 15, 2024",
+            time: "11:30 AM",
+            buttonText: "Reserve Now",
+            link: "/event-ticketed",
+          },
+          {
+            image: "src/assets/event2.jpg",
+            name: "UAAP Season 87 Women's Basketball",
+            location: "Araneta Coliseum",
+            date: "September 15, 2024",
+            time: "11:30 AM",
+            buttonText: "Reserve Now",
+            link: "/event-ticketed",
+          },
         ]}
       />
       <EventSection
@@ -216,7 +341,25 @@ function LandingPage() {
             date: "September 4, 2024",
             time: "2:00 PM",
             buttonText: "View Details",
-            link: "/event-free",
+            link: "/event-free-landing",
+          },
+          {
+            image: "src/assets/event3.jpg",
+            name: "UAAP Season 87 Men's Basketball",
+            location: "SM Mall of Asia Arena",
+            date: "September 4, 2024",
+            time: "2:00 PM",
+            buttonText: "View Details",
+            link: "/event-free-landing",
+          },
+          {
+            image: "src/assets/event3.jpg",
+            name: "UAAP Season 87 Men's Basketball",
+            location: "SM Mall of Asia Arena",
+            date: "September 4, 2024",
+            time: "2:00 PM",
+            buttonText: "View Details",
+            link: "/event-free-landing",
           },
         ]}
       />
