@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { FaSearch, FaFilter, FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import Header from "../../components/Header";
+import Header_Admin from "../../components/Header_Admin";
 import Sidebar_Admin from "../../components/SideBar_Admin";
 import eventPlaceholder from "../../assets/event_placeholder.jpg";
+
 
 const eventData = [
   { id: 1, image: eventPlaceholder, name: "UAAP CDC" },
@@ -31,7 +32,7 @@ const Admin_EventReports = () => {
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
-      <Header showSearch={false} showAuthButtons={false} />
+      <Header_Admin/>
 
       <div className="flex">
         <Sidebar_Admin />

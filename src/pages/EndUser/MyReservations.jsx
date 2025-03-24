@@ -1,9 +1,9 @@
 import React from "react";
-import Header from "../../components/Header"; //update header once signed in
 import { useState } from "react";
 import { GoArrowLeft } from "react-icons/go";
 import { useNavigate } from "react-router-dom";
 import { VscAccount } from "react-icons/vsc";
+import Header_User from "../../components/Header_User";
 
 //Need configuration from backend database
 const Reservation = ({ event, status }) => {
@@ -32,7 +32,7 @@ const MyReservations = () => {
   return (
     <div className="flex flex-col min-h-screen bg-[#202020]">
       {/*Header*/}
-      <Header showSearch={false} showAuthButtons={false} />
+      <Header_User/>
       <button
         className="absolute top-28 left-4 w-[100px] py-1 px-5 transition duration-300 flex items-center justify-center"
         onClick={() => navigate("/home")}

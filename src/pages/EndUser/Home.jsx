@@ -240,7 +240,7 @@ function Home() {
 
   return (
     <div className="bg-[#121212] text-white">
-      <Header showSearch={false} showAuthButtons={false} />
+      <Header_User />
       {loginPopup && (
         <LoginPopup
           loginPopup={loginPopup}

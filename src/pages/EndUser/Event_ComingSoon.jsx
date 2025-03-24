@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; // For back navigation
-import Header from "../../components/Header";
 import { IoNotifications } from "react-icons/io5";
+import Header_User from "../../components/Header_User";
 import { IoChevronBackOutline } from "react-icons/io5";
 
 const Event_Free = () => {
@@ -14,7 +14,7 @@ const Event_Free = () => {
 
   return (
     <div className="bg-[#121212] text-white min-h-screen">
-      <Header showSearch={false} showAuthButtons={false} />
+      <Header_User />
 
       {/* Back Button (Upper Left) */}
       <button

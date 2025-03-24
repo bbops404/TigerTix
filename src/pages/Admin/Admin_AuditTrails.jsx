@@ -1,6 +1,6 @@
 import React from "react";
 import { FaSearch, FaFilter } from "react-icons/fa";
-import Header from "../../components/Header";
+import Header_Admin from "../../components/Header_Admin";
 import Sidebar_Admin from "../../components/SideBar_Admin";
 
 const AuditTrails = () => {
@@ -110,7 +110,7 @@ const AuditTrails = () => {
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
       {/* Header */}
-      <Header showSearch={false} showAuthButtons={false} />
+      <Header_Admin/>
 
       {/* Main Layout */}
       <div className="flex">
