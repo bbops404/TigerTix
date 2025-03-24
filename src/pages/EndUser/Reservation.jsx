@@ -1,8 +1,9 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // For back navigatio
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // For back navigation
 import Header from "../../components/Header";
 import ReservationEventCard from "../../components/ReservationEventCard"; // Import the new component
 import { IoChevronBackOutline } from "react-icons/io5";
+import ConfirmationEventModal from "../../components/ConfirmationEventModal";
 
 const Reservation = () => {
   const [ticketType, setTicketType] = useState("");
@@ -10,6 +11,32 @@ const Reservation = () => {
   const [emails, setEmails] = useState([""]);
   const [timeSlot, setTimeSlot] = useState("");
   const [showSummary, setShowSummary] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [validationError, setValidationError] = useState("");
+  const [formState, setFormState] = useState(null);
+
+  // Assuming the user's email is retrieved from auth context or similar
+  const userEmail = "email0@ust.edu.ph"; // This should come from your auth system
+
+  // Ensure the first email is always the user's email
+  useEffect(() => {
+    const newEmails = [...emails];
+    newEmails[0] = userEmail;
+    setEmails(newEmails);
+  }, []);
+
+  // Reset summary if any field changes
+  useEffect(() => {
+    if (
+      formState &&
+      (ticketType !== formState.ticketType ||
+        ticketCount !== formState.ticketCount ||
+        JSON.stringify(emails) !== JSON.stringify(formState.emails) ||
+        timeSlot !== formState.timeSlot)
+    ) {
+      setShowSummary(false);
+    }
+  }, [ticketType, ticketCount, emails, timeSlot, formState]);
 
   const ticketPrices = {
     "Gen Ad": 100,
@@ -18,15 +45,88 @@ const Reservation = () => {
     Patron: 500,
   };
 
+  const validateForm = () => {
+    // Check if ticket type is selected
+    if (!ticketType) {
+      setValidationError("Please select a ticket type");
+      return false;
+    }
+
+    // Check if time slot is selected
+    if (!timeSlot) {
+      setValidationError("Please select a time slot for claiming tickets");
+      return false;
+    }
+
+    // Check if all emails are filled for additional tickets
+    for (let i = 1; i < ticketCount; i++) {
+      if (!emails[i] || !emails[i].trim()) {
+        setValidationError(`Please provide email for ticket ${i + 1}`);
+        return false;
+      }
+
+      // Basic email validation (could be enhanced)
+      if (!emails[i].includes("@") || !emails[i].includes(".")) {
+        setValidationError(`Please provide a valid email for ticket ${i + 1}`);
+        return false;
+      }
+    }
+
+    setValidationError("");
+    return true;
+  };
+
   const handleAddReservation = () => {
-    console.log("Reservation Added", {
+    if (validateForm()) {
+      // Store current form state to detect changes
+      setFormState({
+        ticketType,
+        ticketCount,
+        emails: [...emails],
+        timeSlot,
+      });
+
+      console.log("Reservation Added", {
+        ticketType,
+        ticketCount,
+        emails,
+        timeSlot,
+      });
+
+      // Show the summary directly instead of the confirmation modal
+      setShowSummary(true);
+    }
+  };
+
+  const handleSummaryConfirmation = () => {
+    // Show the confirmation modal when the CONFIRM button in summary is clicked
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmReservation = () => {
+    console.log("Final Reservation Confirmed", {
       ticketType,
       ticketCount,
       emails,
       timeSlot,
     });
-    setShowSummary(true);
+
+    // Close the modal
+    setShowConfirmModal(false);
+
+    // Navigate to the receipt page after final confirmation
+    navigate("/reservation-receipt", {
+      state: {
+        ticketType,
+        ticketCount,
+        emails,
+        timeSlot,
+        ticketPrices,
+        userEmail,
+      },
+    });
   };
+
   const navigate = useNavigate();
 
   return (
@@ -54,6 +154,8 @@ const Reservation = () => {
           timeSlot={timeSlot}
           setTimeSlot={setTimeSlot}
           handleAddReservation={handleAddReservation}
+          userEmail={userEmail} // Pass the user's email to the card component
+          validationError={validationError}
         />
       </div>
 
@@ -129,7 +231,7 @@ const Reservation = () => {
                           Email:
                         </td>
                         <td className="bg-gray-300 border border-white">
-                          email0@ust.edu.ph
+                          {userEmail}
                         </td>
                       </tr>
 
@@ -191,7 +293,7 @@ const Reservation = () => {
               <div className="mt-8 text-center">
                 <button
                   className="font-Poppins bg-black text-[#F09C32] font-bold text-lg py-3 px-7 w-full lg:min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600"
-                  onClick={() => navigate("/request-receipt")} // Change to ticket details - this is for visualization only
+                  onClick={handleSummaryConfirmation}
                 >
                   CONFIRM
                 </button>
@@ -200,6 +302,19 @@ const Reservation = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal - only shown when clicking CONFIRM in summary */}
+      <ConfirmationEventModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmReservation}
+        ticketType={ticketType}
+        ticketCount={ticketCount}
+        emails={emails}
+        timeSlot={timeSlot}
+        ticketPrices={ticketPrices}
+        userEmail={userEmail}
+      />
     </div>
   );
 };

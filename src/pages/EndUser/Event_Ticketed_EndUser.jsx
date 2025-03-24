@@ -91,7 +91,7 @@ const Event_Ticketed_EndUser = () => {
             {/* Reserve Button */}
             <div className="flex justify-end mt-9">
               <button
-                className="font-Poppins bg-black text-[#F09C32] font-bold py-3 px-7 min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600"
+                className="font-Poppins text-[#F09C32] font-bold py-3 px-7 min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 outline outline-1 outline-[#F09C32]"
                 onClick={() => navigate("/reservation")} // Redirects to Reservation
               >
                 RESERVE
