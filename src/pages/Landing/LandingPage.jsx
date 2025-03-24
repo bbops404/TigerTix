@@ -5,6 +5,7 @@ import Header from "../../components/Header";
 import LoginPopup from "./LoginPopup";
 import { IoChevronBackOutline } from "react-icons/io5";
 
+
 const images = [
   {
     src: "src/assets/c1.jpg",
@@ -27,6 +28,7 @@ const images = [
     description: "Basketball Tournament Round 5",
   },
 ];
+
 
 function Carousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -51,6 +53,7 @@ function Carousel() {
     setTimeout(() => setIsSliding(false), 500);
   };
 
+
   // Prevent default behavior for navigation to avoid page shifts
   const handleReserveNow = (e) => {
     e.preventDefault();
@@ -59,6 +62,7 @@ function Carousel() {
       navigate("/event-ticketed");
     }, 100);
   };
+
 
   return (
     <div className="relative w-full h-[700px] overflow-hidden">
@@ -234,7 +238,9 @@ function EventSection({ title, description, events }) {
 }
 
 function LandingPage() {
+  // 🔹 State for login popup
   const [loginPopup, setLoginPopup] = useState(false);
+
 
   useEffect(() => {
     // Create a fixed-size wrapper to prevent layout shifts
@@ -261,15 +267,26 @@ function LandingPage() {
     setLoginPopup((prev) => !prev);
   };
 
+  // 🔹 Check if login popup should be shown on load
+  useEffect(() => {
+    const shouldShowLogin = localStorage.getItem("showLoginPopup");
+    if (shouldShowLogin === "true") {
+      setLoginPopup(true);
+      localStorage.removeItem("showLoginPopup");
+    }
+  }, []);
+
   return (
     <div className="bg-[#121212] text-white min-h-screen">
       <Header toggleLoginPopup={toggleLoginPopup} />
+      
       {loginPopup && (
-        <LoginPopup
-          loginPopup={loginPopup}
-          toggleLoginPopup={toggleLoginPopup}
+        <LoginPopup 
+          loginPopup={loginPopup} 
+          toggleLoginPopup={toggleLoginPopup} 
         />
       )}
+
       <Carousel />
       <EventSection
         title="TICKETED EVENTS"

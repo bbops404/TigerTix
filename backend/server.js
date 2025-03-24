@@ -1,29 +1,44 @@
-const express = require("express");
-const app = express();
-const PORT = 8383;
+require('dotenv').config();
+const express = require('express'); // Make sure express is required first
+const cors = require('cors');
+const pool = require('./config/db'); // Import the database connection
+const db = require('./models/Users');
 
-let data = {
-  name: "James",
-};
+const Redis = require("ioredis");
+const redisClient = new Redis(); // Default Redis connection on localhost:6379
 
-app.get("/", (req, res) => {
-  res.send(`<body style="background:pink; color:blue;">
-    <h1>DATA:</h1>
-    <p>${JSON.stringify(data)}</p>
-    </body>`);
+
+const app = express(); // Now create the express app
+const port = process.env.PORT || 5002;
+
+// Middleware
+app.use(cors());
+app.use(express.json());  // This will parse the JSON body
+
+app.use(express.urlencoded({ extended: true })); // Ensure form data can be parsed
+
+const authRoutes = require("./routes/auth");
+app.use("/auth", authRoutes);
+
+redisClient.on("connect", () => {
+  console.log("Connected to Redis successfully! 🔥");
+});
+redisClient.on("error", (err) => {
+  console.error("Redis connection error:", err);
 });
 
-app.get("/dashboard", (req, res) => {
-  res.send("<h1>dashboard</h1>");
+
+// Sample route to test API
+app.get('/', (req, res) => {
+  res.send('Server is running! 🚀');
 });
 
-app.get("/api/data", (req, res) => {
-  console.log("This one was for data");
-  res.send(data);
+// Start the server
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
 
-app.post('/', (req, res) => {
-  const newEntry = req, body
-})
-
-app.listen(PORT, () => console.log(`Server has started on: ${PORT}`));
+// Check database connection
+db.sequelize.authenticate()
+  .then(() => console.log('Sequelize connected to the database successfully! 🎉'))
+  .catch(err => console.error('Sequelize connection error:', err));
