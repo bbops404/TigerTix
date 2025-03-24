@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../../components/Header";
+import Header_User from "../../components/Header_User";
 import { IoNotifications } from "react-icons/io5";
 import EventCard from "../../components/EventCardEndUser";
 
@@ -233,20 +233,9 @@ function EventSection({ title, description, events }) {
 }
 
 function Home() {
-  const [loginPopup, setLoginPopup] = useState(false);
-  const toggleLoginPopup = () => {
-    setLoginPopup((prev) => !prev);
-  };
-
   return (
     <div className="bg-[#121212] text-white">
       <Header_User />
-      {loginPopup && (
-        <LoginPopup
-          loginPopup={loginPopup}
-          toggleLoginPopup={toggleLoginPopup}
-        />
-      )}
       <Carousel />
       <EventSection
         title="TICKETED EVENTS"

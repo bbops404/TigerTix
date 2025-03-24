@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom"; // For back navigation
-import Header from "../../components/Header";
+import Header from "../../components/Header_User";
 import ReservationEventCard from "../../components/ReservationEventCard"; // Import the new component
 import { IoChevronBackOutline } from "react-icons/io5";
 import ConfirmationEventModal from "../../components/ConfirmationEventModal";

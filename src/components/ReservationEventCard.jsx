@@ -114,12 +114,12 @@ const ReservationEventCard = ({
           <input
             type="number"
             min="1"
-            max="4"
-            placeholder="1-4"
+            max="5"
+            placeholder="1-5"
             value={ticketCount}
             onChange={(e) => {
               const value = parseInt(e.target.value);
-              if (value >= 1 && value <= 4) {
+              if (value >= 1 && value <= 5) {
                 setTicketCount(value);
               }
             }}
