@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import EventCard from "../../components/EventCard";
-import Header from "../../components/Header";
 import { IoNotifications } from "react-icons/io5";
+import Header_User from "../../components/Header_User";
 
 const images = [
   {
@@ -168,7 +168,7 @@ function Home() {
 
   return (
     <div className="bg-[#121212] text-white">
-      <Header showSearch={false} showAuthButtons={false} />
+      <Header_User />
       {loginPopup && (
         <LoginPopup
           loginPopup={loginPopup}

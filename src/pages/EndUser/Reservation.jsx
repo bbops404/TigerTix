@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; // For back navigation
-import Header from "../../components/Header";
 import { PiTagBold } from "react-icons/pi";
+import Header_User from "../../components/Header_User";
 
 const Reservation = () => {
     const [ticketType, setTicketType] = useState("");
@@ -32,7 +32,7 @@ const Reservation = () => {
     
     return (
         <div className="bg-[#121212] text-white min-h-screen">
-            <Header showSearch={false} showAuthButtons={true} />
+            <Header_User/>
             
             {/* Back Button (Upper Left) */}
             <button

@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoArrowLeft } from "react-icons/go";
-import Header from "../../components/Header";
 import Reservation from "./Reservation";
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import Header_User from "../../components/Header_User";
 
 
 
@@ -44,7 +44,7 @@ const ReservationReceipt = () => {
 
     {/*HEADER*/}
 
-    <Header showSearch={false} showAuthButtons={false}/>
+    <Header_User/>
 
 
         {/*Main Container*/}

@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { FaSearch, FaArchive } from "react-icons/fa";
-import Header from "../../components/Header";
 import Sidebar_Admin from "../../components/SideBar_Admin";
+import Header_Admin from "../../components/Header_Admin";
 
 const Admin_EventsManagement = () => {
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
       {/* Header */}
-      <Header showSearch={false} showAuthButtons={false} />
+      <Header_Admin/>
 
       {/* Main Layout */}
       <div className="flex">

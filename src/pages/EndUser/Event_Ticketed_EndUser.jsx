@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; // For back navigation
-import Header from "../../components/Header";
 import TigerTicket from "../../assets/TigerTicket.svg"; // Correct import
+import Header_User from "../../components/Header_User";
 
 const Event_Ticketed_EndUser = () => {
   const [loginPopup, setLoginPopup] = useState(false);
@@ -13,7 +13,7 @@ const Event_Ticketed_EndUser = () => {
 
   return (
     <div className="bg-[#121212] text-white min-h-screen">
-      <Header showSearch={false} showAuthButtons={false} />
+      <Header_User/>
 
       {/* Back Button (Upper Left) */}
       <button
