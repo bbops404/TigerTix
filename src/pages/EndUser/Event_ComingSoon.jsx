@@ -74,7 +74,7 @@ const Event_Free = () => {
               <button
                 className="font-Poppins bg-black text-[#F09C32] font-bold py-3 px-7 min-w-[300px] 
                 rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform 
-                hover:scale-105 hover:bg-black-600 flex items-center justify-center"
+                hover:scale-105 hover:bg-black-600 items-center justify-center"
               >
                 Be notified!
                 <IoNotifications className="text-2xl ml-2 bg-white p-1 rounded-full" />
