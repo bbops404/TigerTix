@@ -3,12 +3,6 @@ import { FaUser, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import { IoIosCloseCircleOutline } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 
-const predefinedUsers = [
-  { email: "admin@ust.edu.ph", password: "admin123", role: "admin" },
-  { email: "support@ust.edu.ph", password: "support123", role: "support" },
-  { email: "user@ust.edu.ph", password: "user123", role: "user" },
-];
-
 const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
   const loginPopupRef = useRef(null);
   const navigate = useNavigate();
@@ -28,22 +22,45 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
     };
   }, [toggleLoginPopup]);
 
-  const handleLogin = () => {
-    const trimmedEmail = email.trim();
-    const user = predefinedUsers.find(
-      (u) => u.email === trimmedEmail && u.password === password
-    );
-
-    if (user) {
-      alert(`Successfully logged in as ${user.role.toUpperCase()}!`);
-      toggleLoginPopup();
-
-      if (user.role === "admin") navigate("/dashboard");
-      else navigate("/home");
-    } else {
-      alert("Invalid email or password. Please try again.");
+  const handleLogin = async () => {
+    const trimmedInput = email.trim(); // This can be either email or username
+  
+    try {
+      const response = await fetch("http://localhost:5002/auth/login", { 
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: trimmedInput.includes("@") ? trimmedInput : null,  // If input contains '@', treat it as email
+          username: trimmedInput.includes("@") ? null : trimmedInput, // Otherwise, treat it as username
+          password: password,
+        }),
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        alert(`Successfully logged in as ${data.user.role.toUpperCase()}!`);
+        
+        // Store token in localStorage (or sessionStorage)
+        localStorage.setItem("token", data.token);
+  
+        toggleLoginPopup();
+  
+        if (["student", "employee", "alumni"].includes(data.user.role)) {
+          navigate("/home");
+        }
+                else navigate("/dashboard");
+      } else {
+        alert(data.message || "Invalid email/username or password. Please try again.");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Failed to log in. Please  again later.");
     }
   };
+  
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -76,7 +93,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
                 <input
                   type="email"
                   className="focus:outline-none text-sm w-full text-gray-600"
-                  placeholder="Enter your email"
+                  placeholder="Enter your email or username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />

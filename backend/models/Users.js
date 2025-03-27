@@ -18,16 +18,20 @@ const User = sequelize.define('User', {
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    validate: {
-        isEmail: true, // Ensure the email is valid
-      },
     unique: true,
+    validate: { isEmail: true },
+    set(value) {
+      this.setDataValue("email", value.toLowerCase());
+    }
   },
   username: {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
-  },
+    set(value) {
+      this.setDataValue("username", value.toLowerCase());
+    }
+  },  
   password_hash: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -54,9 +58,9 @@ const User = sequelize.define('User', {
   underscored: true, // Uses snake_case for column names
 });
 
-// Synchronize model with the database
-User.sync()
-  .then(() => console.log('User model synchronized with the database.'))
+User.sync({ alter: true })
+  .then(() => console.log('User model synchronized with the database (alter mode).'))
   .catch((err) => console.error('Error syncing User model:', err));
+
 
 module.exports = User;
