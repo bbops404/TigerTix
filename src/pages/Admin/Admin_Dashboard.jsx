@@ -10,9 +10,9 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="bg-[#272727]">
+    <div className="bg-[#272727] main-content">
       {/* Header */}
-      <Header_Admin/>
+      <Header_Admin />
 
       {/* Main Content Wrapper */}
       <div className="flex flex-1 ">

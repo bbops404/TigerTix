@@ -36,6 +36,8 @@ import AdminUser from "./pages/Admin/Admin_UserPage";
 import AdminProfile from "./pages/Admin/Admin_ProfilePage";
 import AuditTrails from "./pages/Admin/Admin_AuditTrails";
 import AdminEventReports from "./pages/Admin/Admin_EventReports";
+import AdminPublishEvent from "./pages/Admin/Admin_PublishEvent";
+import AdminScheduleEvent from "./pages/Admin/Admin_ScheduleEvent";
 
 // ========================== SUPPORT STAFF PAGES ==========================
 // (Add support staff routes here when available)
@@ -92,10 +94,12 @@ function App() {
 
           {/* ========================== ADMIN PAGES ========================== */}
           <Route path="/dashboard" element={<AdminDashboard />} />
-          <Route path="/event-management" element={<AdminEventsManagment />} />
+          <Route path="/events" element={<AdminEventsManagment />} />
+          <Route path="/events/publish" element={<AdminPublishEvent />} />
+          <Route path="/events/schedule" element={<AdminPublishEvent />} />
           <Route path="/reservations" element={<AdminReservations />} />
-          <Route path="/user" element={<AdminUser />} />
-          <Route path="/adminprofile" element={<AdminProfile />} />
+          <Route path="/users" element={<AdminUser />} />
+          <Route path="/profile" element={<AdminProfile />} />
           <Route path="/audit-trails" element={<AuditTrails />} />
           <Route path="/event-report" element={<AdminEventReports />} />
 

@@ -2,8 +2,18 @@ import React, { useState, useEffect } from "react";
 import { FaSearch, FaArchive, FaPlus } from "react-icons/fa";
 import Sidebar_Admin from "../../components/SideBar_Admin";
 import Header_Admin from "../../components/Header_Admin";
+import { useNavigate } from "react-router-dom";
 
 const AddEventButton = () => {
+  const navigate = useNavigate();
+
+  const handlePublishClick = () => {
+    navigate("/events/publish");
+  };
+  const handleScheduleClick = () => {
+    navigate("/events/schedule");
+  };
+
   const [showOptions, setShowOptions] = useState(false);
   const [isOverlayVisible, setIsOverlayVisible] = useState(false);
 
@@ -58,13 +68,13 @@ const AddEventButton = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                //onClick={() => handleOptionClick("add")}
+                onClick={handlePublishClick}
                 className="w-full px-4 py-3 text-left hover:bg-[#5A5A5A] transition duration-200 border-b border-custom_yellow"
               >
-                Add Event
+                Publish an Event
               </button>
               <button
-                //onClick={() => handleOptionClick("schedule")}
+                onClick={handleScheduleClick}
                 className="w-full px-4 py-3 text-left hover:bg-[#5A5A5A] transition duration-200"
               >
                 Schedule Event
