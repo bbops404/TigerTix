@@ -132,11 +132,14 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
             <div className="flex text-xs text-white pt-2">
               <p className="mr-1 font-light">Don’t have an account?</p>
               <button
-                onClick={() => navigate("/verify")}
-                className="font-bold hover:underline focus:outline-none"
-              >
-                Sign Up!
-              </button>
+  onClick={() => {
+    toggleLoginPopup(); // Isara muna yung pop-up
+    navigate("/verify"); // Tapos saka mag-navigate
+  }}
+  className="font-bold hover:underline focus:outline-none"
+>
+  Sign Up!
+</button>
             </div>
           </div>
         </div>
