@@ -4,6 +4,8 @@ const nodemailer = require("nodemailer");
 const Redis = require("ioredis");
 const User = require('../models/Users');
 const bcrypt = require('bcryptjs'); // Import bcryptjs for password hashing
+const { Sequelize } = require("sequelize");
+const jwt = require("jsonwebtoken");
 
 require("dotenv").config(); // Load environment variables
 
@@ -144,13 +146,14 @@ router.post("/login", async (req, res) => {
 
         // Find user by email or username (case insensitive)
         const user = await User.findOne({
-            where: {
-                [Sequelize.Op.or]: [
-                    { email: email }, // search by email
-                    { username: username } // search by username
-                ]
-            }
-        });
+          where: {
+              [Sequelize.Op.or]: [
+                Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), email ? email.toLowerCase() : ""),
+                Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('username')), username ? username.toLowerCase() : "")
+              ]
+          }
+      });
+      
 
         // If no user found, send error response
         if (!user) {
@@ -180,7 +183,7 @@ router.post("/login", async (req, res) => {
 
     } catch (error) {
         console.error("Error logging in:", error);
-        res.status(500).json({ message: "Failed to log in. Please try again." });
+        res.status(500).json({ message: "Failed to log in. Please kry again." });
     }
 });
 
