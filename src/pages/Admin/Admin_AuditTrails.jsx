@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { FaSearch, FaFilter } from "react-icons/fa";
 import Header from "../../components/Header";
 import Sidebar_Admin from "../../components/SideBar_Admin";
+import Admin_AuditTrailsFilter from "./Admin_AuditTrailsFilter";
 
 const AuditTrails = () => {
+  const [showFilter, setShowFilter] = useState(false); // Correct state declaration
+
   const logs = [
     {
       id: 10,
@@ -131,14 +134,20 @@ const AuditTrails = () => {
             </div>
 
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-white text-black rounded-md">
+              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
                 Reset
               </button>
-              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2">
+              <button
+                className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                onClick={() => setShowFilter(!showFilter)}
+              >
                 <FaFilter /> Sort/Filter by
               </button>
             </div>
           </div>
+
+          {/* Filter Component */}
+          {showFilter && <Admin_AuditTrailsFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
 
           {/* Audit Trails Table */}
           <div className="overflow-x-auto rounded-md shadow-md">
@@ -147,10 +156,7 @@ const AuditTrails = () => {
                 <thead className="sticky top-0 bg-[#F09C32] text-[#333333] text-center">
                   <tr>
                     {["ID", "Timestamp", "User ID", "Username", "User Role", "Action", "Message", "Status"].map((header, index) => (
-                      <th
-                        key={index}
-                        className="px-4 py-2 border border-[#D6D3D3] text-center"
-                      >
+                      <th key={index} className="px-4 py-2 border border-[#D6D3D3] text-center">
                         {header}
                       </th>
                     ))}
@@ -158,15 +164,9 @@ const AuditTrails = () => {
                 </thead>
                 <tbody>
                   {logs.slice(0, 10).map((log) => (
-                    <tr
-                      key={log.id}
-                      className="border border-[#D6D3D3] text-center text-white"
-                    >
+                    <tr key={log.id} className="border border-[#D6D3D3] text-center text-white">
                       {Object.values(log).map((value, index) => (
-                        <td
-                          key={index}
-                          className="px-4 py-2 border border-[#D6D3D3]"
-                        >
+                        <td key={index} className="px-4 py-2 border border-[#D6D3D3]">
                           {value}
                         </td>
                       ))}

@@ -36,6 +36,7 @@ import AdminUser from "./pages/Admin/Admin_UserPage";
 import AdminProfile from "./pages/Admin/Admin_ProfilePage";
 import AuditTrails from "./pages/Admin/Admin_AuditTrails";
 import AdminEventReports from "./pages/Admin/Admin_EventReports";
+import AdminArchive from "./pages/Admin/Admin_Archive";
 
 // ========================== SUPPORT STAFF PAGES ==========================
 // (Add support staff routes here when available)
@@ -99,6 +100,7 @@ function App() {
           <Route path="/adminprofile" element={<AdminProfile />} />
           <Route path="/audit-trails" element={<AuditTrails />} />
           <Route path="/event-report" element={<AdminEventReports />} />
+          <Route path="/archive" element={<AdminArchive />} />
 
           {/* ========================== FOOTER PAGES ========================== */}
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
