@@ -1,7 +1,6 @@
-import React, { useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import Header from "../../components/Header";
 import Sidebar_Admin from "../../components/SideBar_Admin";
+import Header_Admin from "../../components/Header_Admin";
 
 const AdminDashboard = () => {
   // Event Status Data
@@ -11,9 +10,9 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="bg-[#272727]">
+    <div className="bg-[#272727] main-content">
       {/* Header */}
-      <Header showSearch={false} showAuthButtons={false} />
+      <Header_Admin />
 
       {/* Main Content Wrapper */}
       <div className="flex flex-1 ">

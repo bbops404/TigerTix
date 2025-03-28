@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { FaSearch, FaFilter } from "react-icons/fa";
-import Header from "../../components/Header";
 import Sidebar_Admin from "../../components/SideBar_Admin";
+
 import Admin_ReservationScanQRPopUp from "./Admin_ReservationScanQRPopUp.jsx";
 import Admin_ReservationsFilter from "./Admin_ReservationsFilter";
+
+import Header_Admin from "../../components/Header_Admin";
+
 
 const Admin_Reservations = () => {
   const [showQRPopup, setShowQRPopup] = useState(false);
@@ -14,7 +17,7 @@ const Admin_Reservations = () => {
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
       {/* Header */}
-      <Header showSearch={false} showAuthButtons={false} />
+      <Header_Admin/>
 
       {/* Main Layout */}
       <div className="flex">

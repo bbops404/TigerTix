@@ -1,7 +1,8 @@
+
 import React, { useState } from "react";
 import { FaSearch, FaFilter, FaExclamationTriangle} from "react-icons/fa";
-import Header from "../../components/Header";
 import Sidebar_Admin from "../../components/SideBar_Admin";
+import Header_Admin from "../../components/Header_Admin";
 import Admin_AddUserPopUp from "./Admin_AddUserPopUp";
 import Admin_EditUserPopUp from "./Admin_EditUserPopUp";
 import Admin_UserGenerateReport from "./Admin_UserGenerateReportPopUp";
@@ -41,6 +42,7 @@ const SuccessModal = ({ isOpen, onClose }) => {
   );
 };
 
+
 const Admin_UserPage = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [showEditUserPopup, setShowEditUserPopup] = useState(false);
@@ -64,7 +66,12 @@ const Admin_UserPage = () => {
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
-      <Header showSearch={false} showAuthButtons={false} />
+
+      {/* Header */}
+      <Header_Admin/>
+
+      {/* Main Layout */}
+
       <div className="flex">
         <Sidebar_Admin />
         <div className="flex-1 px-10 py-10">
