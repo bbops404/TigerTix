@@ -6,7 +6,7 @@ const Header_Admin = () => {
   return (
     <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl">
       {/* Logo */}
-      <Link to="/" className="flex items-center">
+      <Link to="/dashboard" className="flex items-center">
         <img
           src={tigertix_logo}
           className="w-40 transform transition-transform duration-300 hover:scale-105"

@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 import { IoArrowBack } from "react-icons/io5";
 
-const AddUserModal = ({ isOpen, onClose, onConfirm }) => {
+const EditUserModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white p-6 rounded-xl w-[500px] h-[200px] shadow-lg">
-        <h2 className="text-2xl text-black font-bold">Create a User</h2>
-        <p className="text-black mt-2">Are you sure you want to add this user?</p>
+        <h2 className="text-2xl text-black font-bold">Update User</h2>
+        <p className="text-black mt-2">Are you sure you want to update the following user?</p>
         <p className="text-gray-600 text-sm">Please confirm to proceed.</p>
         <div className="flex justify-end gap-2 mt-10">
           <button onClick={onClose} className="px-8 py-1 bg-gray-700 text-white rounded-2xl">Cancel</button>
-          <button onClick={onConfirm} className="px-8 py-1 bg-[#F09C32] text-white rounded-2xl">Confirm</button>
+          <button onClick={onConfirm} className="px-8 py-1 bg-[#F09C32] text-white rounded-2xl">Update</button>
         </div>
       </div>
     </div>
@@ -23,8 +23,8 @@ const SuccessModal = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white p-6 rounded-xl w-[500px] h-[200px] shadow-lg">
-        <h2 className="text-2xl text-black font-bold">User Created Successfully!</h2>
-        <p className="text-gray-600 mt-2">The new user has been added.</p>
+        <h2 className="text-2xl text-black font-bold">User Updated Successfully!</h2>
+        <p className="text-gray-600 mt-2">The user's information has been successfully updated.</p>
         <div className="flex justify-end mt-4">
           <button onClick={onClose} className="mt-10 px-8 py-1 bg-[#F09C32] text-white rounded-2xl">OK</button>
         </div>
@@ -33,7 +33,7 @@ const SuccessModal = ({ isOpen, onClose }) => {
   );
 };
 
-const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
+const Admin_EditUserPopUp = ({ showPopup, togglePopup }) => {
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -41,14 +41,16 @@ const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState("");
+  const [accountStatus, setAccountStatus] = useState("");
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isSuccessModalOpen, setSuccessModalOpen] = useState(false);
-  
+
   const roles = ["Student", "Faculty", "Alumni"];
+  const statuses = ["Active", "Restricted", "Suspended"];
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!username || !firstName || !lastName || !email || !password || !confirmPassword || !role) {
+    if (!username || !firstName || !lastName || !email || !password || !confirmPassword || !role || !accountStatus) {
       alert("All fields are required!");
       return;
     }
@@ -71,7 +73,7 @@ const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
           <button className="absolute top-4 left-4 text-gray-700" onClick={togglePopup}>
             <IoArrowBack size={24} />
           </button>
-          <h2 className="text-xl font-bold text-center mb-6">ADD USER</h2>
+          <h2 className="text-xl font-bold text-center mb-6">EDIT USER</h2>
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -107,17 +109,28 @@ const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
                   ))}
                 </select>
               </div>
+              <div>
+                <label>Account Status</label>
+                <select className="border p-2 rounded w-full" value={accountStatus} onChange={(e) => setAccountStatus(e.target.value)}>
+                  <option value="" disabled>Change Account Status</option>
+                  {statuses.map((option, index) => (
+                    <option key={index} value={option}>{option}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <button type="submit" className="bg-[#FFAB40] text-white font-bold px-2 py-2 rounded w-full mt-4 hover:bg-[#E69530]">
-              ADD USER
+              UPDATE USER
             </button>
           </form>
         </div>
-        <AddUserModal isOpen={isConfirmModalOpen} onClose={() => setConfirmModalOpen(false)} onConfirm={handleConfirm} />
+
+        {/* Modals */}
+        <EditUserModal isOpen={isConfirmModalOpen} onClose={() => setConfirmModalOpen(false)} onConfirm={handleConfirm} />
         <SuccessModal isOpen={isSuccessModalOpen} onClose={() => { setSuccessModalOpen(false); togglePopup(); }} />
       </div>
     )
   );
 };
 
-export default Admin_AddUserPopUp;
+export default Admin_EditUserPopUp;
