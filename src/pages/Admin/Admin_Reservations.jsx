@@ -1,9 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { FaSearch, FaFilter } from "react-icons/fa";
 import Sidebar_Admin from "../../components/SideBar_Admin";
+
+import Admin_ReservationScanQRPopUp from "./Admin_ReservationScanQRPopUp.jsx";
+import Admin_ReservationsFilter from "./Admin_ReservationsFilter";
+
 import Header_Admin from "../../components/Header_Admin";
 
+
 const Admin_Reservations = () => {
+  const [showQRPopup, setShowQRPopup] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
+
+  
+
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
       {/* Header */}
@@ -33,11 +43,15 @@ const Admin_Reservations = () => {
               <button className="px-4 py-2 bg-white text-black rounded-md">
                 Reset
               </button>
-              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2">
+              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2"
+              onClick={() => setShowFilter(!showFilter)}>
                 <FaFilter /> Sort/Filter by
               </button>
             </div>
           </div>
+
+          {/* Filter Component */}
+          {showFilter && <Admin_ReservationsFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
 
           {/* Reservations Table */}
           <div className="overflow-x-auto rounded-md shadow-md max-h-[400px] overflow-y-auto">
@@ -90,7 +104,10 @@ const Admin_Reservations = () => {
 
           {/* Bottom Buttons */}
           <div className="flex justify-between items-center mt-6">
-            <button className="px-6 py-2 bg-[#F09C32] text-black rounded-md">
+            <button
+              className="px-6 py-2 bg-[#F09C32] text-black rounded-md"
+              onClick={() => setShowQRPopup(true)}
+            >
               Scan QR Code
             </button>
             <div className="flex gap-2">
@@ -104,6 +121,8 @@ const Admin_Reservations = () => {
           </div>
         </div>
       </div>
+      {/* QR Code Popup */}
+      {showQRPopup && <Admin_ReservationScanQRPopUp showPopup={showQRPopup} togglePopup={() => setShowQRPopup(false)} />}
     </div>
   );
 };
