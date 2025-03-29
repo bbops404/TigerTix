@@ -50,17 +50,20 @@ const User = sequelize.define('User', {
   },
   createdAt: {
     type: DataTypes.DATE,
-    field: 'created_at' // this tells Sequelize to map to the 'created_at' column in the DB
+    field: 'created_at' // Map to created_at in DB
   },
+  updatedAt: {  
+    type: DataTypes.DATE,
+    field: 'updated_at' // Map to updated_at in DB
+  }
 }, {
-  tableName: 'users',
-  timestamps: true,
-  underscored: true, // Uses snake_case for column names
+  tableName: 'users',  // ✅ Sequelize will use this instead of "Users"
+  timestamps: true,    // ✅ Enables created_at and updated_at
+  underscored: true,   // ✅ Uses snake_case instead of camelCase
 });
 
 User.sync({ alter: true })
   .then(() => console.log('User model synchronized with the database (alter mode).'))
   .catch((err) => console.error('Error syncing User model:', err));
-
 
 module.exports = User;

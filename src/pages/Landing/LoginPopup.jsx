@@ -9,6 +9,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+const [user, setUser] = useState(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -28,6 +29,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
     try {
       const response = await fetch("http://localhost:5002/auth/login", { 
         method: "POST",
+        credentials: "include",  // ✅ Ensures cookies are sent
         headers: {
           "Content-Type": "application/json",
         },
@@ -36,6 +38,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
           username: trimmedInput.includes("@") ? null : trimmedInput, // Otherwise, treat it as username
           password: password,
         }),
+
       });
   
       const data = await response.json();
@@ -43,19 +46,32 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
       if (response.ok) {
         alert(`Successfully logged in as ${data.user.role.toUpperCase()}!`);
         
-        // Store token in localStorage (or sessionStorage)
-        localStorage.setItem("token", data.token);
-  
+          // Store token securely in sessionStorage (only for active session)
+      sessionStorage.setItem("authToken", data.token);
+      sessionStorage.setItem("userRole", data.user.role); // Store role for ProtectedRoutes
+      console.log("Token (Frontend) :",  data.token);
+      console.log("User role (Frontend):",  data.user.role);
+
+      // Store user details in state/context instead of localStorage
+      setUser({
+        email: data.user.email,
+        username: data.user.username,
+        role: data.user.role,
+      });
+
         toggleLoginPopup();
   
-        if (["student", "employee", "alumni"].includes(data.user.role)) {
-          navigate("/home");
-        }
-                else navigate("/dashboard");
-      } else {
-        alert(data.message || "Invalid email/username or password. Please try again.");
-      }
-    } catch (error) {
+     // ✅ Redirect based on user role
+     if (data.user.role === "admin") {
+      navigate("/admin-dashboard", { replace: true });
+    } else if (["student", "employee", "alumni"].includes(data.user.role)) {
+      navigate("/home", { replace: true });
+  } 
+
+      // Debugging cookies
+      console.log("Stored Cookies (frontend):", document.cookie);
+      
+    }} catch (error) {
       console.error("Login error:", error);
       alert("Failed to log in. Please  again later.");
     }
