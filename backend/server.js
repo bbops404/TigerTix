@@ -1,44 +1,50 @@
 require('dotenv').config();
-const express = require('express'); // Make sure express is required first
+const express = require('express');
 const cors = require('cors');
-const pool = require('./config/db'); // Import the database connection
+const pool = require('./config/db');
 const db = require('./models/Users');
+const cookieParser = require("cookie-parser");
 
 const Redis = require("ioredis");
-const redisClient = new Redis(); // Default Redis connection on localhost:6379
+const redisClient = new Redis();
 
-
-const app = express(); // Now create the express app
+const app = express();
 const port = process.env.PORT || 5002;
 
-// Middleware
-app.use(cors());
-app.use(express.json());  // This will parse the JSON body
+// ✅ Middleware (Order matters!)
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true, // ✅ Ensures cookies are sent
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: "Content-Type,Authorization",
+}));
 
-app.use(express.urlencoded({ extended: true })); // Ensure form data can be parsed
+app.use(cookieParser()); // ✅ Allows reading cookies
+app.use(express.json());  
+app.use(express.urlencoded({ extended: true })); 
 
+// ✅ Debugging Middleware (Place it here)
+app.use((req, res, next) => {
+  console.log("🔍 Incoming Cookies:", req.cookies); // Debug log
+  next();
+});
+
+// Routes
 const authRoutes = require("./routes/auth");
 app.use("/auth", authRoutes);
 
-redisClient.on("connect", () => {
-  console.log("Connected to Redis successfully! 🔥");
-});
-redisClient.on("error", (err) => {
-  console.error("Redis connection error:", err);
-});
+const privateroute = require("./routes/privateroute");
+app.use("/privateroute", privateroute);
 
+redisClient.on("connect", () => console.log("Connected to Redis successfully! 🔥"));
+redisClient.on("error", (err) => console.error("Redis connection error:", err));
 
-// Sample route to test API
-app.get('/', (req, res) => {
-  res.send('Server is running! 🚀');
-});
+app.get('/', (req, res) => res.send('Server is running! 🚀'));
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+// Start Server
+app.listen(port, () => console.log(`Server running on port ${port}`));
 
 // Check database connection
 db.sequelize.authenticate()
-  .then(() => console.log('Sequelize connected to the database successfully! 🎉'))
+  .then(() => console.log('Sequelize connected successfully! 🎉'))
   .catch(err => console.error('Sequelize connection error:', err));
