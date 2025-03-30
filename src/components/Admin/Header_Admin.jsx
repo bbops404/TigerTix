@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { FaUser, FaSignOutAlt } from "react-icons/fa";
-import tigertix_logo from "../assets/tigertix_logo.png";
+import tigertix_logo from "../../assets/tigertix_logo.png";
 
 const Header_Admin = () => {
   return (

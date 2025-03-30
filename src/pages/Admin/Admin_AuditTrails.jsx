@@ -1,7 +1,7 @@
 import React from "react";
 import { FaSearch, FaFilter } from "react-icons/fa";
-import Header_Admin from "../../components/Header_Admin";
-import Sidebar_Admin from "../../components/SideBar_Admin";
+import Header_Admin from "../../components/Admin/Header_Admin";
+import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 
 const AuditTrails = () => {
   const logs = [
@@ -110,7 +110,7 @@ const AuditTrails = () => {
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
       {/* Header */}
-      <Header_Admin/>
+      <Header_Admin />
 
       {/* Main Layout */}
       <div className="flex">
@@ -146,7 +146,16 @@ const AuditTrails = () => {
               <table className="w-full border-collapse border border-[#D6D3D3] bg-[#333333] rounded-md overflow-hidden">
                 <thead className="sticky top-0 bg-[#F09C32] text-[#333333] text-center">
                   <tr>
-                    {["ID", "Timestamp", "User ID", "Username", "User Role", "Action", "Message", "Status"].map((header, index) => (
+                    {[
+                      "ID",
+                      "Timestamp",
+                      "User ID",
+                      "Username",
+                      "User Role",
+                      "Action",
+                      "Message",
+                      "Status",
+                    ].map((header, index) => (
                       <th
                         key={index}
                         className="px-4 py-2 border border-[#D6D3D3] text-center"
