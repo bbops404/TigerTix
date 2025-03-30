@@ -10,6 +10,7 @@ import FAQs from "./pages/FooterPages/FAQs";
 
 // ========================== LANDING PAGES ==========================
 import SignUpVerifyEmail from "./pages/Landing/SignUp_EmailVerification";
+import LoginPopup from "./pages/Landing/LoginPopup";
 import LandingPage from "./pages/Landing/LandingPage";
 import EventTicketed from "./pages/Landing/Event_Ticketed";
 import EventFree_Landing from "./pages/Landing/Event_Free";
@@ -72,6 +73,7 @@ function App() {
             element={<EventComingSoon_Landing />}
           />
           <Route path="/sign-up" element={<SignUpUserDetails />} />
+          <Route path="/login" element={<LoginPopup />} />
           <Route path="/forget-password" element={<ForgetPassword />} />
           <Route path="/change-password" element={<UpdatePassword />} />
 
