@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { VscAccount } from "react-icons/vsc";
-import Header from "../../components/Header";
-import Sidebar_Admin from "../../components/SideBar_Admin";
 import Admin_ChangePasswordPopUp from "./Admin_ChangePasswordPopUp";
 import Admin_EditDetailsPopUp from "./Admin_EditDetailsPopUp";
+import Header_Admin from "../../components/Admin/Header_Admin";
+import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 
 const Label = ({ label, value }) => {
   return (
     <div className="flex items-center w-full">
-      <span className="w-1/4 text-left font-semibold text-gray-700">{label}</span>
+      <span className="w-1/4 text-left font-semibold text-gray-700">
+        {label}
+      </span>
       <div className="w-3/4 bg-gray-200 text-gray-900 text-left p-2 rounded-md shadow-md">
         {value}
       </div>
@@ -31,7 +33,7 @@ const Admin_ProfilePage = () => {
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
       {/* Header */}
-      <Header showSearch={false} showAuthButtons={false} />
+      <Header_Admin />
 
       {/* Main Layout */}
       <div className="flex">
