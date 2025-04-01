@@ -7,6 +7,7 @@ import Header_Admin from "../../components/Header_Admin";
 import Admin_AddUserPopUp from "./Admin_AddUserPopUp";
 import Admin_EditUserPopUp from "./Admin_EditUserPopUp";
 import Admin_UserGenerateReport from "./Admin_UserGenerateReportPopUp";
+import Admin_UserFilter from "./Admin_UserFilter";
 
 const DeleteUserModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
@@ -51,13 +52,16 @@ const Admin_UserPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showGenerateReportPopup, setShowGenerateReportPopup] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
 
   const openAddUserPopup = () => setShowPopup(true);
   const closeAddUserPopup = () => setShowPopup(false);
+
   const openDeleteModal = () => setShowDeleteModal(true);
   const closeDeleteModal = () => setShowDeleteModal(false);
   const openSuccessModal = () => setShowSuccessModal(true);
   const closeSuccessModal = () => setShowSuccessModal(false);
+
   const openGenerateReportPopup = () => setShowGenerateReportPopup(true);
   const closeGenerateReportPopup = () => setShowGenerateReportPopup(false);
 
@@ -87,12 +91,16 @@ const Admin_UserPage = () => {
               />
             </div>
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-white text-black rounded-full">Reset</button>
-              <button className="px-4 py-2 bg-white text-black rounded-full flex items-center gap-2">
+              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">Reset</button>
+              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+              onClick={() => setShowFilter(!showFilter)}>
                 <FaFilter /> Sort/Filter by
               </button>
             </div>
           </div>
+
+          {/* Filter Component */}
+          {showFilter && <Admin_UserFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
 
           {/* Users Table */}
           <div className="overflow-x-auto rounded-md shadow-md max-h-[400px] overflow-y-auto">
@@ -284,10 +292,10 @@ const Admin_UserPage = () => {
 
           {/* Bottom Buttons */}
           <div className="flex justify-center gap-4 mt-6">
-          <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-200 hover:bg-[#F09C32] hover:font-bold hover:scale-105" onClick={() => setShowEditUserPopup(true)}>Edit User</button>
-  <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-200 hover:bg-[#F09C32] hover:font-bold hover:scale-105" onClick={openAddUserPopup}>Add User</button>
-  <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-200 hover:bg-[#F09C32] hover:font-bold hover:scale-105" onClick={openDeleteModal}>Delete User/s</button>
-  <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-200 hover:bg-[#F09C32] hover:font-bold hover:scale-105" onClick={openGenerateReportPopup}>Generate Report</button>
+            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={() => setShowEditUserPopup(true)}>Edit User</button>
+            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={openAddUserPopup}>Add User</button>
+            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={openDeleteModal}>Delete User/s</button>
+            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={openGenerateReportPopup}>Generate Report</button>
           </div>
         </div>
       </div>
@@ -295,6 +303,8 @@ const Admin_UserPage = () => {
       {/* Modals */}
       <DeleteUserModal isOpen={showDeleteModal} onClose={closeDeleteModal} onConfirm={handleDeleteUser} />
       <SuccessModal isOpen={showSuccessModal} onClose={closeSuccessModal} />
+
+      {/*PopUps*/}
       {showPopup && <Admin_AddUserPopUp showPopup={showPopup} togglePopup={closeAddUserPopup} />}
       {showEditUserPopup && <Admin_EditUserPopUp showPopup={showEditUserPopup} togglePopup={() => setShowEditUserPopup(false)} />}
       {showGenerateReportPopup && <Admin_UserGenerateReport isOpen={showGenerateReportPopup} onClose={closeGenerateReportPopup} />}

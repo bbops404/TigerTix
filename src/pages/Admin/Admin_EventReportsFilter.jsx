@@ -1,23 +1,16 @@
 import React, { useState } from "react";
 import { FaTimes } from "react-icons/fa";
 
-const Admin_ReservationsFilter = ({ showFilter, setShowFilter }) => {
+const Admin_EventReportsFilter = ({ showFilter, setShowFilter }) => {
   const [filters, setFilters] = useState({
-    eventName: "",
-    role: "",
-    date: "",
-    claimingTime: "",
-    ticketTier: "",
-    claimingStatus: "",
-    sortOrder: "",
+    eventCategory: "",
+    eventType: "",
+    eventAvailability: "",
+    venue: "",
   });
 
   const handleChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
-  };
-
-  const handleSort = (order) => {
-    setFilters({ ...filters, sortOrder: order });
   };
 
   const handleUpdate = () => {
@@ -41,7 +34,7 @@ const Admin_ReservationsFilter = ({ showFilter, setShowFilter }) => {
 
           <h2 className="text-lg font-semibold mb-4">FILTER BY</h2>
           <div className="space-y-3">
-            {["Event Name", "Role", "Date", "Claiming Time", "Ticket Tier", "Claiming Status"].map((field) => (
+            {["Event Category", "Event Type", "Event Availability", "Venue"].map((field) => (
               <select
                 key={field}
                 name={field}
@@ -53,21 +46,6 @@ const Admin_ReservationsFilter = ({ showFilter, setShowFilter }) => {
             ))}
           </div>
 
-          <h2 className="text-lg font-semibold mt-4 mb-2">SORT BY</h2>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleSort("ascending")}
-              className={`px-4 py-2 rounded-md ${filters.sortOrder === "ascending" ? "bg-black text-white" : "bg-gray-300"}`}
-            >
-              Ascending
-            </button>
-            <button
-              onClick={() => handleSort("descending")}
-              className={`px-4 py-2 rounded-md ${filters.sortOrder === "descending" ? "bg-black text-white" : "bg-gray-300"}`}
-            >
-              Descending
-            </button>
-          </div>
           <button
             onClick={handleUpdate}
             className="mt-4 w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition"
@@ -80,4 +58,4 @@ const Admin_ReservationsFilter = ({ showFilter, setShowFilter }) => {
   );
 };
 
-export default Admin_ReservationsFilter;
+export default Admin_EventReportsFilter;
