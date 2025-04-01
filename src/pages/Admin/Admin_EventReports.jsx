@@ -1,9 +1,13 @@
 import React, { useState } from "react";
-import { FaSearch, FaFilter, FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import Header_Admin from "../../components/Header_Admin";
-import Sidebar_Admin from "../../components/SideBar_Admin";
+import {
+  FaSearch,
+  FaFilter,
+  FaChevronLeft,
+  FaChevronRight,
+} from "react-icons/fa";
+import Header_Admin from "../../components/Admin/Header_Admin";
+import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import eventPlaceholder from "../../assets/event_placeholder.jpg";
-
 
 const eventData = [
   { id: 1, image: eventPlaceholder, name: "UAAP CDC" },
@@ -32,7 +36,7 @@ const Admin_EventReports = () => {
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
-      <Header_Admin/>
+      <Header_Admin />
 
       <div className="flex">
         <Sidebar_Admin />
@@ -50,7 +54,9 @@ const Admin_EventReports = () => {
                   className="pl-10 pr-4 py-2 rounded-md bg-gray-800 text-white border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
                 />
               </div>
-              <button className="px-4 py-2 bg-white text-black rounded-md">Reset</button>
+              <button className="px-4 py-2 bg-white text-black rounded-md">
+                Reset
+              </button>
               <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2">
                 <FaFilter /> Sort/Filter by
               </button>
@@ -67,24 +73,28 @@ const Admin_EventReports = () => {
             </button>
 
             <div className="w-full flex justify-center overflow-hidden space-x-2">
-              {eventData.slice(currentIndex, currentIndex + visibleEvents).map((event) => (
-                <div
-                  key={event.id}
-                  className="transition-opacity duration-1000 opacity-100 transform hover:scale-105"
-                >
-                  <div className="p-2 rounded-lg">
-                    <img
-                      src={event.image}
-                      alt={event.name}
-                      className="w-[200px] h-[250px] object-cover rounded-lg mx-auto"
-                    />
-                    <p className="text-center mt-2 font-semibold">{event.name}</p>
-                    <button className="mt-2 w-full px-4 py-2 text-white font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105">
-                      Generate Report
-                    </button>
+              {eventData
+                .slice(currentIndex, currentIndex + visibleEvents)
+                .map((event) => (
+                  <div
+                    key={event.id}
+                    className="transition-opacity duration-1000 opacity-100 transform hover:scale-105"
+                  >
+                    <div className="p-2 rounded-lg">
+                      <img
+                        src={event.image}
+                        alt={event.name}
+                        className="w-[200px] h-[250px] object-cover rounded-lg mx-auto"
+                      />
+                      <p className="text-center mt-2 font-semibold">
+                        {event.name}
+                      </p>
+                      <button className="mt-2 w-full px-4 py-2 text-white font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105">
+                        Generate Report
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
 
             <button
@@ -101,7 +111,9 @@ const Admin_EventReports = () => {
             <div className="flex justify-between items-center mb-4 sticky top-0 bg-[#333333] z-10">
               <h2 className="text-lg font-bold">Event Summary</h2>
               <div className="flex gap-2">
-                <button className="px-4 py-2 bg-white text-black rounded-md">Reset</button>
+                <button className="px-4 py-2 bg-white text-black rounded-md">
+                  Reset
+                </button>
                 <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2">
                   <FaFilter /> Sort/Filter by
                 </button>
@@ -122,7 +134,10 @@ const Admin_EventReports = () => {
                       "Revenue",
                       "Remaining Tickets",
                     ].map((header, index) => (
-                      <th key={index} className="px-4 py-2 border border-gray-300">
+                      <th
+                        key={index}
+                        className="px-4 py-2 border border-gray-300"
+                      >
                         {header}
                       </th>
                     ))}
@@ -140,9 +155,15 @@ const Admin_EventReports = () => {
                     revenue: 20000 + i * 5000,
                     remaining: 30 - i * 2,
                   })).map((event, index) => (
-                    <tr key={index} className="border border-gray-300 text-center">
+                    <tr
+                      key={index}
+                      className="border border-gray-300 text-center"
+                    >
                       {Object.values(event).map((value, i) => (
-                        <td key={i} className="px-4 py-2 border border-gray-300">
+                        <td
+                          key={i}
+                          className="px-4 py-2 border border-gray-300"
+                        >
                           {value}
                         </td>
                       ))}

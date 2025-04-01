@@ -1,6 +1,6 @@
 import React from "react";
-import Sidebar_Admin from "../../components/SideBar_Admin";
-import Header_Admin from "../../components/Header_Admin";
+import Header_Admin from "../../components/Admin/Header_Admin";
+import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 
 const Admin_ScheduleEvent = () => {
   return (
