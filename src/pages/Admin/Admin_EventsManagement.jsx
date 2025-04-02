@@ -35,8 +35,35 @@ const AddEventButton = () => {
   );
 };
 
+const EventTabs = ({ activeTab, setActiveTab }) => {
+  const tabs = [
+    { id: "published", label: "PUBLISHED" },
+    { id: "unpublished", label: "UNPUBLISHED" },
+    { id: "archived", label: "ARCHIVED" },
+  ];
+
+  return (
+    <div className="flex border-b border-gray-600 mb-6">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          className={`py-3 px-6 font-semibold transition-colors ${
+            activeTab === tab.id
+              ? "text-[#FFAB40] border-b-2 border-[#FFAB40]"
+              : "text-gray-400 hover:text-gray-200"
+          }`}
+          onClick={() => setActiveTab(tab.id)}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const Admin_EventsManagement = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("published");
 
   // State to control which popup is visible
   const [activePopup, setActivePopup] = useState(null);
@@ -49,7 +76,8 @@ const Admin_EventsManagement = () => {
 
   // Sample data - in a real app, this would come from an API or state management
   const sampleEvents = {
-    PUBLISHED: [
+    // Active Events
+    OPEN: [
       {
         id: 1,
         eventName: "UAAP Season 88 Opening",
@@ -59,8 +87,11 @@ const Admin_EventsManagement = () => {
         venue: "MOA Arena",
         eventType: "ticketed",
         eventCategory: "UAAP",
+        status: "open",
         imagePreview: null,
       },
+    ],
+    SCHEDULED: [
       {
         id: 2,
         eventName: "University Fair 2023",
@@ -70,9 +101,11 @@ const Admin_EventsManagement = () => {
         venue: "UST Quadricentennial Pavilion",
         eventType: "free",
         eventCategory: "UST IPEA",
+        status: "scheduled",
         imagePreview: null,
       },
     ],
+    // Upcoming Events
     DRAFT: [
       {
         id: 3,
@@ -83,10 +116,40 @@ const Admin_EventsManagement = () => {
         venue: "UST Field",
         eventType: "coming_soon",
         eventCategory: "UST IPEA",
+        status: "draft",
         imagePreview: null,
       },
     ],
-    FINISHED: [
+    UNPUBLISHED: [
+      {
+        id: 5,
+        eventName: "Engineering Week",
+        eventDate: "2023-11-20",
+        startTime: "08:00",
+        endTime: "18:00",
+        venue: "Engineering Building",
+        eventType: "ticketed",
+        eventCategory: "UST IPEA",
+        status: "scheduled",
+        imagePreview: null,
+      },
+    ],
+    "COMING SOON": [
+      {
+        id: 6,
+        eventName: "New Year Concert",
+        eventDate: "2024-01-05",
+        startTime: "19:00",
+        endTime: "22:00",
+        venue: "UST Open Field",
+        eventType: "coming_soon",
+        eventCategory: "UST IPEA",
+        status: "scheduled",
+        imagePreview: null,
+      },
+    ],
+    // Past Events
+    COMPLETED: [
       {
         id: 4,
         eventName: "Alumni Homecoming 2023",
@@ -96,9 +159,84 @@ const Admin_EventsManagement = () => {
         venue: "UST Plaza Mayor",
         eventType: "ticketed",
         eventCategory: "UST IPEA",
+        status: "completed",
         imagePreview: null,
       },
     ],
+    CANCELLED: [
+      {
+        id: 7,
+        eventName: "Sports Fest 2023",
+        eventDate: "2023-07-10",
+        startTime: "08:00",
+        endTime: "17:00",
+        venue: "UST Gym",
+        eventType: "ticketed",
+        eventCategory: "UST IPEA",
+        status: "cancelled",
+        imagePreview: null,
+      },
+    ],
+    ARCHIVED: [
+      {
+        id: 8,
+        eventName: "Summer Festival 2023",
+        eventDate: "2023-05-20",
+        startTime: "13:00",
+        endTime: "20:00",
+        venue: "Benavides Garden",
+        eventType: "free",
+        eventCategory: "UST IPEA",
+        status: "completed",
+        imagePreview: null,
+      },
+      {
+        id: 8,
+        eventName: "Summer Festival 2023",
+        eventDate: "2023-05-20",
+        startTime: "13:00",
+        endTime: "20:00",
+        venue: "Benavides Garden",
+        eventType: "free",
+        eventCategory: "UST IPEA",
+        status: "completed",
+        imagePreview: null,
+      },
+    ],
+  };
+
+  // Function to get events based on active tab
+  // Function to get events based on active tab
+  // Function to get events based on active tab
+  const getEventsByTab = () => {
+    switch (activeTab) {
+      case "published":
+        return {
+          "OPEN FOR RESERVATION": sampleEvents.OPEN || [],
+          SCHEDULED:
+            sampleEvents.SCHEDULED.filter(
+              (event) => event.visibility === "published"
+            ) || [],
+          "COMING SOON": sampleEvents["COMING SOON"] || [],
+          COMPLETED:
+            sampleEvents.COMPLETED.filter(
+              (event) => event.visibility === "published"
+            ) || [],
+        };
+      case "unpublished":
+        return {
+          DRAFT: sampleEvents.DRAFT || [],
+          UNPUBLISHED: sampleEvents.UNPUBLISHED || [],
+          COMPLETED: sampleEvents.COMPLETED || [],
+        };
+      case "archived":
+        return {
+          ARCHIVED: sampleEvents.ARCHIVED || [],
+          CANCELLED: sampleEvents.CANCELLED || [],
+        };
+      default:
+        return sampleEvents;
+    }
   };
 
   // Function to find event by ID across all categories
@@ -267,6 +405,11 @@ const Admin_EventsManagement = () => {
     return null;
   };
 
+  // Determine if a section should show the Add Event button
+  const shouldShowAddEvent = () => {
+    return ["published", "unpublished"].includes(activeTab);
+  };
+
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
       {/* Header */}
@@ -279,6 +422,9 @@ const Admin_EventsManagement = () => {
 
         {/* Main Content Wrapper */}
         <div className="flex-1 px-10 py-10">
+          {/* Tab Navigation */}
+          <EventTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+
           {/* Search and Filters */}
           <div className="flex items-center justify-between mb-6 gap-4">
             {/* Search Dropdown with Arrow Fix */}
@@ -316,23 +462,24 @@ const Admin_EventsManagement = () => {
             </div>
           </div>
 
-          {/* Add Event Section */}
-          <AddEventButton />
+          {shouldShowAddEvent() && <AddEventButton />}
 
-          {/* Event Sections */}
-          {Object.keys(sampleEvents).map((category) => (
+          {/* Event Sections for the active tab */}
+          {Object.keys(getEventsByTab()).map((category) => (
             <div key={category} className="mb-10">
               <h3 className="text-lg font-bold border-b border-gray-600 pb-2 mb-4">
                 {category}
               </h3>
 
-              {sampleEvents[category].length > 0 ? (
-                <div className="flex gap-4 overflow-x-auto">
-                  {sampleEvents[category].map((event) => (
+              {getEventsByTab()[category].length > 0 ? (
+                <div className="flex gap-4 overflow-x-auto pb-4">
+                  {" "}
+                  {/* Added pb-4 for scrollbar spacing */}
+                  {getEventsByTab()[category].map((event) => (
                     <EventCard
                       key={event.id}
                       event={event}
-                      cardStyle={category.toLowerCase()} // published, draft, finished
+                      cardStyle={event.status.toLowerCase()}
                       onEdit={handleEditEvent}
                       onDelete={handleDeleteEvent}
                       onUnpublish={handleUnpublishEvent}

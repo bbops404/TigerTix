@@ -25,7 +25,6 @@ const SignUp = () => {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [knownOtp] = useState("1234"); // ✅ Hardcoded OTP for testing
   const navigate = useNavigate();
 
   const {

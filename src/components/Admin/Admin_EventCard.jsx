@@ -1,5 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FaCalendarAlt, FaMapMarkerAlt, FaEdit, FaTrash } from "react-icons/fa";
+import {
+  FaCalendarAlt,
+  FaMapMarkerAlt,
+  FaEdit,
+  FaTrash,
+  FaTimesCircle,
+} from "react-icons/fa";
 
 const Admin_EventCard = ({
   event,
@@ -7,6 +13,7 @@ const Admin_EventCard = ({
   onDelete,
   onViewDetails,
   onUnpublish,
+  onCancel,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
@@ -128,7 +135,7 @@ const Admin_EventCard = ({
         {/* Dropdown menu with expanded options */}
         <div
           ref={dropdownRef}
-          className={`absolute left-0 top-10 bg-custom_black rounded-md py-1 shadow-lg z-20 w-60 transform transition-transform origin-top-left ${
+          className={`absolute left-0 top-10 bg-custom_black rounded-md py-1 shadow-lg z-20 w-48 transform transition-transform origin-top-left ${
             isDropdownOpen ? "block" : "hidden"
           }`}
         >
@@ -196,6 +203,17 @@ const Admin_EventCard = ({
           >
             <FaEdit className="mr-2 text-red-400" />
             <span>Unpublish</span>
+          </button>
+          <div className="border-t border-custom_yellow"></div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onCancel && onCancel(event.id);
+            }}
+            className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+          >
+            <FaTimesCircle className="mr-2 text-red-400" />
+            <span>Cancel Event</span>
           </button>
         </div>
       </div>

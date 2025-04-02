@@ -1,4 +1,3 @@
-import React, { useState, useRef } from "react";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import {
@@ -8,32 +7,91 @@ import {
   CheckIcon,
   InfoIcon,
 } from "lucide-react";
+import eventService from "../Services/eventService";
+import React, { useState, useRef, useEffect } from "react";
 
-// Modified EventDetails component with updated event types
-const EventDetails = ({ onNext }) => {
-  const [eventName, setEventName] = useState("");
-  const [eventDescription, setEventDescription] = useState("");
-  const [eventDate, setEventDate] = useState("");
-  const [venue, setVenue] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [eventCategory, setEventCategory] = useState("");
-  const [eventType, setEventType] = useState("ticketed"); // Changed default to "ticketed"
-  const [eventImage, setEventImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+const EventDetails = ({ onNext, setFormValid, initialData }) => {
+  const [eventName, setEventName] = useState(initialData?.eventName || "");
+  const [eventDescription, setEventDescription] = useState(
+    initialData?.eventDescription || ""
+  );
+  const [eventDate, setEventDate] = useState(initialData?.eventDate || "");
+  const [venue, setVenue] = useState(initialData?.venue || "");
+  const [startTime, setStartTime] = useState(initialData?.startTime || "");
+  const [endTime, setEndTime] = useState(initialData?.endTime || ""); // Optional
+  const [eventCategory, setEventCategory] = useState(
+    initialData?.eventCategory || ""
+  );
+  const [eventType, setEventType] = useState(
+    initialData?.eventType || "ticketed"
+  );
+  const [eventImage, setEventImage] = useState(initialData?.eventImage || null);
+  const [imagePreview, setImagePreview] = useState(
+    initialData?.imagePreview || null
+  );
+  const [formErrors, setFormErrors] = useState({});
+  const [showErrors, setShowErrors] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleImageUpload = (e) => {
+  // Check if all required fields are filled
+  useEffect(() => {
+    const requiredFields = {
+      eventName,
+      eventDescription,
+      eventDate,
+      venue,
+      startTime,
+      eventCategory,
+      eventType,
+      eventImage,
+    };
+
+    const isValid = Object.entries(requiredFields).every(([key, value]) => {
+      return value !== "" && value !== null && value !== undefined;
+    });
+
+    // Pass validity status to parent component for Save as Draft button
+    if (setFormValid) {
+      setFormValid(isValid);
+    }
+  }, [
+    eventName,
+    eventDescription,
+    eventDate,
+    venue,
+    startTime,
+    eventCategory,
+    eventType,
+    eventImage,
+    setFormValid,
+  ]);
+
+  // Fixed code
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setEventImage(file);
+      setFormErrors((prev) => ({ ...prev, eventImage: null }));
 
-      // Create image preview
+      // Create a local preview immediately
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
       };
       reader.readAsDataURL(file);
+
+      try {
+        // Upload to server
+        const result = await eventService.uploadEventImage(file);
+
+        // Store the file path returned from the server for database storage
+        setEventImage(result.imageUrl);
+
+        console.log("Image uploaded successfully:", result.imageUrl);
+      } catch (error) {
+        console.error("Upload failed:", error);
+        // Show error message to user
+        alert("Image upload failed: " + (error.message || "Unknown error"));
+      }
     }
   };
 
@@ -41,19 +99,79 @@ const EventDetails = ({ onNext }) => {
     fileInputRef.current.click();
   };
 
+  const validateForm = () => {
+    let errors = {};
+    let isValid = true;
+
+    if (!eventName.trim()) {
+      errors.eventName = "Event name is required";
+      isValid = false;
+    }
+
+    if (!eventDescription.trim()) {
+      errors.eventDescription = "Event description is required";
+      isValid = false;
+    }
+
+    if (!eventDate) {
+      errors.eventDate = "Event date is required";
+      isValid = false;
+    }
+
+    if (!venue.trim()) {
+      errors.venue = "Venue is required";
+      isValid = false;
+    }
+
+    if (!startTime) {
+      errors.startTime = "Start time is required";
+      isValid = false;
+    }
+
+    // End time is optional, no validation needed
+
+    if (!eventCategory) {
+      errors.eventCategory = "Event category is required";
+      isValid = false;
+    }
+
+    if (!eventType) {
+      errors.eventType = "Event type is required";
+      isValid = false;
+    }
+
+    if (!eventImage) {
+      errors.eventImage = "Event image is required";
+      isValid = false;
+    }
+
+    setFormErrors(errors);
+    return isValid;
+  };
+
   const handleSubmit = () => {
-    // Collect event details data without validation
+    setShowErrors(true);
+    const isValid = validateForm();
+
+    // Scroll to top if there are errors
+    if (!isValid) {
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    // Only proceed if all validations pass
+    // Collect event details data
     const eventDetailsData = {
       eventName,
       eventDescription,
       eventDate,
       venue,
       startTime,
-      endTime,
+      endTime, // Optional field
       eventCategory,
       eventType,
       eventImage,
-      imagePreview, // Added to pass the preview to the summary
+      imagePreview,
     };
 
     // Pass data to parent
@@ -65,12 +183,20 @@ const EventDetails = ({ onNext }) => {
       <p className="text-[#FFAB40] text-3xl font-semibold mb-2">Add an Event</p>
       <p className="text-[13px] text-[#B8B8B8] mb-4">
         Create a new event for the reservation system by filling out the
-        necessary details. Ensure all information is accurate before saving.
+        necessary details. All fields are required except for end time.
       </p>
       <hr className="border-t border-gray-600 my-4" />
 
+      {showErrors && Object.keys(formErrors).length > 0 && (
+        <div className="bg-red-900 text-white p-3 rounded-md mb-4">
+          <p className="font-semibold">
+            Please fix the fields highlighted with red borders to continue.
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-1 items-start">
-        <div className="bg-[#FFAB40] w-8/12 h-full rounded-xl flex items-center justify-center relative">
+        <div className="bg-[#FFAB40] w-8/12 h-[450px] rounded-xl flex items-center justify-center relative overflow-hidden">
           <input
             type="file"
             ref={fileInputRef}
@@ -82,97 +208,151 @@ const EventDetails = ({ onNext }) => {
             <img
               src={imagePreview}
               alt="Event"
-              className="w-full h-full object-cover rounded-xl"
+              className="w-full h-full object-cover absolute top-0 left-0"
             />
           ) : (
             <button
               onClick={handleUploadButtonClick}
-              className="bg-[#2E2E2E] text-[#FFAB40] text-sm font-semibold py-2 px-4 rounded-full"
+              className={`bg-[#2E2E2E] text-[#FFAB40] text-sm font-semibold py-2 px-4 rounded-full ${
+                showErrors && formErrors.eventImage
+                  ? "border-2 border-red-500"
+                  : ""
+              }`}
             >
-              Upload Image
+              Upload Image*
             </button>
+          )}
+          {showErrors && formErrors.eventImage && (
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-red-900 text-white text-xs py-1 px-3 rounded-full">
+              {formErrors.eventImage}
+            </div>
           )}
         </div>
         <div className="space-y-2">
           <div>
-            <p className="text-[#FFAB40] text-sm mb-1">Event Name:</p>
+            <p className="text-[#FFAB40] text-sm mb-1">Event Name:*</p>
             <input
               type="text"
               placeholder="Enter Event Name"
               value={eventName}
-              onChange={(e) => setEventName(e.target.value)}
-              className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
+              onChange={(e) => {
+                setEventName(e.target.value);
+                setFormErrors({ ...formErrors, eventName: null });
+              }}
+              className={`w-full bg-[#1E1E1E] border ${
+                formErrors.eventName ? "border-red-500" : "border-[#333333]"
+              } text-white rounded px-2 py-1.5 text-sm`}
             />
           </div>
           <div>
-            <p className="text-[#FFAB40] text-sm mb-1">Event Description:</p>
+            <p className="text-[#FFAB40] text-sm mb-1">Event Description:*</p>
             <textarea
               placeholder="Enter Event Description"
               value={eventDescription}
-              onChange={(e) => setEventDescription(e.target.value)}
-              className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm h-20 resize-none"
+              onChange={(e) => {
+                setEventDescription(e.target.value);
+                setFormErrors({ ...formErrors, eventDescription: null });
+              }}
+              className={`w-full bg-[#1E1E1E] border ${
+                formErrors.eventDescription
+                  ? "border-red-500"
+                  : "border-[#333333]"
+              } text-white rounded px-2 py-1.5 text-sm h-20 resize-none`}
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <p className="text-[#FFAB40] text-sm mb-1">Event Date:</p>
+              <p className="text-[#FFAB40] text-sm mb-1">Event Date:*</p>
               <input
                 type="date"
                 value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
+                onChange={(e) => {
+                  setEventDate(e.target.value);
+                  setFormErrors({ ...formErrors, eventDate: null });
+                }}
+                className={`w-full bg-[#1E1E1E] border ${
+                  formErrors.eventDate ? "border-red-500" : "border-[#333333]"
+                } text-white rounded px-2 py-1.5 text-sm`}
               />
             </div>
             <div>
-              <p className="text-[#FFAB40] text-sm mb-1">Event Venue:</p>
+              <p className="text-[#FFAB40] text-sm mb-1">Event Venue:*</p>
               <input
                 type="text"
                 placeholder="Venue"
                 value={venue}
-                onChange={(e) => setVenue(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
+                onChange={(e) => {
+                  setVenue(e.target.value);
+                  setFormErrors({ ...formErrors, venue: null });
+                }}
+                className={`w-full bg-[#1E1E1E] border ${
+                  formErrors.venue ? "border-red-500" : "border-[#333333]"
+                } text-white rounded px-2 py-1.5 text-sm`}
               />
             </div>
           </div>
           <div>
             <p className="text-[#FFAB40] text-sm mb-1">Time of Event:</p>
             <div className="flex space-x-2 items-center">
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
-              />
-              <p className="text-white text-sm">to</p>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
-              />
+              <div className="flex-1">
+                <p className="text-[#FFAB40] text-xs mb-1">Start* :</p>
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => {
+                    setStartTime(e.target.value);
+                    setFormErrors({ ...formErrors, startTime: null });
+                  }}
+                  className={`w-full bg-[#1E1E1E] border ${
+                    formErrors.startTime ? "border-red-500" : "border-[#333333]"
+                  } text-white rounded px-2 py-1.5 text-sm`}
+                />
+              </div>
+              <p className="text-white text-sm mt-5">to</p>
+              <div className="flex-1">
+                <p className="text-[#FFAB40] text-xs mb-1">End (Optional):</p>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
+                />
+              </div>
             </div>
           </div>
           <div>
-            <p className="text-[#FFAB40] text-sm mb-1">Category:</p>
+            <p className="text-[#FFAB40] text-sm mb-1">Event Category:*</p>
             <select
               value={eventCategory}
-              onChange={(e) => setEventCategory(e.target.value)}
-              className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
+              onChange={(e) => {
+                setEventCategory(e.target.value);
+                setFormErrors({ ...formErrors, eventCategory: null });
+              }}
+              className={`w-full bg-[#1E1E1E] border ${
+                formErrors.eventCategory ? "border-red-500" : "border-[#333333]"
+              } text-white rounded px-2 py-1.5 text-sm`}
             >
-              <option value="">Select Category</option>
-              <option value="UST IPEA">UST IPEA</option>
-              <option value="UAAP">UAAP</option>
+              <option value="">Select Category of Event</option>
+              <option value="IPEA Event">IPEA Event</option>
+              <option value="UAAP Event">UAAP Event</option>
             </select>
           </div>
           <div>
-            <p className="text-[#FFAB40] text-sm mb-1">Event Type:</p>
-            <div className="flex space-x-4 flex-wrap justify-evenly">
+            <p className="text-[#FFAB40] text-sm mb-1">Event Type:*</p>
+            <div
+              className={`flex space-x-4 flex-wrap justify-evenly ${
+                formErrors.eventType ? "p-2 border border-red-500 rounded" : ""
+              }`}
+            >
               <label className="inline-flex items-center mb-2">
                 <input
                   type="radio"
                   value="ticketed"
                   checked={eventType === "ticketed"}
-                  onChange={() => setEventType("ticketed")}
+                  onChange={() => {
+                    setEventType("ticketed");
+                    setFormErrors({ ...formErrors, eventType: null });
+                  }}
                   className="form-radio bg-[#1E1E1E] border-[#333333] text-white"
                 />
                 <span className="ml-2 text-white text-sm">Ticketed Event</span>
@@ -182,7 +362,10 @@ const EventDetails = ({ onNext }) => {
                   type="radio"
                   value="coming_soon"
                   checked={eventType === "coming_soon"}
-                  onChange={() => setEventType("coming_soon")}
+                  onChange={() => {
+                    setEventType("coming_soon");
+                    setFormErrors({ ...formErrors, eventType: null });
+                  }}
                   className="form-radio bg-[#1E1E1E] border-[#333333] text-white"
                 />
                 <span className="ml-2 text-white text-sm">Coming Soon</span>
@@ -192,7 +375,10 @@ const EventDetails = ({ onNext }) => {
                   type="radio"
                   value="free"
                   checked={eventType === "free"}
-                  onChange={() => setEventType("free")}
+                  onChange={() => {
+                    setEventType("free");
+                    setFormErrors({ ...formErrors, eventType: null });
+                  }}
                   className="form-radio bg-[#1E1E1E] border-[#333333] text-white"
                 />
                 <span className="ml-2 text-white text-sm">
@@ -224,6 +410,8 @@ const EventDetails = ({ onNext }) => {
         </div>
       </div>
 
+      <p className="text-xs text-[#B8B8B8] mt-4 italic">* Required fields</p>
+
       {/* Hidden button for parent component to trigger submit */}
       <button className="hidden event-submit-button" onClick={handleSubmit} />
     </div>
@@ -232,55 +420,102 @@ const EventDetails = ({ onNext }) => {
 
 // Modify TicketDetails component to handle the updated event types
 // Modified TicketDetails component with optional ticket tiers for Coming Soon
-const TicketDetails = ({ onBack, onNext, eventType }) => {
-  const [totalTickets, setTotalTickets] = useState(0);
-  const [tierType, setTierType] = useState("freeSeating");
-  const [includeTiers, setIncludeTiers] = useState(false); // New state for Coming Soon option
+// Enhanced TicketDetails component with improved Coming Soon options
+const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
+  const [totalTickets, setTotalTickets] = useState(
+    initialData?.totalTickets || 0
+  );
+  const [tierType, setTierType] = useState(
+    initialData?.tierType || "freeSeating"
+  );
+  const [includeTiers, setIncludeTiers] = useState(
+    initialData?.hasTierInfo || false
+  );
 
   // Free seating specific fields - using empty strings
-  const [freeSeatingTickets, setFreeSeatingTickets] = useState("");
-  const [freeSeatingPrice, setFreeSeatingPrice] = useState("");
-  const [freeSeatingMaxPerPerson, setFreeSeatingMaxPerPerson] = useState("");
+  const [freeSeatingTickets, setFreeSeatingTickets] = useState(
+    initialData?.freeSeating?.numberOfTickets?.toString() || "1"
+  );
+  const [freeSeatingMaxPerPerson, setFreeSeatingMaxPerPerson] = useState(
+    initialData?.freeSeating?.maxPerPerson?.toString() || "1"
+  );
 
-  const [ticketTiers, setTicketTiers] = useState({
-    "General Admission": {
-      number: "",
-      price: "",
-      maxPerPerson: "",
-      checked: false,
-      isEditing: false,
-    },
-    "Upper Box": {
-      number: "",
-      price: "",
-      maxPerPerson: "",
-      checked: false,
-      isEditing: false,
-    },
-    "Lower Box": {
-      number: "",
-      price: "",
-      maxPerPerson: "",
-      checked: false,
-      isEditing: false,
-    },
-    Patron: {
-      number: "",
-      price: "",
-      maxPerPerson: "",
-      checked: false,
-      isEditing: false,
-    },
-    VIP: {
-      number: "",
-      price: "",
-      maxPerPerson: "",
-      checked: false,
-      isEditing: false,
-    },
-  });
+  // Initialize ticket tiers with initial data or default state
+  const [ticketTiers, setTicketTiers] = useState(
+    initialData?.ticketTiers || {
+      "General Admission": {
+        number: "",
+        price: "",
+        maxPerPerson: "",
+        checked: false,
+        isEditing: false,
+      },
+      "Upper Box": {
+        number: "",
+        price: "",
+        maxPerPerson: "",
+        checked: false,
+        isEditing: false,
+      },
+      "Lower Box": {
+        number: "",
+        price: "",
+        maxPerPerson: "",
+        checked: false,
+        isEditing: false,
+      },
+      Patron: {
+        number: "",
+        price: "",
+        maxPerPerson: "",
+        checked: false,
+        isEditing: false,
+      },
+      VIP: {
+        number: "",
+        price: "",
+        maxPerPerson: "",
+        checked: false,
+        isEditing: false,
+      },
+    }
+  );
   const [editingTierName, setEditingTierName] = useState("");
+  const [formErrors, setFormErrors] = useState({});
+  const [showErrors, setShowErrors] = useState(false);
 
+  // Validate ticketed tiers
+  const validateTicketedTiers = () => {
+    const errors = {};
+    let hasValidTier = false;
+
+    Object.entries(ticketTiers).forEach(([tierName, tierData]) => {
+      if (tierData.checked) {
+        hasValidTier = true;
+
+        if (!tierData.number || parseInt(tierData.number) <= 0) {
+          errors[`${tierName}_number`] = "Number of tickets is required";
+        }
+
+        if (!tierData.price || parseFloat(tierData.price) < 0) {
+          errors[`${tierName}_price`] = "Valid price is required";
+        }
+
+        if (!tierData.maxPerPerson || parseInt(tierData.maxPerPerson) <= 0) {
+          errors[`${tierName}_maxPerPerson`] =
+            "Max tickets per person is required";
+        }
+      }
+    });
+
+    if (!hasValidTier) {
+      errors.noTiers = "Please select and configure at least one ticket tier";
+    }
+
+    return errors;
+  };
+
+  // Standard handler functions (unchanged)
   const handleNumberChange = (tier, value) => {
     // Allow only numbers
     if (value === "" || /^\d*$/.test(value)) {
@@ -437,9 +672,43 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
   };
 
   const handleSubmit = () => {
+    // Set show errors to true
+    setShowErrors(true);
+
     // For coming soon events - include tier information if selected
     if (eventType === "coming_soon") {
       if (includeTiers) {
+        // Validate based on tier type if we're including tiers
+        let errors = {};
+
+        if (tierType === "freeSeating") {
+          // Validate free seating fields
+          if (!freeSeatingTickets || parseInt(freeSeatingTickets) <= 0) {
+            errors.freeSeatingTickets = "Number of tickets is required";
+          }
+
+          if (!freeSeatingPrice || parseFloat(freeSeatingPrice) < 0) {
+            errors.freeSeatingPrice = "Valid price is required";
+          }
+
+          if (
+            !freeSeatingMaxPerPerson ||
+            parseInt(freeSeatingMaxPerPerson) <= 0
+          ) {
+            errors.freeSeatingMaxPerPerson =
+              "Max tickets per person is required";
+          }
+        } else {
+          // Validate ticketed tiers
+          errors = validateTicketedTiers();
+        }
+
+        // Set errors if any
+        if (Object.keys(errors).length > 0) {
+          setFormErrors(errors);
+          return;
+        }
+
         // Include ticket tiers similar to a regular ticketed event
         const parsedTicketTiers = {};
 
@@ -494,6 +763,21 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
 
     // For free events, set up free seating with zero price
     if (eventType === "free") {
+      // Basic validation
+      let errors = {};
+      if (!freeSeatingTickets || parseInt(freeSeatingTickets) <= 0) {
+        errors.freeSeatingTickets = "Number of tickets is required";
+      }
+
+      if (!freeSeatingMaxPerPerson || parseInt(freeSeatingMaxPerPerson) <= 0) {
+        errors.freeSeatingMaxPerPerson = "Max tickets per person is required";
+      }
+
+      if (Object.keys(errors).length > 0) {
+        setFormErrors(errors);
+        return;
+      }
+
       onNext({
         eventType: "free",
         tierType: "freeSeating",
@@ -511,6 +795,33 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
     }
 
     // For ticketed events with full ticket details
+    // Validate based on tier type
+    let errors = {};
+
+    if (tierType === "freeSeating") {
+      // Validate free seating fields
+      if (!freeSeatingTickets || parseInt(freeSeatingTickets) <= 0) {
+        errors.freeSeatingTickets = "Number of tickets is required";
+      }
+
+      if (!freeSeatingPrice || parseFloat(freeSeatingPrice) < 0) {
+        errors.freeSeatingPrice = "Valid price is required";
+      }
+
+      if (!freeSeatingMaxPerPerson || parseInt(freeSeatingMaxPerPerson) <= 0) {
+        errors.freeSeatingMaxPerPerson = "Max tickets per person is required";
+      }
+    } else {
+      // Validate ticketed tiers
+      errors = validateTicketedTiers();
+    }
+
+    // Set errors if any
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
     const parsedTicketTiers = {};
 
     Object.keys(ticketTiers).forEach((tier) => {
@@ -556,7 +867,28 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
     onNext(ticketDetailsData);
   };
 
-  // For Coming Soon events - show option to add ticket tiers
+  // Render errors for a specific tier
+  const renderTierErrors = (tierName) => {
+    const numberError = formErrors[`${tierName}_number`];
+    const priceError = formErrors[`${tierName}_price`];
+    const maxPerPersonError = formErrors[`${tierName}_maxPerPerson`];
+
+    return (
+      <>
+        {numberError && (
+          <p className="text-red-500 text-xs mt-1">{numberError}</p>
+        )}
+        {priceError && (
+          <p className="text-red-500 text-xs mt-1">{priceError}</p>
+        )}
+        {maxPerPersonError && (
+          <p className="text-red-500 text-xs mt-1">{maxPerPersonError}</p>
+        )}
+      </>
+    );
+  };
+
+  // For coming soon events - show option to add ticket tiers
   if (eventType === "coming_soon") {
     return (
       <div className="w-full">
@@ -574,38 +906,54 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
 
         <hr className="border-t border-gray-600 my-4" />
 
-        <div className="bg-[#1E1E1E] p-4 rounded-lg mb-6">
-          <div className="flex items-center mb-4">
-            <InfoIcon className="h-5 w-5 mr-2 text-[#FFAB40]" />
-            <p className="text-white text-sm">
-              This event will be published with a "Coming Soon" tag.
-              Reservations will not be available until you update it later.
-            </p>
-          </div>
+        <div className="bg-[#1E1E1E] p-6 rounded-lg mb-6">
+          <div className="flex items-start mb-6">
+            <InfoIcon className="h-8 w-8 mr-4 text-[#FFAB40] mt-1" />
+            <div>
+              <p className="text-white text-lg font-semibold mb-2">
+                Coming Soon Event
+              </p>
+              <p className="text-white text-sm mb-4">
+                This event will be published with a "Coming Soon" tag.
+                Reservations will not be available until you update it later.
+              </p>
 
-          <div className="my-4">
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={includeTiers}
-                onChange={(e) => setIncludeTiers(e.target.checked)}
-                className="form-checkbox h-5 w-5 text-[#FFAB40] bg-[#2C2C2C] border-gray-600 rounded focus:ring-0 focus:outline-none"
-              />
-              <span className="text-white">
-                Include ticket tier information (optional)
-              </span>
-            </label>
-            <p className="text-[#B8B8B8] text-xs mt-1 ml-7">
-              This will allow you to set up ticket tiers in advance, but they
-              won't be available until the event is fully published.
-            </p>
+              <div className="bg-[#272727] p-4 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <input
+                    type="checkbox"
+                    id="includeTiers"
+                    checked={includeTiers}
+                    onChange={(e) => setIncludeTiers(e.target.checked)}
+                    className="form-checkbox h-5 w-5 text-[#FFAB40] bg-[#2C2C2C] border-gray-600 rounded focus:ring-0 focus:outline-none mr-3"
+                  />
+                  <label
+                    htmlFor="includeTiers"
+                    className="text-white font-medium cursor-pointer"
+                  >
+                    Include ticket information for this Coming Soon event
+                  </label>
+                </div>
+                <p className="text-[#B8B8B8] text-sm ml-8 mb-2">
+                  When checked, ticket information will be visible to end users
+                  viewing this Coming Soon event.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Only show ticket configuration if includeTiers is checked */}
         {includeTiers && (
-          <div className="mt-6">
-            <div className="flex items-center mb-4">
+          <div className="mt-6 border-t border-gray-700 pt-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[#FFAB40] text-xl font-semibold mb-3">
+                Ticket Structure{" "}
+              </h3>
+            </div>
+
+            <div className="flex items-center mb-5">
+              <p className="text-white text-sm mr-6">Seating Type:</p>
               <div className="mr-4">
                 <input
                   type="radio"
@@ -614,11 +962,9 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                   value="freeSeating"
                   checked={tierType === "freeSeating"}
                   onChange={() => setTierType("freeSeating")}
+                  className="mr-2"
                 />
-                <label
-                  htmlFor="freeSeating"
-                  className="ml-2 text-sm text-white"
-                >
+                <label htmlFor="freeSeating" className="text-sm text-white">
                   Free Seating
                 </label>
               </div>
@@ -630,8 +976,9 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                   value="ticketed"
                   checked={tierType === "ticketed"}
                   onChange={() => setTierType("ticketed")}
+                  className="mr-2"
                 />
-                <label htmlFor="ticketed" className="ml-2 text-sm text-white">
+                <label htmlFor="ticketed" className="text-sm text-white">
                   Ticketed
                 </label>
               </div>
@@ -643,7 +990,7 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="flex flex-col">
                     <label className="text-white text-sm mb-1">
-                      Number of Tickets:
+                      Planned Number of Tickets:
                     </label>
                     <input
                       type="text"
@@ -651,14 +998,23 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                       onChange={(e) =>
                         handleFreeSeatingTicketsChange(e.target.value)
                       }
-                      className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                               border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                      className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                               border ${
+                                 showErrors && formErrors.freeSeatingTickets
+                                   ? "border-red-500"
+                                   : "border-gray-600"
+                               } focus:outline-none focus:border-[#FFAB40]`}
                       placeholder="Total available tickets"
                     />
+                    {showErrors && formErrors.freeSeatingTickets && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {formErrors.freeSeatingTickets}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <label className="text-white text-sm mb-1">
-                      Price (₱):
+                      Planned Price (₱):
                     </label>
                     <input
                       type="text"
@@ -666,14 +1022,23 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                       onChange={(e) =>
                         handleFreeSeatingPriceChange(e.target.value)
                       }
-                      className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                               border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                      className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                               border ${
+                                 showErrors && formErrors.freeSeatingPrice
+                                   ? "border-red-500"
+                                   : "border-gray-600"
+                               } focus:outline-none focus:border-[#FFAB40]`}
                       placeholder="Ticket price"
                     />
+                    {showErrors && formErrors.freeSeatingPrice && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {formErrors.freeSeatingPrice}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <label className="text-white text-sm mb-1">
-                      Max Tickets Per Person:
+                      Planned Max Tickets Per Person:
                     </label>
                     <input
                       type="text"
@@ -681,10 +1046,20 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                       onChange={(e) =>
                         handleFreeSeatingMaxPerPersonChange(e.target.value)
                       }
-                      className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                               border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                      className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                               border ${
+                                 showErrors &&
+                                 formErrors.freeSeatingMaxPerPerson
+                                   ? "border-red-500"
+                                   : "border-gray-600"
+                               } focus:outline-none focus:border-[#FFAB40]`}
                       placeholder="Max tickets per person"
                     />
+                    {showErrors && formErrors.freeSeatingMaxPerPerson && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {formErrors.freeSeatingMaxPerPerson}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <p className="text-[#B8B8B8] text-xs mt-3">
@@ -696,12 +1071,24 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
             {/* Show ticket tiers for Coming Soon when selected */}
             {tierType === "ticketed" && (
               <>
-                <button
-                  onClick={addNewTier}
-                  className="flex items-center bg-white text-black px-4 py-2 rounded-full hover:bg-[#FFAB40] transition-colors text-sm ml-auto mb-6"
-                >
-                  <PlusIcon className="mr-2 h-4 w-4" /> Add Tier
-                </button>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-white text-sm">
+                    Define planned ticket tiers (prices and quantities for
+                    planning only)
+                  </p>
+                  <button
+                    onClick={addNewTier}
+                    className="flex items-center bg-white text-black px-4 py-2 rounded-full hover:bg-[#FFAB40] transition-colors text-sm ml-auto"
+                  >
+                    <PlusIcon className="mr-2 h-4 w-4" /> Add Tier
+                  </button>
+                </div>
+
+                {showErrors && formErrors.noTiers && (
+                  <div className="bg-red-900 text-white p-3 rounded-md mb-4">
+                    <p className="font-semibold">{formErrors.noTiers}</p>
+                  </div>
+                )}
 
                 <div className="mb-2 grid grid-cols-[auto,200px,1fr,1fr,1fr,auto,auto] gap-4 items-center">
                   <div></div>
@@ -753,9 +1140,13 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                         onChange={(e) =>
                           handleNumberChange(tier, e.target.value)
                         }
-                        className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
-                                   border border-gray-600 focus:outline-none focus:border-[#FFAB40] 
-                                   whitespace-nowrap overflow-hidden text-ellipsis"
+                        className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
+                                   border ${
+                                     showErrors && formErrors[`${tier}_number`]
+                                       ? "border-red-500"
+                                       : "border-gray-600"
+                                   } focus:outline-none focus:border-[#FFAB40] 
+                                   whitespace-nowrap overflow-hidden text-ellipsis`}
                       />
                       <input
                         type="text"
@@ -765,9 +1156,13 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                         onChange={(e) =>
                           handlePriceChange(tier, e.target.value)
                         }
-                        className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
-                                   border border-gray-600 focus:outline-none focus:border-[#FFAB40] 
-                                   whitespace-nowrap overflow-hidden text-ellipsis"
+                        className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
+                                   border ${
+                                     showErrors && formErrors[`${tier}_price`]
+                                       ? "border-red-500"
+                                       : "border-gray-600"
+                                   } focus:outline-none focus:border-[#FFAB40] 
+                                   whitespace-nowrap overflow-hidden text-ellipsis`}
                       />
                       <input
                         type="text"
@@ -777,9 +1172,14 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                         onChange={(e) =>
                           handleMaxPerPersonChange(tier, e.target.value)
                         }
-                        className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
-                                   border border-gray-600 focus:outline-none focus:border-[#FFAB40] 
-                                   whitespace-nowrap overflow-hidden text-ellipsis"
+                        className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
+                                   border ${
+                                     showErrors &&
+                                     formErrors[`${tier}_maxPerPerson`]
+                                       ? "border-red-500"
+                                       : "border-gray-600"
+                                   } focus:outline-none focus:border-[#FFAB40] 
+                                   whitespace-nowrap overflow-hidden text-ellipsis`}
                       />
                       <button
                         onClick={
@@ -805,6 +1205,7 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                       >
                         <TrashIcon className="h-5 w-5" />
                       </button>
+                      {renderTierErrors(tier)}
                     </div>
                   ))}
                 </div>
@@ -815,7 +1216,7 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
 
             <div className="mt-4 flex items-center justify-end">
               <span className="text-white text-sm mr-6">
-                Total Number of Tickets:
+                Total Planned Tickets:
               </span>
               <span className="text-[#FFAB40] font-semibold">
                 {tierType === "freeSeating"
@@ -836,315 +1237,56 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
       </div>
     );
   }
-
-  // For free events
-  if (eventType === "free") {
-    return (
-      <div className="w-full">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
-              Free Event Details
-            </p>
-            <p className="text-[13px] text-[#B8B8B8] mb-4">
-              Set the number of free tickets available for this event.
-            </p>
-          </div>
-        </div>
-
-        <hr className="border-t border-gray-600 my-4" />
-
-        <div className="bg-[#1E1E1E] p-4 rounded-lg mb-4">
-          <div className="flex items-center mb-4">
-            <InfoIcon className="h-5 w-5 mr-2 text-[#FFAB40]" />
-            <p className="text-white text-sm">
-              This is a free event. All tickets will be available at no cost.
-            </p>
-          </div>
-
-          <div className="flex flex-col">
-            <label className="text-white text-sm mb-1">
-              Number of Free Tickets:
-            </label>
-            <input
-              type="text"
-              value={freeSeatingTickets}
-              onChange={(e) => handleFreeSeatingTicketsChange(e.target.value)}
-              className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                       border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
-              placeholder="Total available tickets"
-            />
-          </div>
-
-          <div className="flex flex-col mt-4">
-            <label className="text-white text-sm mb-1">
-              Max Tickets Per Person:
-            </label>
-            <input
-              type="text"
-              value={freeSeatingMaxPerPerson}
-              onChange={(e) =>
-                handleFreeSeatingMaxPerPersonChange(e.target.value)
-              }
-              className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                       border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
-              placeholder="Max tickets per person"
-            />
-            <p className="text-[#B8B8B8] text-xs mt-2">
-              For maximum tickets per person, set between 1-10.
-            </p>
-          </div>
-        </div>
-
-        {/* Hidden button for parent component to trigger submit */}
-        <button
-          className="hidden ticket-submit-button"
-          onClick={handleSubmit}
-        />
-      </div>
-    );
-  }
-
-  // Regular ticketed event with full ticket details
-  return (
-    <div className="w-full">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
-            Ticket Details
-          </p>
-          <p className="text-[13px] text-[#B8B8B8] mb-4">
-            Select ticket types and set the total available tickets, ensuring
-            they match venue capacity and event needs.
-          </p>
-        </div>
-      </div>
-
-      <hr className="border-t border-gray-600 my-4" />
-      <div className="flex items-center mb-4">
-        <div className="mr-4">
-          <input
-            type="radio"
-            id="freeSeating"
-            name="tierType"
-            value="freeSeating"
-            checked={tierType === "freeSeating"}
-            onChange={() => setTierType("freeSeating")}
-          />
-          <label htmlFor="freeSeating" className="ml-2 text-sm text-white">
-            Free Seating
-          </label>
-        </div>
-        <div>
-          <input
-            type="radio"
-            id="ticketed"
-            name="tierType"
-            value="ticketed"
-            checked={tierType === "ticketed"}
-            onChange={() => setTierType("ticketed")}
-          />
-          <label htmlFor="ticketed" className="ml-2 text-sm text-white">
-            Ticketed
-          </label>
-        </div>
-      </div>
-
-      {/* Display for Free Seating */}
-      {tierType === "freeSeating" && (
-        <div>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="flex flex-col">
-              <label className="text-white text-sm mb-1">
-                Number of Tickets:
-              </label>
-              <input
-                type="text"
-                value={freeSeatingTickets}
-                onChange={(e) => handleFreeSeatingTicketsChange(e.target.value)}
-                className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                         border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
-                placeholder="Total available tickets"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-white text-sm mb-1">Price (₱):</label>
-              <input
-                type="text"
-                value={freeSeatingPrice}
-                onChange={(e) => handleFreeSeatingPriceChange(e.target.value)}
-                className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                         border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
-                placeholder="Ticket price"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-white text-sm mb-1">
-                Max Tickets Per Person:
-              </label>
-              <input
-                type="text"
-                value={freeSeatingMaxPerPerson}
-                onChange={(e) =>
-                  handleFreeSeatingMaxPerPersonChange(e.target.value)
-                }
-                className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                         border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
-                placeholder="Max tickets per person"
-              />
-            </div>
-          </div>
-          <p className="text-[#B8B8B8] text-xs mt-3">
-            For maximum tickets per person, set between 1-10.
-          </p>
-        </div>
-      )}
-
-      {/* Only show ticket tiers and Add Tier button when "Ticketed" is selected */}
-      {tierType === "ticketed" && (
-        <>
-          <button
-            onClick={addNewTier}
-            className="flex items-center bg-white text-black px-4 py-2 rounded-full hover:bg-[#FFAB40] transition-colors text-sm ml-auto mb-6"
-          >
-            <PlusIcon className="mr-2 h-4 w-4" /> Add Tier
-          </button>
-
-          <div className="mb-2 grid grid-cols-[auto,200px,1fr,1fr,1fr,auto,auto] gap-4 items-center">
-            <div></div>
-            <p className="text-sm text-[#B8B8B8]">Tier Name</p>
-            <p className="text-sm text-[#B8B8B8]">Number of Tickets</p>
-            <p className="text-sm text-[#B8B8B8]">Price (₱)</p>
-            <p className="text-sm text-[#B8B8B8]">Max Per Person</p>
-            <div></div>
-            <div></div>
-          </div>
-
-          <div className="space-y-3">
-            {Object.keys(ticketTiers).map((tier) => (
-              <div
-                key={tier}
-                className="grid grid-cols-[auto,200px,1fr,1fr,1fr,auto,auto] gap-4 items-center"
-              >
-                <input
-                  type="checkbox"
-                  checked={ticketTiers[tier].checked}
-                  onChange={(e) => handleCheckboxChange(tier, e.target.checked)}
-                  className="form-checkbox h-5 w-5 text-[#FFAB40] bg-[#2C2C2C] border-gray-600 rounded focus:ring-0 focus:outline-none"
-                />
-                {ticketTiers[tier].isEditing ? (
-                  <div className="flex items-center">
-                    <input
-                      type="text"
-                      value={editingTierName}
-                      onChange={(e) => handleTierNameChange(e.target.value)}
-                      className="bg-[#2C2C2C] text-white text-sm px-2 py-1 rounded mr-2"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <p className="text-white text-sm whitespace-nowrap mr-2">
-                      {tier}
-                    </p>
-                  </div>
-                )}
-                <input
-                  type="text"
-                  placeholder="Number of tickets"
-                  disabled={!ticketTiers[tier].checked}
-                  value={ticketTiers[tier].number}
-                  onChange={(e) => handleNumberChange(tier, e.target.value)}
-                  className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
-                             border border-gray-600 focus:outline-none focus:border-[#FFAB40] 
-                             whitespace-nowrap overflow-hidden text-ellipsis"
-                />
-                <input
-                  type="text"
-                  placeholder="Price"
-                  disabled={!ticketTiers[tier].checked}
-                  value={ticketTiers[tier].price}
-                  onChange={(e) => handlePriceChange(tier, e.target.value)}
-                  className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
-                             border border-gray-600 focus:outline-none focus:border-[#FFAB40] 
-                             whitespace-nowrap overflow-hidden text-ellipsis"
-                />
-                {/* Input for Max Per Person */}
-                <input
-                  type="text"
-                  placeholder="Max per person"
-                  disabled={!ticketTiers[tier].checked}
-                  value={ticketTiers[tier].maxPerPerson}
-                  onChange={(e) =>
-                    handleMaxPerPersonChange(tier, e.target.value)
-                  }
-                  className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
-                             border border-gray-600 focus:outline-none focus:border-[#FFAB40] 
-                             whitespace-nowrap overflow-hidden text-ellipsis"
-                />
-                {/* Editing button that changes to a check mark when editing */}
-                <button
-                  onClick={
-                    ticketTiers[tier].isEditing
-                      ? saveNewTierName
-                      : () => startEditingTierName(tier)
-                  }
-                  className={
-                    ticketTiers[tier].isEditing
-                      ? "text-green-500 hover:text-green-700 transition-colors"
-                      : "text-[#FFAB40] hover:text-[#FFC661] transition-colors"
-                  }
-                >
-                  {ticketTiers[tier].isEditing ? (
-                    <CheckIcon className="h-5 w-5" />
-                  ) : (
-                    <EditIcon className="h-5 w-5" />
-                  )}
-                </button>
-                <button
-                  onClick={() => deleteTier(tier)}
-                  className="text-red-500 hover:text-red-700 transition-colors"
-                >
-                  <TrashIcon className="h-5 w-5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      <hr className="border-t border-gray-600 my-4" />
-
-      <div className="mt-4 flex items-center justify-end">
-        <span className="text-white text-sm mr-6">
-          Total Number of Tickets:
-        </span>
-        <span className="text-[#FFAB40] font-semibold">
-          {tierType === "freeSeating"
-            ? freeSeatingTickets === ""
-              ? 0
-              : parseInt(freeSeatingTickets)
-            : totalTickets}
-        </span>
-      </div>
-
-      {/* Hidden button for parent component to trigger submit */}
-      <button className="hidden ticket-submit-button" onClick={handleSubmit} />
-    </div>
-  );
 };
 
-// Update ClaimingDetails component to remove contact information sections
-const ClaimingDetails = ({ onBack, onNext, eventType }) => {
+// Enhanced ClaimingDetails component with improved Coming Soon handling
+const ClaimingDetails = ({
+  onBack,
+  onNext,
+  eventType,
+  initialData,
+  ticketDetails,
+}) => {
   const [claimingDate, setClaimingDate] = useState("");
   const [claimingStartTime, setClaimingStartTime] = useState("");
   const [claimingEndTime, setClaimingEndTime] = useState("");
   const [claimingVenue, setClaimingVenue] = useState("");
   const [maxReservations, setMaxReservations] = useState("");
-  const [dateList, setDateList] = useState([]);
+  const [dateList, setDateList] = useState(initialData?.availableDates || []);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [claimingSummaries, setClaimingSummaries] = useState([]);
+  const [claimingSummaries, setClaimingSummaries] = useState(
+    initialData?.claimingSummaries || []
+  );
   const [selectedSummary, setSelectedSummary] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState("");
+
+  // For Coming Soon events: Whether to include preliminary claiming info
+  const [includeClaimingInfo, setIncludeClaimingInfo] = useState(
+    initialData?.includeClaimingInfo || false
+  );
+
+  // Reset state when component receives new props
+  useEffect(() => {
+    if (initialData) {
+      setClaimingSummaries(initialData.claimingSummaries || []);
+      setDateList(initialData.availableDates || []);
+      setIncludeClaimingInfo(initialData.includeClaimingInfo || false);
+    } else {
+      setClaimingSummaries([]);
+      setDateList([]);
+      setIncludeClaimingInfo(false);
+    }
+    setClaimingDate("");
+    setClaimingStartTime("");
+    setClaimingEndTime("");
+    setClaimingVenue("");
+    setMaxReservations("");
+    setSelectedDate(null);
+    setSelectedSummary(null);
+    setIsEditing(false);
+    setError("");
+  }, [initialData]);
 
   // Sync dates from summaries to datelist
   const syncDateListWithSummaries = (summaries) => {
@@ -1190,6 +1332,7 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
     setClaimingEndTime(summary.endTime);
     setClaimingVenue(summary.venue);
     setMaxReservations(summary.maxReservations.toString());
+    setError("");
   };
 
   // Clear all form fields
@@ -1202,11 +1345,65 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
     setSelectedDate(null);
     setSelectedSummary(null);
     setIsEditing(false);
+    setError("");
   };
 
+  // Check if we have any ticket information for Coming Soon events
+  const hasTicketInfo =
+    eventType === "coming_soon" && ticketDetails?.hasTierInfo;
+
   const handleSubmit = () => {
+    // For coming soon events - handle based on included info
+    if (eventType === "coming_soon") {
+      if (!hasTicketInfo) {
+        // If no ticket info, claiming details cannot be added
+        onNext({
+          eventType: "coming_soon",
+          claimingSummaries: [],
+          availableDates: [],
+          includeClaimingInfo: false,
+        });
+        return;
+      }
+
+      // If there are tickets, check if claiming info is included
+      if (includeClaimingInfo) {
+        // Check if there's at least one claiming summary
+        if (claimingSummaries.length === 0) {
+          setError(
+            "Please add at least one claiming schedule before proceeding."
+          );
+          return;
+        }
+
+        onNext({
+          eventType: "coming_soon",
+          claimingSummaries: claimingSummaries,
+          availableDates: dateList,
+          includeClaimingInfo: true,
+        });
+      } else {
+        // No claiming info included
+        onNext({
+          eventType: "coming_soon",
+          claimingSummaries: [],
+          availableDates: [],
+          includeClaimingInfo: false,
+        });
+      }
+      return;
+    }
+
     // For free or promotional events - simplified structure without contact info
     if (eventType === "free") {
+      // Check if there's at least one claiming summary
+      if (claimingSummaries.length === 0) {
+        setError(
+          "Please add at least one claiming schedule before proceeding."
+        );
+        return;
+      }
+
       onNext({
         eventType: "free",
         claimingSummaries: claimingSummaries,
@@ -1215,13 +1412,10 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
       return;
     }
 
-    // For coming soon events - skip this step
-    if (eventType === "coming_soon") {
-      onNext({
-        eventType: "coming_soon",
-        claimingSummaries: [],
-        availableDates: [],
-      });
+    // For regular ticketed events
+    // Check if there's at least one claiming summary
+    if (claimingSummaries.length === 0) {
+      setError("Please add at least one claiming schedule before proceeding.");
       return;
     }
 
@@ -1271,54 +1465,8 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
     });
   };
 
-  // For free/promotional events, show a simplified form
-  if (eventType === "free") {
-    return (
-      <div className="w-full">
-        <div className="mb-4">
-          <p className="text-[#FFAB40] text-2xl font-semibold mb-1">
-            Claiming Details - Free Event
-          </p>
-          <p className="text-xs text-[#B8B8B8]">
-            Set up claiming details for your free event tickets.
-          </p>
-        </div>
-
-        <hr className="border-t border-gray-600 my-3" />
-
-        <div className="flex flex-col space-y-3">
-          {!isEditing && (
-            <div className="flex items-center">
-              <p className="text-[#FFAB40] text-sm mr-2">Available Date:</p>
-              <input
-                type="date"
-                value={claimingDate}
-                onChange={(e) => setClaimingDate(e.target.value)}
-                className="w-auto max-w-xs bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
-              />
-              <button
-                onClick={addDate}
-                className="ml-2 bg-[#FFAB40] text-black px-3 py-1 rounded-full text-xs font-semibold"
-              >
-                Add to List
-              </button>
-            </div>
-          )}
-
-          {/* Rest of the claiming form same as for regular events */}
-          {/* ... */}
-        </div>
-
-        <button
-          className="hidden claiming-submit-button"
-          onClick={handleSubmit}
-        />
-      </div>
-    );
-  }
-
-  // For coming soon events, show a simplified message
-  if (eventType === "coming_soon") {
+  // For Coming Soon events with no ticket info
+  if (eventType === "coming_soon" && !hasTicketInfo) {
     return (
       <div className="w-full">
         <div className="mb-4">
@@ -1326,25 +1474,28 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
             Coming Soon - Claiming Details
           </p>
           <p className="text-xs text-[#B8B8B8]">
-            This is a "Coming Soon" event. Claiming details will be added later
-            when the event is fully published.
+            This is a "Coming Soon" event without ticket information.
           </p>
         </div>
 
         <hr className="border-t border-gray-600 my-3" />
 
-        <div className="bg-[#1E1E1E] rounded-lg p-4 flex items-center justify-center">
-          <div className="text-center p-6">
-            <div className="mb-4 flex justify-center">
+        <div className="bg-[#1E1E1E] rounded-lg p-6 flex items-center justify-center">
+          <div className="text-center p-6 max-w-lg">
+            <div className="mb-6 flex justify-center">
               <InfoIcon className="h-12 w-12 text-[#FFAB40]" />
             </div>
-            <p className="text-white text-lg mb-2">
-              Claiming Details Not Required Yet
+            <p className="text-white text-lg mb-4 font-semibold">
+              Claiming Details Cannot Be Added Yet
+            </p>
+            <p className="text-[#B8B8B8] text-sm mb-5">
+              Since this is a "Coming Soon" event without ticket information,
+              claiming details cannot be added at this time.
             </p>
             <p className="text-[#B8B8B8] text-sm">
-              Since this is a "Coming Soon" event, you can skip this step. You
-              can return later to add claiming details before the event goes
-              live.
+              To add claiming details, you need to first include preliminary
+              ticket information in the previous step, or you can add this
+              information later when you fully publish the event.
             </p>
           </div>
         </div>
@@ -1357,130 +1508,466 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
     );
   }
 
-  // For ticketed events - regular form
-  return (
-    <div className="w-full mt-6">
-      <div className="mb-4">
-        <p className="text-[#FFAB40] text-2xl font-semibold mb-1">
-          Claiming Details
-        </p>
-        <p className="text-xs text-[#B8B8B8]">
-          Provide time, date, and location for claiming tickets. Ensure these
-          details are clear for a smooth claiming process.
-        </p>
-      </div>
+  // For Coming Soon events with ticket info
+  // Update the ClaimingDetails component for Coming Soon events to clearly mark as admin-only
 
-      <hr className="border-t border-gray-600 my-3" />
+  // For Coming Soon events with ticket info
+  if (eventType === "coming_soon" && hasTicketInfo) {
+    return (
+      <div className="w-full">
+        <div className="mb-4">
+          <p className="text-[#FFAB40] text-2xl font-semibold mb-1">
+            Coming Soon - Claiming Details
+          </p>
+          <p className="text-xs text-[#B8B8B8]">
+            Set up preliminary claiming details for your "Coming Soon" event.
+          </p>
+        </div>
 
-      <div className="flex flex-col space-y-3">
-        {!isEditing && (
-          <div className="flex items-center">
-            <p className="text-[#FFAB40] text-sm mr-2">Available Date:</p>
-            <input
-              type="date"
-              value={claimingDate}
-              onChange={(e) => setClaimingDate(e.target.value)}
-              className="w-auto max-w-xs bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
-            />
-            <button
-              onClick={addDate}
-              className="ml-2 bg-[#FFAB40] text-black px-3 py-1 rounded-full text-xs font-semibold"
-            >
-              Add to List
-            </button>
-          </div>
-        )}
+        <hr className="border-t border-gray-600 my-3" />
 
-        <div className="flex space-x-4">
-          {/* Left side: Date section */}
-          <div className="w-1/2">
-            {isEditing ? (
-              <div className="flex flex-col">
-                <p className="text-[#FFAB40] text-sm mb-1">Claiming Date:</p>
-                <input
-                  type="date"
-                  value={claimingDate}
-                  onChange={(e) => setClaimingDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
-                />
-                <p className="text-[#B8B8B8] text-xs mt-1">
-                  Edit date directly when updating a schedule.
+        <div className="bg-[#1E1E1E] p-6 rounded-lg mb-6">
+          <div className="flex items-start mb-6">
+            <InfoIcon className="h-8 w-8 mr-4 text-[#FFAB40] mt-1" />
+            <div>
+              <h3 className="text-[#FFAB40] text-xl font-semibold mb-3 flex items-center">
+                Claiming Schedule
+              </h3>
+              <p className="text-white text-sm mb-4">
+                Since you've added ticket information, you can also set up
+                preliminary claiming details.
+              </p>
+
+              <div className="bg-[#272727] p-4 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <input
+                    type="checkbox"
+                    id="includeClaimingInfo"
+                    checked={includeClaimingInfo}
+                    onChange={(e) => setIncludeClaimingInfo(e.target.checked)}
+                    className="form-checkbox h-5 w-5 text-[#FFAB40] bg-[#2C2C2C] border-gray-600 rounded focus:ring-0 focus:outline-none mr-3"
+                  />
+                  <label
+                    htmlFor="includeClaimingInfo"
+                    className="text-white font-medium cursor-pointer"
+                  >
+                    Include admin-only claiming information
+                  </label>
+                </div>
+                <p className="text-[#B8B8B8] text-sm ml-8 mb-2">
+                  These claiming details are for internal planning and will NOT
+                  be visible to end users.
                 </p>
               </div>
-            ) : (
-              <>
+            </div>
+          </div>
+        </div>
+
+        {/* Only show claiming configuration if includeClaimingInfo is checked */}
+        {includeClaimingInfo && (
+          <div className="mt-6 border-t border-gray-700 pt-6">
+            <h3 className="text-[#FFAB40] text-xl font-semibold mb-3 flex items-center">
+              Preliminary Claiming Schedule
+              <span className="text-xs text-white bg-gray-700 px-2 py-1 rounded ml-2">
+                Admin Only
+              </span>
+            </h3>
+
+            <div className="flex flex-col space-y-3">
+              {!isEditing && (
+                <div className="flex items-center">
+                  <p className="text-[#FFAB40] text-sm mr-2">Available Date:</p>
+                  <input
+                    type="date"
+                    value={claimingDate}
+                    onChange={(e) => setClaimingDate(e.target.value)}
+                    className="w-full max-w-xs bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
+                  />
+                  <button
+                    onClick={addDate}
+                    className="ml-2 bg-[#FFAB40] text-black px-3 py-1 rounded-full text-xs font-semibold"
+                  >
+                    Add to List
+                  </button>
+                </div>
+              )}
+
+              <div className="flex space-x-4">
+                {/* Left side: Date section */}
+                <div className="w-1/2">
+                  {isEditing ? (
+                    <div className="flex flex-col">
+                      <p className="text-[#FFAB40] text-sm mb-1">
+                        Claiming Date:
+                      </p>
+                      <input
+                        type="date"
+                        value={claimingDate}
+                        onChange={(e) => setClaimingDate(e.target.value)}
+                        className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
+                      />
+                      <p className="text-[#B8B8B8] text-xs mt-1">
+                        Edit date directly when updating a schedule.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-[#FFAB40] text-sm mb-1">
+                        Available Claiming Dates:
+                      </p>
+                      {dateList.length > 0 ? (
+                        <table className="w-full bg-[#1E1E1E] rounded overflow-hidden">
+                          <thead className="bg-[#FFAB40]">
+                            <tr>
+                              <th className="py-1 px-3 text-left text-sm text-black font-semibold">
+                                Date
+                              </th>
+                              <th className="py-1 px-2 w-8"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {dateList.map((date, index) => (
+                              <tr
+                                key={index}
+                                className={`border-t border-[#333333] cursor-pointer ${
+                                  selectedDate === date
+                                    ? "bg-[#FFAB40]/70"
+                                    : "hover:bg-[#2A2A2A]"
+                                }`}
+                                onClick={() => {
+                                  setSelectedDate(date);
+                                  setClaimingDate(date);
+
+                                  const relatedSummary = claimingSummaries.find(
+                                    (summary) => summary.date === date
+                                  );
+
+                                  if (relatedSummary) {
+                                    setClaimingStartTime(
+                                      relatedSummary.startTime
+                                    );
+                                    setClaimingEndTime(relatedSummary.endTime);
+                                    setClaimingVenue(relatedSummary.venue);
+                                    setMaxReservations(
+                                      relatedSummary.maxReservations.toString()
+                                    );
+                                    setSelectedSummary(relatedSummary);
+                                    setIsEditing(true);
+                                  } else {
+                                    setClaimingStartTime("");
+                                    setClaimingEndTime("");
+                                    setClaimingVenue("");
+                                    setMaxReservations("");
+                                    setSelectedSummary(null);
+                                    setIsEditing(false);
+                                  }
+                                }}
+                              >
+                                <td
+                                  className={`py-1 px-3 text-sm ${
+                                    selectedDate === date
+                                      ? "text-black"
+                                      : "text-white"
+                                  }`}
+                                >
+                                  {formatDate(date)}
+                                </td>
+                                <td className="py-1 px-2 text-right w-8">
+                                  {selectedDate === date && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDateList(
+                                          dateList.filter((d) => d !== date)
+                                        );
+                                        setSelectedDate(null);
+                                      }}
+                                      className="text-red-500 hover:text-red-700 transition-colors"
+                                    >
+                                      <TrashIcon className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="w-full bg-[#1E1E1E] rounded p-3 h-24 flex items-center justify-center">
+                          <p className="text-sm text-gray-400 italic">
+                            No dates added yet.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="w-1/2 space-y-3">
+                  <div className="flex flex-col">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      Claiming Time:
+                    </p>
+                    <div className="flex space-x-2 items-center">
+                      <input
+                        type="time"
+                        value={claimingStartTime}
+                        onChange={(e) => {
+                          setClaimingStartTime(e.target.value);
+                          setError("");
+                        }}
+                        className="bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
+                      />
+                      <p className="text-white text-sm">to</p>
+                      <input
+                        type="time"
+                        value={claimingEndTime}
+                        onChange={(e) => {
+                          setClaimingEndTime(e.target.value);
+                          setError("");
+                        }}
+                        className="bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      Claiming Venue:
+                    </p>
+                    <input
+                      type="text"
+                      placeholder="Enter venue for ticket claiming"
+                      value={claimingVenue}
+                      onChange={(e) => {
+                        setClaimingVenue(e.target.value);
+                        setError("");
+                      }}
+                      className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
+                    />
+                  </div>
+
+                  <div className="flex flex-col">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      Max Reservations:
+                    </p>
+                    <input
+                      type="text"
+                      placeholder="Enter max number of reservations"
+                      value={maxReservations}
+                      onChange={(e) => {
+                        handleMaxReservationsChange(e.target.value);
+                        setError("");
+                      }}
+                      className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
+                    />
+                    <p className="text-[#B8B8B8] text-xs mt-1">
+                      Maximum allowed for this claiming date.
+                    </p>
+                  </div>
+
+                  {/* Add/Update Button */}
+                  <div className="flex justify-between mt-1">
+                    {isEditing && (
+                      <button
+                        onClick={clearForm}
+                        className="flex items-center bg-gray-700 text-white px-3 py-1 rounded-full hover:bg-gray-600 text-sm font-semibold"
+                      >
+                        Cancel
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        if (isEditing) {
+                          if (
+                            claimingDate &&
+                            claimingVenue &&
+                            claimingStartTime &&
+                            claimingEndTime &&
+                            maxReservations
+                          ) {
+                            const summaryData = {
+                              id: selectedSummary.id,
+                              date: claimingDate,
+                              venue: claimingVenue,
+                              startTime: claimingStartTime,
+                              endTime: claimingEndTime,
+                              maxReservations:
+                                maxReservations === ""
+                                  ? 0
+                                  : parseInt(maxReservations),
+                            };
+
+                            const updatedSummaries = claimingSummaries.map(
+                              (s) =>
+                                s.id === selectedSummary.id ? summaryData : s
+                            );
+                            setClaimingSummaries(updatedSummaries);
+                            syncDateListWithSummaries(updatedSummaries);
+                            clearForm();
+                          } else {
+                            setError(
+                              "Please provide all required information (date, venue, time, and max reservations)"
+                            );
+                          }
+                        } else {
+                          const dateToUse = claimingDate || selectedDate;
+
+                          if (
+                            dateToUse &&
+                            claimingVenue &&
+                            claimingStartTime &&
+                            claimingEndTime &&
+                            maxReservations
+                          ) {
+                            if (
+                              claimingDate &&
+                              !dateList.includes(claimingDate)
+                            ) {
+                              setDateList([...dateList, claimingDate]);
+                            }
+
+                            const summaryData = {
+                              id: Date.now(),
+                              date: dateToUse,
+                              venue: claimingVenue,
+                              startTime: claimingStartTime,
+                              endTime: claimingEndTime,
+                              maxReservations:
+                                maxReservations === ""
+                                  ? 0
+                                  : parseInt(maxReservations),
+                            };
+
+                            const updatedSummaries = [
+                              ...claimingSummaries,
+                              summaryData,
+                            ];
+                            setClaimingSummaries(updatedSummaries);
+                            syncDateListWithSummaries(updatedSummaries);
+                            clearForm();
+                          } else {
+                            setError(
+                              "Please provide all required information (date, venue, time, and max reservations)"
+                            );
+                          }
+                        }
+                      }}
+                      className={`flex items-center px-3 py-1 rounded-full text-sm font-semibold ml-auto ${
+                        isEditing
+                          ? "bg-green-500 hover:bg-green-600 text-white"
+                          : "bg-white hover:bg-[#FFAB40] text-black"
+                      }`}
+                      disabled={!isEditing && !selectedDate && !claimingDate}
+                    >
+                      {isEditing ? (
+                        <>
+                          <CheckIcon className="mr-1 h-4 w-4" /> Save Changes
+                        </>
+                      ) : (
+                        <>
+                          <PlusIcon className="mr-1 h-4 w-4" /> Add Schedule
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Claiming Schedule Summary Table */}
+              <div className="mt-4">
                 <p className="text-[#FFAB40] text-sm mb-1">
-                  Available Claiming Dates:
+                  Planned Claiming Schedule:
+                  <span className="text-[#B8B8B8] text-xs ml-2">
+                    (Click a row to edit)
+                  </span>
                 </p>
-                {dateList.length > 0 ? (
+
+                {claimingSummaries.length > 0 ? (
                   <table className="w-full bg-[#1E1E1E] rounded overflow-hidden">
                     <thead className="bg-[#FFAB40]">
                       <tr>
                         <th className="py-1 px-3 text-left text-sm text-black font-semibold">
                           Date
                         </th>
-                        <th className="py-1 px-2 w-8"></th>
+                        <th className="py-1 px-3 text-left text-sm text-black font-semibold">
+                          Time
+                        </th>
+                        <th className="py-1 px-3 text-left text-sm text-black font-semibold">
+                          Venue
+                        </th>
+                        <th className="py-1 px-3 text-left text-sm text-black font-semibold">
+                          Max
+                        </th>
+                        <th className="py-1 px-2 w-12"></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {dateList.map((date, index) => (
+                      {claimingSummaries.map((summary) => (
                         <tr
-                          key={index}
+                          key={summary.id}
                           className={`border-t border-[#333333] cursor-pointer ${
-                            selectedDate === date
+                            selectedSummary?.id === summary.id
                               ? "bg-[#FFAB40]/70"
                               : "hover:bg-[#2A2A2A]"
                           }`}
-                          onClick={() => {
-                            setSelectedDate(date);
-                            setClaimingDate(date);
-
-                            const relatedSummary = claimingSummaries.find(
-                              (summary) => summary.date === date
-                            );
-
-                            if (relatedSummary) {
-                              setClaimingStartTime(relatedSummary.startTime);
-                              setClaimingEndTime(relatedSummary.endTime);
-                              setClaimingVenue(relatedSummary.venue);
-                              setMaxReservations(
-                                relatedSummary.maxReservations.toString()
-                              );
-                              setSelectedSummary(relatedSummary);
-                              setIsEditing(true);
-                            } else {
-                              setClaimingStartTime("");
-                              setClaimingEndTime("");
-                              setClaimingVenue("");
-                              setMaxReservations("");
-                              setSelectedSummary(null);
-                              setIsEditing(false);
-                            }
-                          }}
+                          onClick={() => handleSelectSummary(summary)}
                         >
                           <td
                             className={`py-1 px-3 text-sm ${
-                              selectedDate === date
+                              selectedSummary?.id === summary.id
                                 ? "text-black"
                                 : "text-white"
                             }`}
                           >
-                            {formatDate(date)}
+                            {formatDate(summary.date)}
                           </td>
-                          <td className="py-1 px-2 text-right w-8">
-                            {selectedDate === date && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDateList(
-                                    dateList.filter((d) => d !== date)
-                                  );
-                                  setSelectedDate(null);
-                                }}
-                                className="text-red-500 hover:text-red-700 transition-colors"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
+                          <td
+                            className={`py-1 px-3 text-sm ${
+                              selectedSummary?.id === summary.id
+                                ? "text-black"
+                                : "text-white"
+                            }`}
+                          >
+                            {summary.startTime} to {summary.endTime}
+                          </td>
+                          <td
+                            className={`py-1 px-3 text-sm ${
+                              selectedSummary?.id === summary.id
+                                ? "text-black"
+                                : "text-white"
+                            }`}
+                          >
+                            {summary.venue}
+                          </td>
+                          <td
+                            className={`py-1 px-3 text-sm ${
+                              selectedSummary?.id === summary.id
+                                ? "text-black"
+                                : "text-white"
+                            }`}
+                          >
+                            {summary.maxReservations}
+                          </td>
+                          <td className="py-1 px-2 text-right">
+                            {selectedSummary?.id === summary.id && (
+                              <div className="flex space-x-1 justify-end">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const updatedSummaries =
+                                      claimingSummaries.filter(
+                                        (s) => s.id !== summary.id
+                                      );
+                                    setClaimingSummaries(updatedSummaries);
+                                    syncDateListWithSummaries(updatedSummaries);
+                                    clearForm();
+                                  }}
+                                  className="text-red-500 hover:text-red-700 bg-black rounded-full p-1"
+                                >
+                                  <TrashIcon className="h-3 w-3" />
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -1488,301 +1975,172 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
                     </tbody>
                   </table>
                 ) : (
-                  <div className="w-full bg-[#1E1E1E] rounded p-3 h-24 flex items-center justify-center">
+                  <div className="w-full bg-[#1E1E1E] rounded p-3 h-16 flex items-center justify-center">
                     <p className="text-sm text-gray-400 italic">
-                      No dates added yet.
+                      No claiming schedules added yet.
                     </p>
                   </div>
                 )}
-              </>
-            )}
-          </div>
-          <div className="w-1/2 space-y-3">
-            <div className="flex flex-col">
-              <p className="text-[#FFAB40] text-sm mb-1">Claiming Time:</p>
-              <div className="flex space-x-2 items-center">
-                <input
-                  type="time"
-                  value={claimingStartTime}
-                  onChange={(e) => setClaimingStartTime(e.target.value)}
-                  className="bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
-                />
-                <p className="text-white text-sm">to</p>
-                <input
-                  type="time"
-                  value={claimingEndTime}
-                  onChange={(e) => setClaimingEndTime(e.target.value)}
-                  className="bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
-                />
               </div>
-            </div>
 
-            <div className="flex flex-col">
-              <p className="text-[#FFAB40] text-sm mb-1">Claiming Venue:</p>
-              <input
-                type="text"
-                placeholder="Enter venue for ticket claiming"
-                value={claimingVenue}
-                onChange={(e) => setClaimingVenue(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <p className="text-[#FFAB40] text-sm mb-1">Max Reservations:</p>
-              <input
-                type="text"
-                placeholder="Enter max number of reservations"
-                value={maxReservations}
-                onChange={(e) => handleMaxReservationsChange(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
-              />
-              <p className="text-[#B8B8B8] text-xs mt-1">
-                Maximum allowed for this claiming date.
-              </p>
-            </div>
-
-            {/* Add/Update Button */}
-            <div className="flex justify-between mt-1">
-              {isEditing && (
-                <button
-                  onClick={clearForm}
-                  className="flex items-center bg-gray-700 text-white px-3 py-1 rounded-full hover:bg-gray-600 text-sm font-semibold"
-                >
-                  Cancel
-                </button>
+              {error && (
+                <div className="mt-3 text-red-500 text-sm bg-red-500/10 p-2 rounded">
+                  {error}
+                </div>
               )}
-
-              <button
-                onClick={() => {
-                  if (isEditing) {
-                    if (
-                      claimingDate &&
-                      claimingVenue &&
-                      claimingStartTime &&
-                      claimingEndTime
-                    ) {
-                      const summaryData = {
-                        id: selectedSummary.id,
-                        date: claimingDate,
-                        venue: claimingVenue,
-                        startTime: claimingStartTime,
-                        endTime: claimingEndTime,
-                        maxReservations:
-                          maxReservations === ""
-                            ? 0
-                            : parseInt(maxReservations),
-                      };
-
-                      const updatedSummaries = claimingSummaries.map((s) =>
-                        s.id === selectedSummary.id ? summaryData : s
-                      );
-                      setClaimingSummaries(updatedSummaries);
-                      syncDateListWithSummaries(updatedSummaries);
-                      clearForm();
-                    } else {
-                      alert(
-                        "Please provide all required information (date, venue, and time)"
-                      );
-                    }
-                  } else {
-                    const dateToUse = claimingDate || selectedDate;
-
-                    if (
-                      dateToUse &&
-                      claimingVenue &&
-                      claimingStartTime &&
-                      claimingEndTime
-                    ) {
-                      if (claimingDate && !dateList.includes(claimingDate)) {
-                        setDateList([...dateList, claimingDate]);
-                      }
-
-                      const summaryData = {
-                        id: Date.now(),
-                        date: dateToUse,
-                        venue: claimingVenue,
-                        startTime: claimingStartTime,
-                        endTime: claimingEndTime,
-                        maxReservations:
-                          maxReservations === ""
-                            ? 0
-                            : parseInt(maxReservations),
-                      };
-
-                      const updatedSummaries = [
-                        ...claimingSummaries,
-                        summaryData,
-                      ];
-                      setClaimingSummaries(updatedSummaries);
-                      syncDateListWithSummaries(updatedSummaries);
-                      clearForm();
-                    } else {
-                      alert(
-                        "Please provide all required information (date, venue, and time)"
-                      );
-                    }
-                  }
-                }}
-                className={`flex items-center px-3 py-1 rounded-full text-sm font-semibold ml-auto ${
-                  isEditing
-                    ? "bg-green-500 hover:bg-green-600 text-white"
-                    : "bg-white hover:bg-[#FFAB40] text-black"
-                }`}
-                disabled={!isEditing && !selectedDate && !claimingDate}
-              >
-                {isEditing ? (
-                  <>
-                    <CheckIcon className="mr-1 h-4 w-4" /> Save Changes
-                  </>
-                ) : (
-                  <>
-                    <PlusIcon className="mr-1 h-4 w-4" /> Add Schedule
-                  </>
-                )}
-              </button>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Claiming Schedule Summary Table */}
-        <div className="mt-4">
-          <p className="text-[#FFAB40] text-sm mb-1">
-            Claiming Schedule Summary:
-            <span className="text-[#B8B8B8] text-xs ml-2">
-              (Click a row to edit)
-            </span>
-          </p>
-
-          {claimingSummaries.length > 0 ? (
-            <table className="w-full bg-[#1E1E1E] rounded overflow-hidden">
-              <thead className="bg-[#FFAB40]">
-                <tr>
-                  <th className="py-1 px-3 text-left text-sm text-black font-semibold">
-                    Date
-                  </th>
-                  <th className="py-1 px-3 text-left text-sm text-black font-semibold">
-                    Time
-                  </th>
-                  <th className="py-1 px-3 text-left text-sm text-black font-semibold">
-                    Venue
-                  </th>
-                  <th className="py-1 px-3 text-left text-sm text-black font-semibold">
-                    Max
-                  </th>
-                  <th className="py-1 px-2 w-12"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {claimingSummaries.map((summary) => (
-                  <tr
-                    key={summary.id}
-                    className={`border-t border-[#333333] cursor-pointer ${
-                      selectedSummary?.id === summary.id
-                        ? "bg-[#FFAB40]/70"
-                        : "hover:bg-[#2A2A2A]"
-                    }`}
-                    onClick={() => handleSelectSummary(summary)}
-                  >
-                    <td
-                      className={`py-1 px-3 text-sm ${
-                        selectedSummary?.id === summary.id
-                          ? "text-black"
-                          : "text-white"
-                      }`}
-                    >
-                      {formatDate(summary.date)}
-                    </td>
-                    <td
-                      className={`py-1 px-3 text-sm ${
-                        selectedSummary?.id === summary.id
-                          ? "text-black"
-                          : "text-white"
-                      }`}
-                    >
-                      {summary.startTime} to {summary.endTime}
-                    </td>
-                    <td
-                      className={`py-1 px-3 text-sm ${
-                        selectedSummary?.id === summary.id
-                          ? "text-black"
-                          : "text-white"
-                      }`}
-                    >
-                      {summary.venue}
-                    </td>
-                    <td
-                      className={`py-1 px-3 text-sm ${
-                        selectedSummary?.id === summary.id
-                          ? "text-black"
-                          : "text-white"
-                      }`}
-                    >
-                      {summary.maxReservations}
-                    </td>
-                    <td className="py-1 px-2 text-right">
-                      {selectedSummary?.id === summary.id && (
-                        <div className="flex space-x-1 justify-end">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const updatedSummaries = claimingSummaries.filter(
-                                (s) => s.id !== summary.id
-                              );
-                              setClaimingSummaries(updatedSummaries);
-                              syncDateListWithSummaries(updatedSummaries);
-                              clearForm();
-                            }}
-                            className="text-red-500 hover:text-red-700 bg-black rounded-full p-1"
-                          >
-                            <TrashIcon className="h-3 w-3" />
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="w-full bg-[#1E1E1E] rounded p-3 h-16 flex items-center justify-center">
-              <p className="text-sm text-gray-400 italic">
-                No claiming schedules added yet.
-              </p>
-            </div>
-          )}
-        </div>
+        <button
+          className="hidden claiming-submit-button"
+          onClick={handleSubmit}
+        />
       </div>
-
-      {/* Hidden button for parent component to trigger submit */}
-      <button
-        className="hidden claiming-submit-button"
-        onClick={handleSubmit}
-      />
-    </div>
-  );
+    );
+  }
 };
-
 // Modified AvailabilityDetails component
-const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+const AvailabilityDetails = ({ onBack, onNext, eventType, initialData }) => {
+  // Display period (when the event is visible)
+  const [displayStartDate, setDisplayStartDate] = useState(
+    initialData?.displayPeriod?.startDate || ""
+  );
+  const [displayEndDate, setDisplayEndDate] = useState(
+    initialData?.displayPeriod?.endDate || ""
+  );
+
+  // Reservation period (when users can book)
+  const [reservationStartDate, setReservationStartDate] = useState(
+    initialData?.reservationPeriod?.startDate || ""
+  );
+  const [reservationEndDate, setReservationEndDate] = useState(
+    initialData?.reservationPeriod?.endDate || ""
+  );
+  const [reservationStartTime, setReservationStartTime] = useState(
+    initialData?.reservationPeriod?.startTime || ""
+  );
+  const [reservationEndTime, setReservationEndTime] = useState(
+    initialData?.reservationPeriod?.endTime || ""
+  );
+
+  // Error state
+  const [errors, setErrors] = useState({});
+
+  // Get event image from initialData
+  const imagePreview = initialData?.imagePreview || null;
+
+  // Update state when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setDisplayStartDate(initialData.displayPeriod?.startDate || "");
+      setDisplayEndDate(initialData.displayPeriod?.endDate || "");
+      setReservationStartDate(initialData.reservationPeriod?.startDate || "");
+      setReservationEndDate(initialData.reservationPeriod?.endDate || "");
+      setReservationStartTime(initialData.reservationPeriod?.startTime || "");
+      setReservationEndTime(initialData.reservationPeriod?.endTime || "");
+    }
+  }, [initialData]);
+
+  // Validation function
+  const validatePeriods = () => {
+    const newErrors = {};
+
+    // For free events, only validate display period
+    if (eventType === "free") {
+      if (!displayStartDate || !displayEndDate) {
+        newErrors.displayPeriod = "Both start and end dates are required";
+      } else {
+        const displayStart = new Date(displayStartDate);
+        const displayEnd = new Date(displayEndDate);
+        // Validate that display start date is not in the past
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (displayStart < today) {
+          newErrors.displayPeriod = "Display start date cannot be in the past";
+        }
+        // Validate that end date is after start date
+        if (displayEnd <= displayStart) {
+          newErrors.displayPeriod = "Display end date must be after start date";
+        }
+      }
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    }
+
+    // For coming soon events, ensure display period dates are set
+    if (eventType === "coming_soon") {
+      if (!displayStartDate || !displayEndDate) {
+        newErrors.displayPeriod =
+          "Both start and end dates are required for Coming Soon events";
+      } else {
+        const displayStart = new Date(displayStartDate);
+        const displayEnd = new Date(displayEndDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (displayStart < today) {
+          newErrors.displayPeriod = "Display start date cannot be in the past";
+        }
+        if (displayEnd <= displayStart) {
+          newErrors.displayPeriod = "Display end date must be after start date";
+        }
+      }
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    }
+
+    // For regular ticketed events, validate both periods
+    if (
+      !reservationStartDate ||
+      !reservationEndDate ||
+      !reservationStartTime ||
+      !reservationEndTime
+    ) {
+      newErrors.reservationPeriod =
+        "Reservation period dates and times are required";
+    } else {
+      const reservationStart = new Date(
+        `${reservationStartDate}T${reservationStartTime}`
+      );
+      const reservationEnd = new Date(
+        `${reservationEndDate}T${reservationEndTime}`
+      );
+
+      if (reservationStartDate < displayStartDate) {
+        newErrors.reservationPeriod =
+          "Reservation start must be within display period";
+      }
+      if (reservationEndDate > displayEndDate) {
+        newErrors.reservationPeriod =
+          "Reservation end must be within display period";
+      }
+      if (reservationEnd <= reservationStart) {
+        newErrors.reservationPeriod =
+          "Reservation end must be after reservation start";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = () => {
-    // For all event types, use simplified data structure
+    if (!validatePeriods()) {
+      return;
+    }
+
+    // For all event types, use expanded data structure with both periods
     const availabilityData = {
       eventType,
-      period: {
-        startDate: startDate || new Date().toISOString().split("T")[0], // default to today
-        endDate:
-          endDate ||
-          new Date(new Date().setMonth(new Date().getMonth() + 1))
-            .toISOString()
-            .split("T")[0], // default to a month from now
-        startTime: startTime || "08:00",
-        endTime: endTime || "20:00",
+      displayPeriod: {
+        startDate: displayStartDate,
+        endDate: displayEndDate,
+      },
+      reservationPeriod: {
+        startDate: reservationStartDate,
+        endDate: reservationEndDate,
+        startTime: reservationStartTime,
+        endTime: reservationEndTime,
       },
     };
 
@@ -1790,114 +2148,14 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
     onNext(availabilityData);
   };
 
-  // For free events, show a modified form
-  if (eventType === "free") {
-    return (
-      <div className="w-full">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
-              Free Event Display Period
-            </p>
-            <p className="text-[13px] text-[#B8B8B8] mb-4">
-              Set when this free event should appear on the platform
-            </p>
-          </div>
-        </div>
-
-        <hr className="border-t border-gray-600 my-4" />
-
-        <div className="flex gap-6">
-          <div className="w-1/3">
-            <p className="text-[#FFAB40] text-sm mb-2">Event Preview</p>
-            <div className="w-full aspect-square bg-[#1E1E1E] border-2 border-dashed border-[#FFAB40] rounded-lg flex items-center justify-center overflow-hidden">
-              <div className="text-center p-4">
-                <span className="bg-[#FFAB40] text-black px-2 py-1 rounded text-xs font-medium mb-2 inline-block">
-                  FREE
-                </span>
-                <div className="text-[#B8B8B8] text-sm mt-2">
-                  Event Image Preview
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="w-2/3 space-y-4">
-            <div className="space-y-3">
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">Start Date:</p>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">End Date:</p>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">
-                  Daily Opening Time:
-                </p>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-                <p className="text-[#B8B8B8] text-xs mt-1">
-                  Time when reservations open each day
-                </p>
-              </div>
-
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">
-                  Daily Closing Time:
-                </p>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-                <p className="text-[#B8B8B8] text-xs mt-1">
-                  Time when reservations close each day
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <p className="text-[#B8B8B8] text-xs mt-4 border-t border-gray-600 pt-4">
-          Note: This is a free event. All tickets will be available at no cost.
-        </p>
-
-        {/* Hidden button for parent component to trigger submit */}
-        <button
-          className="hidden availability-submit-button"
-          onClick={handleSubmit}
-        />
-      </div>
-    );
-  }
-
-  // For coming soon events, also show a modified form
+  // Different UI for coming soon events
   if (eventType === "coming_soon") {
     return (
       <div className="w-full">
         <div className="flex justify-between items-center mb-4">
           <div>
             <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
-              "Coming Soon" Display Period
+              Coming Soon - Display Period
             </p>
             <p className="text-[13px] text-[#B8B8B8] mb-4">
               Set when this "Coming Soon" event should appear on the platform
@@ -1911,50 +2169,95 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
           <div className="w-1/3">
             <p className="text-[#FFAB40] text-sm mb-2">Event Preview</p>
             <div className="w-full aspect-square bg-[#1E1E1E] border-2 border-dashed border-[#FFAB40] rounded-lg flex items-center justify-center overflow-hidden">
-              <div className="text-center p-4">
-                <span className="bg-[#FFAB40] text-black px-2 py-1 rounded text-xs font-medium mb-2 inline-block">
-                  COMING SOON
-                </span>
-                <div className="text-[#B8B8B8] text-sm mt-2">
+              {imagePreview ? (
+                <img
+                  src={imagePreview}
+                  alt="Event Preview"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="text-[#B8B8B8] text-sm">
                   Event Image Preview
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
-          <div className="w-2/3 space-y-4">
-            <div className="space-y-3">
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">Start Date:</p>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-                <p className="text-xs text-[#B8B8B8] mt-1">
-                  When should this "Coming Soon" event start appearing?
-                </p>
-              </div>
+          <div className="w-2/3">
+            <div>
+              <h3 className="text-[#FFAB40] font-semibold mb-3">
+                Promotional Period
+              </h3>
+              <p className="text-xs text-[#B8B8B8] mb-3">
+                Set the timeframe when this "Coming Soon" announcement will be
+                visible to users
+              </p>
 
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">End Date:</p>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-                <p className="text-xs text-[#B8B8B8] mt-1">
-                  When should the "Coming Soon" notice be removed if not
-                  updated?
+              <div className="space-y-3">
+                <div>
+                  <p className="text-white text-sm mb-1">Start Showing:</p>
+                  <input
+                    type="date"
+                    value={displayStartDate}
+                    onChange={(e) => {
+                      setDisplayStartDate(e.target.value);
+                      setErrors({ ...errors, displayPeriod: null });
+                    }}
+                    className={`w-full bg-[#1E1E1E] border ${
+                      errors.displayPeriod
+                        ? "border-red-500"
+                        : "border-[#333333]"
+                    } text-white rounded px-3 py-2 text-sm`}
+                  />
+                  {errors.displayPeriod && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.displayPeriod}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-white text-sm mb-1">End Showing:</p>
+                  <input
+                    type="date"
+                    value={displayEndDate}
+                    onChange={(e) => {
+                      setDisplayEndDate(e.target.value);
+                      setErrors({ ...errors, displayPeriod: null });
+                    }}
+                    className={`w-full bg-[#1E1E1E] border ${
+                      errors.displayPeriod
+                        ? "border-red-500"
+                        : "border-[#333333]"
+                    } text-white rounded px-3 py-2 text-sm`}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 p-4 bg-[#1E1E1E] rounded-lg border border-[#333333]">
+              <div className="flex items-center">
+                <InfoIcon className="h-5 w-5 mr-2 text-[#FFAB40]" />
+                <p className="text-white text-sm font-medium">
+                  Reservation Settings
                 </p>
               </div>
+              <p className="text-[#B8B8B8] text-xs mt-2 ml-7">
+                Reservations will not be available for this "Coming Soon" event.
+                You can edit the event later to enable reservations when you're
+                ready to fully publish it.
+              </p>
             </div>
           </div>
         </div>
 
-        <p className="text-[#B8B8B8] text-xs mt-4 border-t border-gray-600 pt-4">
+        {errors.displayPeriod && (
+          <div className="mt-4 text-red-500 text-sm bg-red-500/10 p-3 rounded">
+            {errors.displayPeriod}
+          </div>
+        )}
+
+        <p className="text-[#B8B8B8] text-xs mt-6 border-t border-gray-600 pt-4">
           Note: This event will be displayed with a "COMING SOON" label until
           you update it with complete information.
         </p>
@@ -1968,17 +2271,16 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
     );
   }
 
-  // For ticketed events - full form
+  // Original UI for regular events
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-4">
         <div>
           <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
-            Event Availability Period
+            Event Visibility Period
           </p>
           <p className="text-[13px] text-[#B8B8B8] mb-4">
-            Set when the event should appear on the platform and be available
-            for reservations
+            Set when the event appears on the platform
           </p>
         </div>
       </div>
@@ -1989,60 +2291,158 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
         {/* Event Picture Preview */}
         <div className="w-1/3">
           <p className="text-[#FFAB40] text-sm mb-2">Event Preview</p>
-          <div className="w-full aspect-square bg-[#1E1E1E] border-2 border-dashed border-[#FFAB40] rounded-lg flex items-center justify-center overflow-hidden">
-            <div className="text-[#B8B8B8] text-sm">Event Image Preview</div>
+          <div className="w-full h-[300px] bg-[#1E1E1E] border-2 border-dashed border-[#FFAB40] rounded-lg flex items-center justify-center overflow-hidden">
+            {imagePreview ? (
+              <img
+                src={imagePreview}
+                alt="Event Preview"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="text-[#B8B8B8] text-sm">Event Image Preview</div>
+            )}
           </div>
         </div>
 
-        {/* Availability Period Inputs */}
-        <div className="w-2/3 space-y-4">
-          <div className="space-y-3">
-            <div>
-              <p className="text-[#FFAB40] text-sm mb-1">Start Date:</p>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-              />
-            </div>
+        {/* Event Display Period */}
+        <div className="w-2/3 space-y-6">
+          <div>
+            <h3 className="text-[#FFAB40] font-semibold mb-3">
+              Display Period
+            </h3>
+            <p className="text-xs text-[#B8B8B8] mb-2">
+              When the event will be visible to users
+            </p>
 
-            <div>
-              <p className="text-[#FFAB40] text-sm mb-1">End Date:</p>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-              />
-            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-white text-sm mb-1">Start Showing:</p>
+                <input
+                  type="date"
+                  value={displayStartDate}
+                  onChange={(e) => {
+                    setDisplayStartDate(e.target.value);
+                    setErrors({ ...errors, displayPeriod: null });
+                  }}
+                  className={`w-full bg-[#1E1E1E] border ${
+                    errors.displayPeriod ? "border-red-500" : "border-[#333333]"
+                  } text-white rounded px-3 py-2 text-sm`}
+                />
+                {errors.displayPeriod && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.displayPeriod}
+                  </p>
+                )}
+              </div>
 
-            <div>
-              <p className="text-[#FFAB40] text-sm mb-1">Daily Opening Time:</p>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-              />
-              <p className="text-[#B8B8B8] text-xs mt-1">
-                Time when reservations open each day
-              </p>
-            </div>
-
-            <div>
-              <p className="text-[#FFAB40] text-sm mb-1">Daily Closing Time:</p>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-              />
-              <p className="text-[#B8B8B8] text-xs mt-1">
-                Time when reservations close each day
-              </p>
+              <div>
+                <p className="text-white text-sm mb-1">End Showing:</p>
+                <input
+                  type="date"
+                  value={displayEndDate}
+                  onChange={(e) => {
+                    setDisplayEndDate(e.target.value);
+                    setErrors({ ...errors, displayPeriod: null });
+                  }}
+                  className={`w-full bg-[#1E1E1E] border ${
+                    errors.displayPeriod ? "border-red-500" : "border-[#333333]"
+                  } text-white rounded px-3 py-2 text-sm`}
+                />
+              </div>
             </div>
           </div>
+
+          {/* Only show reservation period for non-free events */}
+          {eventType !== "free" && (
+            <div>
+              <h3 className="text-[#FFAB40] font-semibold mb-3">
+                Reservation Period
+              </h3>
+              <p className="text-xs text-[#B8B8B8] mb-2">
+                When users can make reservations
+              </p>
+
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-white text-sm mb-1">
+                      Start Reservations:
+                    </p>
+                    <input
+                      type="date"
+                      value={reservationStartDate}
+                      onChange={(e) => {
+                        setReservationStartDate(e.target.value);
+                        setErrors({ ...errors, reservationPeriod: null });
+                      }}
+                      className={`w-full bg-[#1E1E1E] border ${
+                        errors.reservationPeriod
+                          ? "border-red-500"
+                          : "border-[#333333]"
+                      } text-white rounded px-3 py-2 text-sm`}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm mb-1">Time:</p>
+                    <input
+                      type="time"
+                      value={reservationStartTime}
+                      onChange={(e) => {
+                        setReservationStartTime(e.target.value);
+                        setErrors({ ...errors, reservationPeriod: null });
+                      }}
+                      className={`w-full bg-[#1E1E1E] border ${
+                        errors.reservationPeriod
+                          ? "border-red-500"
+                          : "border-[#333333]"
+                      } text-white rounded px-3 py-2 text-sm`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-white text-sm mb-1">End Reservations:</p>
+                    <input
+                      type="date"
+                      value={reservationEndDate}
+                      onChange={(e) => {
+                        setReservationEndDate(e.target.value);
+                        setErrors({ ...errors, reservationPeriod: null });
+                      }}
+                      className={`w-full bg-[#1E1E1E] border ${
+                        errors.reservationPeriod
+                          ? "border-red-500"
+                          : "border-[#333333]"
+                      } text-white rounded px-3 py-2 text-sm`}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm mb-1">Time:</p>
+                    <input
+                      type="time"
+                      value={reservationEndTime}
+                      onChange={(e) => {
+                        setReservationEndTime(e.target.value);
+                        setErrors({ ...errors, reservationPeriod: null });
+                      }}
+                      className={`w-full bg-[#1E1E1E] border ${
+                        errors.reservationPeriod
+                          ? "border-red-500"
+                          : "border-[#333333]"
+                      } text-white rounded px-3 py-2 text-sm`}
+                    />
+                  </div>
+                </div>
+
+                {errors.reservationPeriod && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.reservationPeriod}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2055,6 +2455,7 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
   );
 };
 
+// Complete SummaryDetails component that shows claiming info based on ticket availability
 const SummaryDetails = ({
   eventDetails,
   ticketDetails,
@@ -2065,6 +2466,26 @@ const SummaryDetails = ({
 }) => {
   // Get event type
   const eventType = eventDetails?.eventType || "ticketed";
+
+  // Check if coming soon event has tickets
+  const hasTicketInfo =
+    eventType === "coming_soon" && ticketDetails?.hasTierInfo;
+
+  // Check if coming soon event has claiming details
+  const hasClaimingInfo =
+    eventType === "coming_soon" && claimingDetails?.includeClaimingInfo;
+
+  // Format date for display
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "Not set";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
 
   // Calculate total tickets
   const getTotalTickets = () => {
@@ -2103,6 +2524,169 @@ const SummaryDetails = ({
     }
   };
 
+  // Function to determine initial event state based on type and timing
+  const determineEventState = () => {
+    // Get current date for comparisons
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get reservation dates if available
+    let reservationStart = null;
+    let reservationEnd = null;
+    if (availabilityDetails?.reservationPeriod?.startDate) {
+      reservationStart = new Date(
+        `${availabilityDetails.reservationPeriod.startDate}T${
+          availabilityDetails.reservationPeriod.startTime || "00:00:00"
+        }`
+      );
+    }
+    if (availabilityDetails?.reservationPeriod?.endDate) {
+      reservationEnd = new Date(
+        `${availabilityDetails.reservationPeriod.endDate}T${
+          availabilityDetails.reservationPeriod.endTime || "23:59:59"
+        }`
+      );
+    }
+
+    // Get display dates
+    let displayStart = null;
+    let displayEnd = null;
+    if (availabilityDetails?.displayPeriod?.startDate) {
+      displayStart = new Date(availabilityDetails.displayPeriod.startDate);
+    }
+    if (availabilityDetails?.displayPeriod?.endDate) {
+      displayEnd = new Date(availabilityDetails.displayPeriod.endDate);
+    }
+
+    let status = "";
+    let visibility = "";
+    let statusDescription = "";
+
+    switch (eventType) {
+      case "coming_soon":
+        // Coming Soon events start as Published but with Closed status
+        status = "scheduled";
+        visibility = "published";
+        statusDescription = "Event will be published as Coming Soon";
+        break;
+
+      case "free":
+        // Free events are always published but with Closed status (no reservation)
+        status = "closed";
+        visibility = "published";
+        statusDescription =
+          "Event will be published as Free with no reservation";
+        break;
+
+      case "ticketed":
+        // Determine if the event should be scheduled or open based on reservation period
+        if (reservationStart && reservationEnd) {
+          if (today < reservationStart) {
+            status = "scheduled";
+            visibility = "published";
+            statusDescription =
+              "Event will be published with future reservation period";
+          } else if (today >= reservationStart && today <= reservationEnd) {
+            status = "open";
+            visibility = "published";
+            statusDescription =
+              "Event will be published with active reservation";
+          } else {
+            status = "closed";
+            visibility = "published";
+            statusDescription =
+              "Event will be published with closed reservation";
+          }
+        } else {
+          // Default if reservation period not set
+          status = "scheduled";
+          visibility = "published";
+          statusDescription =
+            "Event will be published but reservation period needs to be set";
+        }
+        break;
+
+      default:
+        status = "draft";
+        visibility = "unpublished";
+        statusDescription = "Event will be saved as draft";
+    }
+
+    return { status, visibility, statusDescription };
+  };
+
+  // Get the computed event state
+  const eventState = determineEventState();
+
+  // Function to generate a printable version of the summary
+  const generateExportSummary = () => {
+    const summaryData = {
+      eventDetails: {
+        name: eventDetails?.eventName || "N/A",
+        type: eventType,
+        date: eventDetails?.eventDate || "N/A",
+        time: eventDetails?.startTime
+          ? eventDetails?.endTime
+            ? `${eventDetails.startTime} to ${eventDetails.endTime}`
+            : eventDetails.startTime
+          : "N/A",
+        venue: eventDetails?.venue || "N/A",
+        category: eventDetails?.eventCategory || "N/A",
+        description: eventDetails?.eventDescription || "N/A",
+      },
+      ticketDetails:
+        eventType === "coming_soon" && !hasTicketInfo
+          ? "To be determined"
+          : {
+              totalTickets: getTotalTickets(),
+              ticketType: ticketDetails?.tierType || "N/A",
+              freeSeating: ticketDetails?.freeSeating,
+              tiers: ticketDetails?.ticketTiers,
+            },
+      claimingDetails:
+        eventType === "coming_soon" && !hasTicketInfo
+          ? "Not applicable - no ticket information"
+          : eventType === "coming_soon" && !hasClaimingInfo
+          ? "To be determined"
+          : {
+              schedules: claimingDetails?.claimingSummaries || [],
+            },
+      availabilityDetails: {
+        displayPeriod: availabilityDetails?.displayPeriod || {
+          startDate: "N/A",
+          endDate: "N/A",
+        },
+        reservationPeriod: availabilityDetails?.reservationPeriod || {
+          startDate: "N/A",
+          endDate: "N/A",
+          startTime: "N/A",
+          endTime: "N/A",
+        },
+      },
+      eventState: {
+        status: eventState.status,
+        visibility: eventState.visibility,
+      },
+    };
+
+    return JSON.stringify(summaryData, null, 2);
+  };
+
+  // Function to export the summary as a text file
+  const handleExportSummary = () => {
+    const summaryText = generateExportSummary();
+    const blob = new Blob([summaryText], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${eventDetails?.eventName || "event"}_summary.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-4">
@@ -2114,9 +2698,44 @@ const SummaryDetails = ({
             Review and confirm the details of your event
           </p>
         </div>
+
+        <button
+          onClick={handleExportSummary}
+          className="bg-[#333] text-white px-4 py-2 rounded-md hover:bg-[#444] transition-colors text-sm"
+        >
+          Export Summary
+        </button>
       </div>
 
       <hr className="border-t border-gray-600 my-4" />
+
+      {/* Event Status Display */}
+      <div className="bg-[#2A2A2A] p-4 rounded-lg mb-6">
+        <h3 className="text-[#FFAB40] text-lg font-semibold mb-2">
+          Event Publishing Status
+        </h3>
+        <div className="flex items-center space-x-4">
+          <div className="flex-1">
+            <p className="text-white text-sm">
+              Status:{" "}
+              <span className="font-semibold">
+                {eventState.status.toUpperCase()}
+              </span>
+            </p>
+            <p className="text-white text-sm">
+              Visibility:{" "}
+              <span className="font-semibold">
+                {eventState.visibility.toUpperCase()}
+              </span>
+            </p>
+          </div>
+          <div className="flex-1">
+            <p className="text-[#B8B8B8] text-sm">
+              {eventState.statusDescription}
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="space-y-6">
         {/* Event Details Summary */}
@@ -2132,7 +2751,7 @@ const SummaryDetails = ({
                     <img
                       src={eventDetails.imagePreview}
                       alt="Event"
-                      className="w-full aspect-video object-cover rounded-lg"
+                      className="w-full h-[300px] object-cover rounded-lg"
                     />
                     {eventType === "coming_soon" && (
                       <div className="absolute top-2 left-2 bg-[#FFAB40] text-black px-2 py-1 rounded-md text-xs font-semibold">
@@ -2199,7 +2818,7 @@ const SummaryDetails = ({
                   <p className="text-white">
                     {eventDetails?.startTime && eventDetails?.endTime
                       ? `${eventDetails.startTime} to ${eventDetails.endTime}`
-                      : "N/A"}
+                      : eventDetails?.startTime || "N/A"}
                     {eventType === "coming_soon" && (
                       <span className="text-[#FFAB40] ml-2 text-xs">
                         (Tentative)
@@ -2235,15 +2854,88 @@ const SummaryDetails = ({
           </div>
         </div>
 
+        {/* Display Period Section - Added for all event types */}
+        <div>
+          <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">
+            Display Period
+          </h3>
+          <div className="bg-[#1E1E1E] rounded-lg p-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[#B8B8B8] text-xs mb-1">Start Showing</p>
+                <p className="text-white">
+                  {formatDate(availabilityDetails?.displayPeriod?.startDate)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[#B8B8B8] text-xs mb-1">End Showing</p>
+                <p className="text-white">
+                  {formatDate(availabilityDetails?.displayPeriod?.endDate)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Only show reservation period for non-free, non-coming-soon events */}
+        {eventType !== "free" && eventType !== "coming_soon" && (
+          <div>
+            <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">
+              Reservation Period
+            </h3>
+            <div className="bg-[#1E1E1E] rounded-lg p-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[#B8B8B8] text-xs mb-1">
+                    Start Reservations
+                  </p>
+                  <p className="text-white">
+                    {formatDate(
+                      availabilityDetails?.reservationPeriod?.startDate
+                    )}{" "}
+                    {availabilityDetails?.reservationPeriod?.startTime &&
+                      `at ${availabilityDetails.reservationPeriod.startTime}`}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[#B8B8B8] text-xs mb-1">
+                    End Reservations
+                  </p>
+                  <p className="text-white">
+                    {formatDate(
+                      availabilityDetails?.reservationPeriod?.endDate
+                    )}{" "}
+                    {availabilityDetails?.reservationPeriod?.endTime &&
+                      `at ${availabilityDetails.reservationPeriod.endTime}`}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Ticket Details Summary */}
         <div>
-          <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">TICKETS</h3>
+          <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">Tickets</h3>
           <div className="bg-[#1E1E1E] rounded-lg p-4">
             {eventType === "free" && (
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
                   <div className="mr-3 text-[#FFAB40]">
-                    <InfoIcon className="h-8 w-8" />
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="24"
+                      height="24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="16" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
                   </div>
                   <div>
                     <span className="text-white font-semibold">Free Event</span>
@@ -2263,13 +2955,25 @@ const SummaryDetails = ({
                 </div>
               </div>
             )}
-
             {/* Coming Soon with NO ticket info */}
-            {eventType === "coming_soon" && !ticketDetails?.hasTierInfo && (
+            {eventType === "coming_soon" && !hasTicketInfo && (
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
                   <div className="mr-3 text-[#FFAB40]">
-                    <InfoIcon className="h-8 w-8" />
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="24"
+                      height="24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="16" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
                   </div>
                   <div>
                     <span className="text-white font-semibold">
@@ -2283,25 +2987,9 @@ const SummaryDetails = ({
                 </div>
               </div>
             )}
-
             {/* Coming Soon WITH ticket tiers */}
-            {eventType === "coming_soon" && ticketDetails?.hasTierInfo && (
+            {eventType === "coming_soon" && hasTicketInfo && (
               <div>
-                <div className="flex items-center mb-3">
-                  <div className="mr-3 text-[#FFAB40]">
-                    <InfoIcon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold">
-                      Coming Soon - Preliminary Ticket Structure
-                    </p>
-                    <p className="text-gray-400 text-sm">
-                      These ticket details are planned but not yet available for
-                      reservations.
-                    </p>
-                  </div>
-                </div>
-
                 {ticketDetails.tierType === "freeSeating" ? (
                   <div className="flex items-center mt-4 mb-3 bg-[#272727] p-3 rounded-lg">
                     <div className="mr-3">
@@ -2367,7 +3055,7 @@ const SummaryDetails = ({
                                 ₱{tierData.price}
                               </span>
                               <p className="text-gray-400 text-sm">
-                                1 ticket, {tierName}
+                                1 ticket, {tierName} (admin only view)
                               </p>
                               <p className="text-gray-400 text-xs">
                                 Max per person: {tierData.maxPerPerson}
@@ -2380,201 +3068,492 @@ const SummaryDetails = ({
 
                 <div className="mt-4 pt-3 border-t border-gray-700">
                   <p className="text-gray-400 text-sm font-semibold">
-                    Planned capacity:{" "}
+                    Available Tickets:{" "}
                     <span className="text-[#FFAB40]">
                       {getTotalTickets()} tickets
                     </span>
                   </p>
-                  <p className="text-gray-400 text-xs mt-1 italic">
-                    Final ticket details may change when the event is fully
-                    published.
-                  </p>
                 </div>
-              </div>
-            )}
-
-            {eventType === "ticketed" &&
-              ticketDetails?.tierType === "freeSeating" && (
-                <div className="flex items-center mb-4">
-                  <div className="bg-[#272727] p-3 rounded-lg flex items-center">
-                    <div className="mr-3">
-                      <span className="inline-flex items-center">
-                        <svg
-                          viewBox="0 0 24 24"
-                          width="24"
-                          height="24"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-gray-400"
-                        >
-                          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                          <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                        </svg>
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-white text-xl font-bold">
-                        ₱{ticketDetails.freeSeating.price}
-                      </span>
-                      <p className="text-gray-400 text-sm">
-                        1 ticket, Free Seating
-                      </p>
-                      <p className="text-gray-400 text-xs">
-                        Max per person: {ticketDetails.freeSeating.maxPerPerson}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            {eventType === "ticketed" &&
-              ticketDetails?.tierType === "ticketed" && (
-                <div className="flex flex-wrap gap-4 mb-4">
-                  {ticketDetails?.ticketTiers &&
-                    Object.entries(ticketDetails.ticketTiers)
-                      .filter(([_, tierData]) => tierData.checked)
-                      .map(([tierName, tierData]) => (
-                        <div
-                          key={tierName}
-                          className="bg-[#272727] p-3 rounded-lg flex items-center"
-                        >
-                          <div className="mr-3">
-                            <span className="inline-flex items-center">
-                              <svg
-                                viewBox="0 0 24 24"
-                                width="24"
-                                height="24"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="text-gray-400"
-                              >
-                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                                <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                              </svg>
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-white text-xl font-bold">
-                              ₱{tierData.price}
-                            </span>
-                            <p className="text-gray-400 text-sm">
-                              1 ticket, {tierName}
-                            </p>
-                            <p className="text-gray-400 text-xs">
-                              Max per person: {tierData.maxPerPerson}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                </div>
-              )}
-
-            {(eventType === "ticketed" ||
-              eventType === "free" ||
-              (eventType === "coming_soon" && ticketDetails?.hasTierInfo)) && (
-              <div className="mt-4 border-t border-gray-700 pt-4">
-                <p className="uppercase text-white font-medium">
-                  TOTAL NUMBER OF TICKETS:{" "}
-                  <span className="text-[#FFAB40]">
-                    {getTotalTickets()}{" "}
-                    {eventType === "coming_soon" ? "Planned" : "Available"}{" "}
-                    Tickets
-                  </span>
-                </p>
               </div>
             )}
           </div>
         </div>
-
-        {/* Rest of the component with claiming details and availability details */}
-        {/* ... */}
       </div>
     </div>
   );
 };
-// Modified Admin_PublishEvent component
-// Modified Admin_PublishEvent component with Save as Draft button
+
 const Admin_PublishEvent = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [eventDetails, setEventDetails] = useState(null);
-  const [ticketDetails, setTicketDetails] = useState(null);
-  const [claimingDetails, setClaimingDetails] = useState(null);
-  const [availabilityDetails, setAvailabilityDetails] = useState(null);
+  const [eventDetails, setEventDetails] = useState({
+    eventName: "",
+    eventDescription: "",
+    eventDate: "",
+    venue: "",
+    startTime: "",
+    endTime: "",
+    eventCategory: "",
+    eventType: "ticketed",
+    eventImage: null,
+    imagePreview: null,
+  });
+  const [ticketDetails, setTicketDetails] = useState({
+    tierType: "freeSeating",
+    hasTierInfo: false, // For coming soon events
+    freeSeating: {
+      numberOfTickets: "",
+      price: "",
+      maxPerPerson: "",
+    },
+    ticketTiers: {
+      "General Admission": {
+        number: "",
+        price: "",
+        maxPerPerson: "",
+        checked: false,
+        isEditing: false,
+      },
+      "Upper Box": {
+        number: "",
+        price: "",
+        maxPerPerson: "",
+        checked: false,
+        isEditing: false,
+      },
+      "Lower Box": {
+        number: "",
+        price: "",
+        maxPerPerson: "",
+        checked: false,
+        isEditing: false,
+      },
+      Patron: {
+        number: "",
+        price: "",
+        maxPerPerson: "",
+        checked: false,
+        isEditing: false,
+      },
+      VIP: {
+        number: "",
+        price: "",
+        maxPerPerson: "",
+        checked: false,
+        isEditing: false,
+      },
+    },
+  });
+  const [claimingDetails, setClaimingDetails] = useState({
+    claimingSummaries: [],
+    availableDates: [],
+    includeClaimingInfo: false, // For coming soon events
+  });
+  const [availabilityDetails, setAvailabilityDetails] = useState({
+    displayPeriod: {
+      startDate: "",
+      endDate: "",
+    },
+    reservationPeriod: {
+      startDate: "",
+      endDate: "",
+      startTime: "",
+      endTime: "",
+    },
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [formValid, setFormValid] = useState(false);
 
   const handleEventDetailsNext = (details) => {
-    setEventDetails(details);
-    setCurrentStep(2);
+    // Merge new details with existing state
+    setEventDetails((prev) => ({ ...prev, ...details }));
+
+    // Check if it's a free event - if so, skip directly to availability details (step 4)
+    if (details.eventType === "free") {
+      // For free events, we don't need to set any ticket details
+      // The AvailabilityDetails component already handles free events differently
+
+      // Set empty claiming details since we're skipping that step
+      setClaimingDetails({
+        claimingSummaries: [],
+        availableDates: [],
+      });
+
+      // Jump to availability step
+      setCurrentStep(4);
+    } else {
+      // For other event types, proceed normally to ticket details (step 2)
+      setCurrentStep(2);
+    }
   };
 
   const handleTicketDetailsNext = (details) => {
-    setTicketDetails(details);
-    setCurrentStep(3);
+    // Merge new details with existing state
+    setTicketDetails((prev) => ({ ...prev, ...details }));
+
+    // If it's a free event, skip directly to availability period (step 4)
+    if (eventDetails.eventType === "free") {
+      // Set empty claiming details since we're skipping that step
+      setClaimingDetails({
+        claimingSummaries: [],
+        availableDates: [],
+        includeClaimingInfo: false,
+      });
+      setCurrentStep(4);
+    } else {
+      // For other event types, proceed normally to claiming details (step 3)
+      setCurrentStep(3);
+    }
   };
 
   const handleClaimingDetailsNext = (details) => {
-    setClaimingDetails(details);
+    // Merge new details with existing state
+    setClaimingDetails((prev) => ({ ...prev, ...details }));
     setCurrentStep(4);
   };
 
   const handleAvailabilityDetailsNext = (details) => {
-    setAvailabilityDetails(details);
+    // Merge new details with existing state
+    setAvailabilityDetails((prev) => ({ ...prev, ...details }));
     setCurrentStep(5);
   };
 
-  const handleSummaryNext = () => {
-    console.log("Full Event Details:", {
-      eventDetails,
-      ticketDetails,
-      claimingDetails,
-      availabilityDetails,
-    });
-
-    const eventType = eventDetails?.eventType || "ticketed";
-    let successMessage = "";
-
-    if (eventType === "ticketed") {
-      successMessage =
-        "Ticketed event successfully created and ready for reservations!";
-    } else if (eventType === "coming_soon") {
-      successMessage =
-        "Coming Soon event successfully created! You can update it with full details later.";
-    } else if (eventType === "free") {
-      successMessage =
-        "Free event successfully created! Users can reserve tickets at no cost.";
-    }
-
-    alert(successMessage);
-  };
-
-  const handleSaveAsDraft = () => {
-    // Collect current data regardless of which step the user is on
-    const draftData = {
-      eventDetails,
-      ticketDetails,
-      claimingDetails,
-      availabilityDetails,
-      currentStep,
-      savedAt: new Date().toISOString(),
-      isDraft: true,
-    };
-
-    console.log("Saving draft:", draftData);
-    // Here you would typically send this to your API or store it locally
-
-    alert("Event saved as draft. You can continue editing later.");
-  };
-
   const handleBack = () => {
-    setCurrentStep(currentStep - 1);
+    setCurrentStep((prevStep) => prevStep - 1);
   };
 
   // Get the event type from current eventDetails or default to "ticketed"
   const eventType = eventDetails?.eventType || "ticketed";
+
+  // Function to determine the event status and visibility based on type and dates
+  const determineEventState = () => {
+    // Get current date for comparisons
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get reservation dates if available
+    let reservationStart = null;
+    let reservationEnd = null;
+    if (availabilityDetails?.reservationPeriod?.startDate) {
+      reservationStart = new Date(
+        `${availabilityDetails.reservationPeriod.startDate}T${
+          availabilityDetails.reservationPeriod.startTime || "00:00:00"
+        }`
+      );
+    }
+    if (availabilityDetails?.reservationPeriod?.endDate) {
+      reservationEnd = new Date(
+        `${availabilityDetails.reservationPeriod.endDate}T${
+          availabilityDetails.reservationPeriod.endTime || "23:59:59"
+        }`
+      );
+    }
+
+    let status = "";
+    let visibility = "";
+
+    switch (eventType) {
+      case "coming_soon":
+        // Coming Soon events start as Published but with Scheduled status
+        status = "scheduled";
+        visibility = "published";
+        break;
+
+      case "free":
+        // Free events are always published but with Closed status (no reservation)
+        status = "closed";
+        visibility = "published";
+        break;
+
+      case "ticketed":
+        // Determine if the event should be scheduled or open based on reservation period
+        if (reservationStart && reservationEnd) {
+          if (today < reservationStart) {
+            status = "scheduled";
+            visibility = "published";
+          } else if (today >= reservationStart && today <= reservationEnd) {
+            status = "open";
+            visibility = "published";
+          } else {
+            status = "closed";
+            visibility = "published";
+          }
+        } else {
+          // Default if reservation period not set
+          status = "scheduled";
+          visibility = "published";
+        }
+        break;
+
+      default:
+        status = "draft";
+        visibility = "unpublished";
+    }
+
+    return { status, visibility };
+  };
+
+  // Helper functions for preparing data
+  const prepareEventTicketData = (eventType, ticketDetails) => {
+    const tickets = [];
+
+    // Free events always have a single free ticket type
+    if (eventType === "free") {
+      tickets.push({
+        seat_type: "Free",
+        ticket_type: "Free Admission",
+        price: 0,
+        total_quantity: ticketDetails.freeSeating.numberOfTickets,
+        max_per_user: ticketDetails.freeSeating.maxPerPerson,
+      });
+      return tickets;
+    }
+
+    // Coming Soon events with tier info
+    if (eventType === "coming_soon" && ticketDetails.hasTierInfo) {
+      if (ticketDetails.tierType === "freeSeating") {
+        tickets.push({
+          seat_type: "Free Seating",
+          ticket_type: "Coming Soon",
+          price: ticketDetails.freeSeating.price || 0,
+          total_quantity: ticketDetails.freeSeating.numberOfTickets,
+          max_per_user: ticketDetails.freeSeating.maxPerPerson,
+        });
+      } else {
+        // Ticketed tiers for Coming Soon
+        Object.entries(ticketDetails.ticketTiers)
+          .filter(([_, tierData]) => tierData.checked)
+          .forEach(([tierName, tierData]) => {
+            tickets.push({
+              seat_type: "Ticketed",
+              ticket_type: tierName,
+              price: tierData.price,
+              total_quantity: tierData.number,
+              max_per_user: tierData.maxPerPerson,
+            });
+          });
+      }
+      return tickets;
+    }
+
+    // Regular ticketed events
+    if (ticketDetails.tierType === "freeSeating") {
+      tickets.push({
+        seat_type: "Free Seating",
+        ticket_type: "General Admission",
+        price: ticketDetails.freeSeating.price,
+        total_quantity: ticketDetails.freeSeating.numberOfTickets,
+        max_per_user: ticketDetails.freeSeating.maxPerPerson,
+      });
+    } else {
+      Object.entries(ticketDetails.ticketTiers)
+        .filter(([_, tierData]) => tierData.checked)
+        .forEach(([tierName, tierData]) => {
+          tickets.push({
+            seat_type: "Ticketed",
+            ticket_type: tierName,
+            price: tierData.price,
+            total_quantity: tierData.number,
+            max_per_user: tierData.maxPerPerson,
+          });
+        });
+    }
+
+    return tickets;
+  };
+
+  const prepareClaimingSlotData = () => {
+    return claimingDetails.claimingSummaries.map((slot) => ({
+      claiming_date: slot.date,
+      start_time: slot.startTime,
+      end_time: slot.endTime,
+      venue: slot.venue,
+      max_claimers: slot.maxReservations,
+    }));
+  };
+
+  const handleSummaryNext = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Determine appropriate status and visibility based on event type and timing
+      const eventState = determineEventState();
+
+      // Prepare base event data
+      const eventData = {
+        name: eventDetails.eventName,
+        event_date: eventDetails.eventDate,
+        details: eventDetails.eventDescription,
+        event_time: eventDetails.startTime
+          ? eventDetails.endTime
+            ? `${eventDetails.startTime} - ${eventDetails.endTime}`
+            : eventDetails.startTime
+          : null,
+        category: eventDetails.eventCategory,
+        venue: eventDetails.venue,
+        event_type: eventType,
+        status: eventState.status,
+        visibility: eventState.visibility,
+      };
+
+      // Handle image upload
+      if (eventDetails.eventImage) {
+        try {
+          const uploadResult = await eventService.uploadEventImage(
+            eventDetails.eventImage
+          );
+          eventData.image = uploadResult.imageUrl;
+        } catch (uploadError) {
+          console.error("Image upload failed:", uploadError);
+          // Optionally, you can choose to continue without image or throw an error
+        }
+      }
+
+      // Create the event
+      const eventResult = await eventService.createEvent(eventData);
+      const eventId = eventResult.data.event_id;
+
+      // Handle ticket creation logic
+      const shouldCreateTickets =
+        eventType === "ticketed" ||
+        (eventType === "coming_soon" && ticketDetails?.hasTierInfo) ||
+        eventType === "free";
+
+      if (shouldCreateTickets) {
+        const ticketsToCreate = prepareEventTicketData(
+          eventType,
+          ticketDetails
+        );
+
+        if (ticketsToCreate.length > 0) {
+          await eventService.createTicketsBulk(eventId, ticketsToCreate);
+        }
+      }
+
+      // Handle claiming slots
+      const shouldCreateClaimingSlots =
+        eventType === "ticketed" ||
+        eventType === "free" ||
+        (eventType === "coming_soon" && claimingDetails.includeClaimingInfo);
+
+      if (
+        shouldCreateClaimingSlots &&
+        claimingDetails?.claimingSummaries?.length > 0
+      ) {
+        const claimingSlotsToCreate = prepareClaimingSlotData();
+
+        if (claimingSlotsToCreate.length > 0) {
+          await eventService.createClaimingSlotsBulk(
+            eventId,
+            claimingSlotsToCreate
+          );
+        }
+      }
+
+      // Update availability details
+      const shouldUpdateAvailability =
+        eventType === "ticketed" ||
+        (eventType === "coming_soon" && availabilityDetails.displayPeriod);
+
+      if (shouldUpdateAvailability) {
+        const updateData = {
+          display_start_date: availabilityDetails.displayPeriod.startDate,
+          display_end_date: availabilityDetails.displayPeriod.endDate,
+        };
+
+        // Add reservation period for ticketed events
+        if (eventType === "ticketed" && availabilityDetails.reservationPeriod) {
+          updateData.reservation_start = new Date(
+            `${availabilityDetails.reservationPeriod.startDate}T${availabilityDetails.reservationPeriod.startTime}`
+          ).toISOString();
+          updateData.reservation_end = new Date(
+            `${availabilityDetails.reservationPeriod.endDate}T${availabilityDetails.reservationPeriod.endTime}`
+          ).toISOString();
+        }
+
+        await eventService.updateEvent(eventId, updateData);
+      }
+
+      // Determine success message based on event type
+      let successMessage = "";
+      switch (eventType) {
+        case "ticketed":
+          successMessage = "Ticketed event successfully created and published!";
+          break;
+        case "coming_soon":
+          successMessage =
+            "Coming Soon event successfully created and published!";
+          break;
+        case "free":
+          successMessage = "Free event successfully created and published!";
+          break;
+      }
+
+      // Show success message and potentially redirect
+      alert(successMessage);
+      // TODO: Add navigation or state reset as needed
+    } catch (error) {
+      console.error("Event creation error:", error);
+      setError(
+        error.response?.data?.message ||
+          "Failed to create event. Please check your details and try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to handle saving event as draft
+  // Function to handle saving event as draft
+  const handleSaveAsDraft = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Prepare base draft event data - include only essential info
+      const draftData = {
+        name: eventDetails.eventName || "Untitled Event",
+        event_date: eventDetails.eventDate || null,
+        details: eventDetails.eventDescription || null,
+        category: eventDetails.eventCategory || null,
+        venue: eventDetails.venue || null,
+        event_type: eventType,
+        // These will be set by the createDraftEvent function
+        // visibility and status are automatically set to "unpublished" and "draft"
+      };
+
+      // Handle image upload if we have an image
+      if (eventDetails.eventImage) {
+        try {
+          const uploadResult = await eventService.uploadEventImage(
+            eventDetails.eventImage
+          );
+          draftData.image = uploadResult.imageUrl;
+        } catch (uploadError) {
+          console.error("Image upload failed:", uploadError);
+          // Continue without image rather than failing the whole draft save
+        }
+      }
+
+      // Create the draft event using the appropriate endpoint
+      const eventResult = await eventService.createDraftEvent(draftData);
+
+      // Show success message
+      alert("Event successfully saved as draft!");
+
+      // Optionally redirect to another page or reset form
+      // window.location.href = "/admin/events";
+    } catch (error) {
+      console.error("Draft creation error:", error);
+      setError(
+        error.response?.data?.message ||
+          "Failed to save draft. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex-col font-Poppins">
@@ -2583,12 +3562,34 @@ const Admin_PublishEvent = () => {
         <Sidebar_Admin />
 
         <div className="bg-[#272727] flex items-center justify-center w-full p-6">
+          {isLoading && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+              <div className="bg-[#333] p-4 rounded-lg text-white">
+                Loading...
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="fixed top-4 right-4 bg-red-500 text-white p-3 rounded-lg z-50">
+              {error}
+              <button onClick={() => setError(null)} className="ml-2 font-bold">
+                ×
+              </button>
+            </div>
+          )}
+
           <div className="w-full max-w-4xl">
             {currentStep === 1 && (
-              <EventDetails onNext={handleEventDetailsNext} />
+              <EventDetails
+                initialData={eventDetails}
+                onNext={handleEventDetailsNext}
+                setFormValid={setFormValid}
+              />
             )}
             {currentStep === 2 && (
               <TicketDetails
+                initialData={ticketDetails}
                 eventType={eventType}
                 onBack={handleBack}
                 onNext={handleTicketDetailsNext}
@@ -2596,13 +3597,19 @@ const Admin_PublishEvent = () => {
             )}
             {currentStep === 3 && (
               <ClaimingDetails
+                initialData={claimingDetails}
                 eventType={eventType}
+                ticketDetails={ticketDetails} // Pass ticket details so claiming can check if tickets exist
                 onBack={handleBack}
                 onNext={handleClaimingDetailsNext}
               />
             )}
             {currentStep === 4 && (
               <AvailabilityDetails
+                initialData={{
+                  ...availabilityDetails,
+                  imagePreview: eventDetails.imagePreview,
+                }}
                 eventType={eventType}
                 onBack={handleBack}
                 onNext={handleAvailabilityDetailsNext}
@@ -2625,7 +3632,17 @@ const Admin_PublishEvent = () => {
               {/* Left side - Save as Draft button */}
               <button
                 onClick={handleSaveAsDraft}
-                className="bg-neutral-700 text-white px-9 py-2 rounded-full text-xs font-semibold hover:bg-gray-600 transition-colors"
+                disabled={currentStep === 1 && !formValid}
+                className={`px-9 py-2 rounded-full text-xs font-semibold ${
+                  currentStep === 1 && !formValid
+                    ? "bg-neutral-500 text-neutral-300 cursor-not-allowed"
+                    : "bg-neutral-700 text-white hover:bg-gray-600 transition-colors"
+                }`}
+                title={
+                  currentStep === 1 && !formValid
+                    ? "Fill all required fields to save as draft"
+                    : "Save as draft"
+                }
               >
                 Save as Draft
               </button>
