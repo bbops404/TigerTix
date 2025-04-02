@@ -1,12 +1,17 @@
-
-import React, { useState } from "react";
-import { FaSearch, FaFilter, FaExclamationTriangle} from "react-icons/fa";
+import React, { useState, useCallback } from "react";
+import { FaSearch, FaFilter, FaExclamationTriangle } from "react-icons/fa";
 import Sidebar_Admin from "../../components/SideBar_Admin";
+import Table from "../../components/Table";
 import Header_Admin from "../../components/Header_Admin";
 import Admin_AddUserPopUp from "./Admin_AddUserPopUp";
 import Admin_EditUserPopUp from "./Admin_EditUserPopUp";
 import Admin_UserGenerateReport from "./Admin_UserGenerateReportPopUp";
+import axios from "axios";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTable, useSortBy, usePagination, useFilters, useRowSelect } from 'react-table';
+import ErrorBoundary from "../../components/ErrorBoundary";
 
+// Modal for Deleting Users
 const DeleteUserModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
   return (
@@ -27,6 +32,7 @@ const DeleteUserModal = ({ isOpen, onClose, onConfirm }) => {
   );
 };
 
+// Success Modal
 const SuccessModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
   return (
@@ -42,13 +48,14 @@ const SuccessModal = ({ isOpen, onClose }) => {
   );
 };
 
-
 const Admin_UserPage = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [showEditUserPopup, setShowEditUserPopup] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showGenerateReportPopup, setShowGenerateReportPopup] = useState(false);
+
+  const queryClient = useQueryClient();
 
   const openAddUserPopup = () => setShowPopup(true);
   const closeAddUserPopup = () => setShowPopup(false);
@@ -59,19 +66,120 @@ const Admin_UserPage = () => {
   const openGenerateReportPopup = () => setShowGenerateReportPopup(true);
   const closeGenerateReportPopup = () => setShowGenerateReportPopup(false);
 
-  const handleDeleteUser = () => {
-    closeDeleteModal();
-    openSuccessModal();
-  };
+  const columns = React.useMemo(
+    () => [
+      {
+        id: "selection",
+        Header: ({ getToggleAllRowsSelectedProps, state }) => {
+          const isIndeterminate =
+            state.selectedRowIds &&
+            Object.keys(state.selectedRowIds).length > 0 &&
+            Object.keys(state.selectedRowIds).length < state.rowCount;
+          
+          // Clone the props and remove any indeterminate property
+          const toggleAllProps = { ...getToggleAllRowsSelectedProps() };
+          delete toggleAllProps.indeterminate;
+  
+          return (
+            <input
+              type="checkbox"
+              {...toggleAllProps}
+              ref={(el) => {
+                if (el) {
+                  el.indeterminate = isIndeterminate;
+                }
+              }}
+            />
+          );
+        },
+        Cell: ({ row }) => (
+          <input type="checkbox" {...row.getToggleRowSelectedProps()} />
+        ),
+      },
+      { Header: 'Username', accessor: 'username' },
+      { Header: 'Full Name', accessor: 'fullName' },
+      { Header: 'Role', accessor: 'role' },
+      { Header: 'Email', accessor: 'email' },
+      { Header: 'Account Status', accessor: 'status' },
+      { Header: 'Violation Count', accessor: 'violation_count' },
+    ],
+    []
+  );
+
+  const { data: users = [], isLoading, error } = useQuery({
+    queryKey: ["users"],
+    queryFn: async () => {
+      const token = sessionStorage.getItem("authToken");
+      try {
+        const response = await axios.get("http://localhost:5002/admin/users", {
+          withCredentials: true,
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        return response.data.map(user => ({
+          ...user,
+          fullName: `${user.first_name} ${user.last_name}`,
+        }));
+      } catch (err) {
+        console.error("Error fetching users:", err);
+        throw err; // Rethrow the error to trigger the error state in React Query
+      }
+    },
+    onError: (error) => {
+      console.error("Query failed:", error);
+    },
+    refetchOnWindowFocus: false,
+  });
+
+  const handleDelete = useCallback(async () => {
+    const selectedFlatRows = rows.filter(row => selectedRowIds[row.id]);
+
+    if (!selectedFlatRows.length) {
+        console.error("No users selected for deletion");
+        return; // Do nothing if no rows are selected
+    }
+
+    const selectedUsers = selectedFlatRows.map(row => row.original);
+    const userIds = selectedUsers.map(user => user.id); // Extract the user IDs to send
+
+    try {
+        // Send a single DELETE request with an array of user IDs
+        await axios.delete("http://localhost:5002/admin/users", {
+            data: { ids: userIds },
+            withCredentials: true,
+            headers: { Authorization: `Bearer ${sessionStorage.getItem("authToken")}` },
+        });
+
+        queryClient.invalidateQueries(["users"]);
+        setShowDeleteModal(false);
+        setShowSuccessModal(true);
+    } catch (error) {
+        console.error("Error deleting users:", error);
+    }
+  }, [rows, selectedRowIds, queryClient]);
+
+  const {
+    getTableProps,
+    getTableBodyProps,
+    headerGroups,
+    rows,
+    prepareRow,
+    state: { selectedRowIds }
+  } = useTable(
+    {
+      columns,
+      data: users,
+    },
+    useFilters,
+    useSortBy,
+    usePagination,
+    useRowSelect
+  );
+
+  const selectedFlatRows = rows?.filter(row => selectedRowIds?.[row.id]) || [];
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
-
-      {/* Header */}
-      <Header_Admin/>
-
-      {/* Main Layout */}
-
+      <Header_Admin />
       <div className="flex">
         <Sidebar_Admin />
         <div className="flex-1 px-10 py-10">
@@ -92,58 +200,32 @@ const Admin_UserPage = () => {
             </div>
           </div>
 
-          {/* Users Table */}
-          <div className="overflow-x-auto rounded-md shadow-md max-h-[400px] overflow-y-auto">
-            <table className="w-full text-black border-collapse border border-[#D6D3D3] bg-white rounded-md overflow-hidden">
-              <thead className="sticky top-0 bg-[#F09C32] text-[#333333] text-center z-1">
-                <tr>
-                  {["Username", "Full Name", "Role", "Email", "Account Status", "Violation Count"].map((header, index) => (
-                    <th key={index} className="px-4 py-2 border border-[#D6D3D3] text-center">{header}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { username: "olivesangels", fullName: "Olive's Angels", role: "Student", email: "olivesangels@ust.edu.ph", status: "Restricted/Active", violations: 0 },
-                  { username: "john_doe", fullName: "John Doe", role: "Faculty", email: "johndoe@ust.edu.ph", status: "Active", violations: 1 },
-                  { username: "tigersfan", fullName: "Tigers Fan Club", role: "Alumni", email: "tigersfan@ust.edu.ph", status: "Suspended", violations: 3 },
-                  { username: "nathan_sci", fullName: "Nathan Science", role: "Student", email: "nathan@ust.edu.ph", status: "Active", violations: 0 },
-                  { username: "lucas_m", fullName: "Lucas M.", role: "Student", email: "lucasm@ust.edu.ph", status: "Active", violations: 1 },
-                  { username: "charlotte_d", fullName: "Charlotte D.", role: "Faculty", email: "charlotte_d@ust.edu.ph", status: "Active", violations: 0 },
-                  { username: "kevin_ust", fullName: "Kevin UST", role: "Alumni", email: "kevin.ust@ust.edu.ph", status: "Suspended", violations: 2 },
-                  { username: "elena_stu", fullName: "Elena Student", role: "Student", email: "elena@ust.edu.ph", status: "Active", violations: 0 },
-                ].map((user, index) => (
-                  <tr key={index} className="border border-[#D6D3D3] text-center">
-                    <td className="px-4 py-2 border border-[#D6D3D3] flex items-center">
-                      <input type="checkbox" className="mr-2" />
-                      <span className="flex-1 text-center">{user.username}</span>
-                    </td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">{user.fullName}</td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">{user.role}</td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">{user.email}</td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">{user.status}</td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">{user.violations}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="admin-users">
+            <ErrorBoundary>
+              <Table 
+                columns={columns} 
+                data={users || []} 
+                isLoading={isLoading ?? false}
+                enableRowSelection={true}
+                handleDeleteUser={handleDelete}
+                selectedFlatRows={selectedFlatRows || []}
+              />
+            </ErrorBoundary>
           </div>
 
-          {/* Bottom Buttons */}
           <div className="flex justify-center gap-4 mt-6">
-          <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-200 hover:bg-[#F09C32] hover:font-bold hover:scale-105" onClick={() => setShowEditUserPopup(true)}>Edit User</button>
-  <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-200 hover:bg-[#F09C32] hover:font-bold hover:scale-105" onClick={openAddUserPopup}>Add User</button>
-  <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-200 hover:bg-[#F09C32] hover:font-bold hover:scale-105" onClick={openDeleteModal}>Delete User/s</button>
-  <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-200 hover:bg-[#F09C32] hover:font-bold hover:scale-105" onClick={openGenerateReportPopup}>Generate Report</button>
+            <button onClick={() => setShowEditUserPopup(true)}>Edit User</button>
+            <button onClick={openAddUserPopup}>Add User</button>
+            <button onClick={openDeleteModal}>Delete User/s</button>
+            <button onClick={openGenerateReportPopup}>Generate Report</button>
           </div>
         </div>
       </div>
 
-      {/* Modals */}
-      <DeleteUserModal isOpen={showDeleteModal} onClose={closeDeleteModal} onConfirm={handleDeleteUser} />
+      <DeleteUserModal isOpen={showDeleteModal} onClose={closeDeleteModal} onConfirm={handleDelete} />
       <SuccessModal isOpen={showSuccessModal} onClose={closeSuccessModal} />
-      {showPopup && <Admin_AddUserPopUp showPopup={showPopup} togglePopup={closeAddUserPopup} />}
-      {showEditUserPopup && <Admin_EditUserPopUp showPopup={showEditUserPopup} togglePopup={() => setShowEditUserPopup(false)} />}
+      <Admin_AddUserPopUp showPopup={showPopup} togglePopup={closeAddUserPopup} />
+      <Admin_EditUserPopUp showPopup={showEditUserPopup} togglePopup={() => setShowEditUserPopup(false)} />
       {showGenerateReportPopup && <Admin_UserGenerateReport isOpen={showGenerateReportPopup} onClose={closeGenerateReportPopup} />}
     </div>
   );

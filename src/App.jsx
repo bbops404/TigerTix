@@ -1,5 +1,8 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ProtectedRoutes from "./ProtectedRoutes"; // Import the protected route
+
+const queryClient = new QueryClient();
 
 // ========================== FOOTER PAGES ==========================
 import Footer from "./components/Footer";
@@ -61,6 +64,7 @@ const Layout = ({ children }) => {
 
 function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <Layout>
         <Routes>
@@ -102,10 +106,11 @@ function App() {
           <Route element={<ProtectedRoutes role="admin" />}>
 
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/event-management" element={<AdminEventsManagment />} />
+          <Route path="/events" element={<AdminEventsManagment />} />
           <Route path="/reservations" element={<AdminReservations />} />
           <Route path="/users" element={<AdminUser />} />
-          <Route path="/profile" element={<AdminProfile />} />
+=          <Route path="/adminprofile" element={<AdminProfile />} />
+          <Route path="/events/publish" element={<AdminPublishEvent/>} />
           <Route path="/audit-trails" element={<AuditTrails />} />
           <Route path="/event-report" element={<AdminEventReports />} />
           </Route>
@@ -119,6 +124,8 @@ function App() {
         </Routes>
       </Layout>
     </BrowserRouter>
+        </QueryClientProvider>
+
   );
 }
 

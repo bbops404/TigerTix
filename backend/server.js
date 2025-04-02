@@ -11,6 +11,7 @@ const redisClient = new Redis();
 const app = express();
 const port = process.env.PORT || 5002;
 
+
 // ✅ Middleware (Order matters!)
 app.use(cors({
   origin: "http://localhost:5173",
@@ -35,6 +36,9 @@ app.use("/auth", authRoutes);
 
 const privateroute = require("./routes/privateroute");
 app.use("/privateroute", privateroute);
+
+const adminRoutes = require("./routes/admin");
+app.use("/admin", adminRoutes);
 
 redisClient.on("connect", () => console.log("Connected to Redis successfully! 🔥"));
 redisClient.on("error", (err) => console.error("Redis connection error:", err));
