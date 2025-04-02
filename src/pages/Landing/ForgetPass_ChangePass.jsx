@@ -1,35 +1,85 @@
 import React, { useState } from "react";
 import sample_image from "../../assets/sample_image.png";
 import Header from "../../components/Header";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import axios from "axios";
+import LoginPopup from "./LoginPopup";
+import SuccessModal from "../../components/SuccessModal";
+
 
 // Validation Schema for Password
-const schema = yup.object({
-  newPassword: yup.string().min(6, "Password must be at least 6 characters").required("New Password is required"),
-  confirmPassword: yup.string()
-    .oneOf([yup.ref("newPassword"), null], "Passwords must match")
-    .required("Confirm Password is required"),
-}).required();
+const schema = yup
+  .object({
+    newPassword: yup
+      .string()
+      .min(6, "Password must be at least 6 characters")
+      .required("New Password is required"),
+    confirmPassword: yup
+      .string()
+      .oneOf([yup.ref("newPassword"), null], "Passwords must match")
+      .required("Confirm Password is required"),
+  })
+  .required();
 
-const UpdatePassword = () => {
-  const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: yupResolver(schema),
-  });
+  const UpdatePassword = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const email = location.state?.email || "";
+    const { register, handleSubmit, formState: { errors } } = useForm({
+      resolver: yupResolver(schema),
+    });
+  
+    // 🟢 Move the hooks inside the function component
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+    const [loginPopup, setLoginPopup] = useState(false);  
+    const toggleLoginPopup = () => setLoginPopup((prev) => !prev);
+  
+  
 
-  // Handle form submission
-  const onSubmit = (data) => {
-    console.log("Password updated:", data.newPassword);
-    alert("Password successfully changed!");
-    navigate("/Login"); // ✅ Redirect to login after updating password
-  };
+  const onSubmit = async (data) => {
+  const verifiedEmail = sessionStorage.getItem("verifiedEmail");
+
+  console.log("Sending request with:", { email: verifiedEmail, newPassword: data.newPassword });
+
+  try {
+    const response = await axios.post("http://localhost:5002/auth/reset-password", {
+      email: verifiedEmail,
+      newPassword: data.newPassword,
+    });
+
+    console.log("Server response:", response.data);
+
+  
+    if (response.status >= 200 && response.status < 300) {
+      setIsSuccessModalOpen(true);      
+      setTimeout(() => {
+        setIsSuccessModalOpen(false);
+        localStorage.setItem("showLoginPopup", "true");
+        navigate("/");
+      }, 3000);
+    } else {
+      alert(response.data.message || "Failed to reset password.");
+    }
+  } catch (error) {
+    console.error("Error updating password:", error.response?.data || error.message);
+    alert(error.response?.data?.message || "An error occurred. Please try again later.");
+  }
+};
+
 
   return (
     <div>
       <Header showSearch={false} showAuthButtons={false} />
+      {loginPopup && (
+        <LoginPopup
+          loginPopup={loginPopup}
+          toggleLoginPopup={toggleLoginPopup}
+        />
+      )}
+      {loginPopup && <LoginPopup toggleLoginPopup={toggleLoginPopup} />}
       <div className="flex">
         {/* Left Image Section */}
         <div className="w-1/2 relative h-[90vh]">
@@ -42,14 +92,12 @@ const UpdatePassword = () => {
           <p className="font-bold text-4xl text-white pb-7">Create New Password</p>
 
           <div className="flex flex-col justify-center bg-custom_yellow p-6 rounded-lg shadow-lg w-[500px] h-auto text-custom_black">
-          <div className="w-full ml-3 pr-4">
-          <p className="text-custom_black/85 mb-2 text-lg font-semibold text-center">
-  Enter a New Password
-</p>
-
-                </div>
+            <div className="w-full ml-3 pr-4">
+              <p className="text-custom_black/85 mb-2 text-lg font-semibold text-center">
+                Enter a New Password
+              </p>
+            </div>
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col items-center w-full">
-              
               {/* New Password Input Field */}
               <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 border-[#D8DADC] h-10 w-72 mb-3">
                 <input
@@ -81,6 +129,18 @@ const UpdatePassword = () => {
                 UPDATE
               </button>
             </form>
+
+            <SuccessModal
+  isOpen={isSuccessModalOpen}
+  onClose={() => setIsSuccessModalOpen(false)}
+  onRedirect={() => {
+    setIsSuccessModalOpen(false);
+    navigate("/");
+    setTimeout(() => setLoginPopup(true), 500);
+  }}
+  title="Success!"
+  message="Your password has been reset successfully. Please log in."
+/>
           </div>
         </div>
       </div>

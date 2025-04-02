@@ -3,18 +3,13 @@ import { FaUser, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import { IoIosCloseCircleOutline } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 
-const predefinedUsers = [
-  { email: "admin@ust.edu.ph", password: "admin123", role: "admin" },
-  { email: "support@ust.edu.ph", password: "support123", role: "support" },
-  { email: "user@ust.edu.ph", password: "user123", role: "user" },
-];
-
 const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
   const loginPopupRef = useRef(null);
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+const [user, setUser] = useState(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -28,22 +23,60 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
     };
   }, [toggleLoginPopup]);
 
-  const handleLogin = () => {
-    const trimmedEmail = email.trim();
-    const user = predefinedUsers.find(
-      (u) => u.email === trimmedEmail && u.password === password
-    );
+  const handleLogin = async () => {
+    const trimmedInput = email.trim(); // This can be either email or username
+  
+    try {
+      const response = await fetch("http://localhost:5002/auth/login", { 
+        method: "POST",
+        credentials: "include",  // ✅ Ensures cookies are sent
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: trimmedInput.includes("@") ? trimmedInput : null,  // If input contains '@', treat it as email
+          username: trimmedInput.includes("@") ? null : trimmedInput, // Otherwise, treat it as username
+          password: password,
+        }),
 
-    if (user) {
-      alert(`Successfully logged in as ${user.role.toUpperCase()}!`);
-      toggleLoginPopup();
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        alert(`Successfully logged in as ${data.user.role.toUpperCase()}!`);
+        
+          // Store token securely in sessionStorage (only for active session)
+      sessionStorage.setItem("authToken", data.token);
+      sessionStorage.setItem("userRole", data.user.role); // Store role for ProtectedRoutes
+      console.log("Token (Frontend) :",  data.token);
+      console.log("User role (Frontend):",  data.user.role);
 
-      if (user.role === "admin") navigate("/dashboard");
-      else navigate("/home");
-    } else {
-      alert("Invalid email or password. Please try again.");
+      // Store user details in state/context instead of localStorage
+      setUser({
+        email: data.user.email,
+        username: data.user.username,
+        role: data.user.role,
+      });
+
+        toggleLoginPopup();
+  
+     // ✅ Redirect based on user role
+     if (data.user.role === "admin") {
+      navigate("/admin-dashboard", { replace: true });
+    } else if (["student", "employee", "alumni"].includes(data.user.role)) {
+      navigate("/home", { replace: true });
+  } 
+
+      // Debugging cookies
+      console.log("Stored Cookies (frontend):", document.cookie);
+      
+    }} catch (error) {
+      console.error("Login error:", error);
+      alert("Failed to log in. Please  again later.");
     }
   };
+  
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -76,7 +109,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
                 <input
                   type="email"
                   className="focus:outline-none text-sm w-full text-gray-600"
-                  placeholder="Enter your email"
+                  placeholder="Enter your email or username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -132,11 +165,14 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
             <div className="flex text-xs text-white pt-2">
               <p className="mr-1 font-light">Don't have an account?</p>
               <button
-                onClick={() => navigate("/verify")}
-                className="font-bold hover:underline focus:outline-none"
-              >
-                Sign Up!
-              </button>
+  onClick={() => {
+    toggleLoginPopup(); // Isara muna yung pop-up
+    navigate("/verify"); // Tapos saka mag-navigate
+  }}
+  className="font-bold hover:underline focus:outline-none"
+>
+  Sign Up!
+</button>
             </div>
           </div>
         </div>
