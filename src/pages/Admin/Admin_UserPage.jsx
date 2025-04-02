@@ -1,4 +1,5 @@
 
+
 import React, { useState } from "react";
 import { FaSearch, FaFilter, FaExclamationTriangle} from "react-icons/fa";
 import Sidebar_Admin from "../../components/SideBar_Admin";
@@ -6,6 +7,7 @@ import Header_Admin from "../../components/Header_Admin";
 import Admin_AddUserPopUp from "./Admin_AddUserPopUp";
 import Admin_EditUserPopUp from "./Admin_EditUserPopUp";
 import Admin_UserGenerateReport from "./Admin_UserGenerateReportPopUp";
+import Admin_UserFilter from "./Admin_UserFilter";
 
 const DeleteUserModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
@@ -43,19 +45,23 @@ const SuccessModal = ({ isOpen, onClose }) => {
 };
 
 
+
 const Admin_UserPage = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [showEditUserPopup, setShowEditUserPopup] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showGenerateReportPopup, setShowGenerateReportPopup] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
 
   const openAddUserPopup = () => setShowPopup(true);
   const closeAddUserPopup = () => setShowPopup(false);
+
   const openDeleteModal = () => setShowDeleteModal(true);
   const closeDeleteModal = () => setShowDeleteModal(false);
   const openSuccessModal = () => setShowSuccessModal(true);
   const closeSuccessModal = () => setShowSuccessModal(false);
+
   const openGenerateReportPopup = () => setShowGenerateReportPopup(true);
   const closeGenerateReportPopup = () => setShowGenerateReportPopup(false);
 
@@ -68,7 +74,7 @@ const Admin_UserPage = () => {
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
 
       {/* Header */}
-      <Header_Admin/>
+      <Header_Admin />
 
       {/* Main Layout */}
 
@@ -85,44 +91,199 @@ const Admin_UserPage = () => {
               />
             </div>
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-white text-black rounded-full">Reset</button>
-              <button className="px-4 py-2 bg-white text-black rounded-full flex items-center gap-2">
+              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">Reset</button>
+              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+              onClick={() => setShowFilter(!showFilter)}>
                 <FaFilter /> Sort/Filter by
               </button>
             </div>
           </div>
+
+          {/* Filter Component */}
+          {showFilter && <Admin_UserFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
 
           {/* Users Table */}
           <div className="overflow-x-auto rounded-md shadow-md max-h-[400px] overflow-y-auto">
             <table className="w-full text-black border-collapse border border-[#D6D3D3] bg-white rounded-md overflow-hidden">
               <thead className="sticky top-0 bg-[#F09C32] text-[#333333] text-center z-1">
                 <tr>
-                  {["Username", "Full Name", "Role", "Email", "Account Status", "Violation Count"].map((header, index) => (
-                    <th key={index} className="px-4 py-2 border border-[#D6D3D3] text-center">{header}</th>
+
+                  {[
+                    "Username",
+                    "Full Name",
+                    "Role",
+                    "Email",
+                    "Account Status",
+                    "Violation Count",
+                  ].map((header, index) => (
+                    <th
+                      key={index}
+                      className="px-4 py-2 border border-[#D6D3D3] text-center"
+                    >
+                      {header}
+                    </th>
+
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {[
-                  { username: "olivesangels", fullName: "Olive's Angels", role: "Student", email: "olivesangels@ust.edu.ph", status: "Restricted/Active", violations: 0 },
-                  { username: "john_doe", fullName: "John Doe", role: "Faculty", email: "johndoe@ust.edu.ph", status: "Active", violations: 1 },
-                  { username: "tigersfan", fullName: "Tigers Fan Club", role: "Alumni", email: "tigersfan@ust.edu.ph", status: "Suspended", violations: 3 },
-                  { username: "nathan_sci", fullName: "Nathan Science", role: "Student", email: "nathan@ust.edu.ph", status: "Active", violations: 0 },
-                  { username: "lucas_m", fullName: "Lucas M.", role: "Student", email: "lucasm@ust.edu.ph", status: "Active", violations: 1 },
-                  { username: "charlotte_d", fullName: "Charlotte D.", role: "Faculty", email: "charlotte_d@ust.edu.ph", status: "Active", violations: 0 },
-                  { username: "kevin_ust", fullName: "Kevin UST", role: "Alumni", email: "kevin.ust@ust.edu.ph", status: "Suspended", violations: 2 },
-                  { username: "elena_stu", fullName: "Elena Student", role: "Student", email: "elena@ust.edu.ph", status: "Active", violations: 0 },
+
+                  {
+                    username: "olivesangels",
+                    fullName: "Olive's Angels",
+                    role: "Student",
+                    email: "olivesangels@ust.edu.ph",
+                    status: "Restricted/Active",
+                    violations: 0,
+                  },
+                  {
+                    username: "john_doe",
+                    fullName: "John Doe",
+                    role: "Faculty",
+                    email: "johndoe@ust.edu.ph",
+                    status: "Active",
+                    violations: 1,
+                  },
+                  {
+                    username: "tigersfan",
+                    fullName: "Tigers Fan Club",
+                    role: "Alumni",
+                    email: "tigersfan@ust.edu.ph",
+                    status: "Suspended",
+                    violations: 3,
+                  },
+                  {
+                    username: "nathan_sci",
+                    fullName: "Nathan Science",
+                    role: "Student",
+                    email: "nathan@ust.edu.ph",
+                    status: "Active",
+                    violations: 0,
+                  },
+                  {
+                    username: "lucas_m",
+                    fullName: "Lucas M.",
+                    role: "Student",
+                    email: "lucasm@ust.edu.ph",
+                    status: "Active",
+                    violations: 1,
+                  },
+                  {
+                    username: "charlotte_d",
+                    fullName: "Charlotte D.",
+                    role: "Faculty",
+                    email: "charlotte_d@ust.edu.ph",
+                    status: "Active",
+                    violations: 0,
+                  },
+                  {
+                    username: "kevin_ust",
+                    fullName: "Kevin UST",
+                    role: "Alumni",
+                    email: "kevin.ust@ust.edu.ph",
+                    status: "Suspended",
+                    violations: 2,
+                  },
+                  {
+                    username: "elena_stu",
+                    fullName: "Elena Student",
+                    role: "Student",
+                    email: "elena@ust.edu.ph",
+                    status: "Active",
+                    violations: 0,
+                  },
+                  {
+                    username: "robert_a",
+                    fullName: "Robert A.",
+                    role: "Faculty",
+                    email: "robert_a@ust.edu.ph",
+                    status: "Active",
+                    violations: 1,
+                  },
+                  {
+                    username: "sophiag",
+                    fullName: "Sophia G.",
+                    role: "Student",
+                    email: "sophiag@ust.edu.ph",
+                    status: "Restricted",
+                    violations: 2,
+                  },
+                  {
+                    username: "tigersfan",
+                    fullName: "Tigers Fan Club",
+                    role: "Alumni",
+                    email: "tigersfan@ust.edu.ph",
+                    status: "Suspended",
+                    violations: 3,
+                  },
+                  {
+                    username: "nathan_sci",
+                    fullName: "Nathan Science",
+                    role: "Student",
+                    email: "nathan@ust.edu.ph",
+                    status: "Active",
+                    violations: 0,
+                  },
+                  {
+                    username: "lucas_m",
+                    fullName: "Lucas M.",
+                    role: "Student",
+                    email: "lucasm@ust.edu.ph",
+                    status: "Active",
+                    violations: 1,
+                  },
+                  {
+                    username: "charlotte_d",
+                    fullName: "Charlotte D.",
+                    role: "Faculty",
+                    email: "charlotte_d@ust.edu.ph",
+                    status: "Active",
+                    violations: 0,
+                  },
+                  {
+                    username: "kevin_ust",
+                    fullName: "Kevin UST",
+                    role: "Alumni",
+                    email: "kevin.ust@ust.edu.ph",
+                    status: "Suspended",
+                    violations: 2,
+                  },
+                  {
+                    username: "elena_stu",
+                    fullName: "Elena Student",
+                    role: "Student",
+                    email: "elena@ust.edu.ph",
+                    status: "Active",
+                    violations: 0,
+                  },
+
                 ].map((user, index) => (
-                  <tr key={index} className="border border-[#D6D3D3] text-center">
+                  <tr
+                    key={index}
+                    className="border border-[#D6D3D3] text-center"
+                  >
                     <td className="px-4 py-2 border border-[#D6D3D3] flex items-center">
                       <input type="checkbox" className="mr-2" />
-                      <span className="flex-1 text-center">{user.username}</span>
+                      <span className="flex-1 text-center">
+                        {user.username}
+                      </span>
                     </td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">{user.fullName}</td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">{user.role}</td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">{user.email}</td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">{user.status}</td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">{user.violations}</td>
+                    <td className="px-4 py-2 border border-[#D6D3D3]">
+                      {user.fullName}
+                    </td>
+                    <td className="px-4 py-2 border border-[#D6D3D3]">
+                      {user.role}
+                    </td>
+                    <td className="px-4 py-2 border border-[#D6D3D3]">
+                      {user.email}
+                    </td>
+                    <td className="px-4 py-2 border border-[#D6D3D3]">
+                      {user.status}
+                    </td>
+                    <td className="px-4 py-2 border border-[#D6D3D3]">
+                      {user.violations}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -131,10 +292,10 @@ const Admin_UserPage = () => {
 
           {/* Bottom Buttons */}
           <div className="flex justify-center gap-4 mt-6">
-          <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-200 hover:bg-[#F09C32] hover:font-bold hover:scale-105" onClick={() => setShowEditUserPopup(true)}>Edit User</button>
-  <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-200 hover:bg-[#F09C32] hover:font-bold hover:scale-105" onClick={openAddUserPopup}>Add User</button>
-  <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-200 hover:bg-[#F09C32] hover:font-bold hover:scale-105" onClick={openDeleteModal}>Delete User/s</button>
-  <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-200 hover:bg-[#F09C32] hover:font-bold hover:scale-105" onClick={openGenerateReportPopup}>Generate Report</button>
+            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={() => setShowEditUserPopup(true)}>Edit User</button>
+            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={openAddUserPopup}>Add User</button>
+            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={openDeleteModal}>Delete User/s</button>
+            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={openGenerateReportPopup}>Generate Report</button>
           </div>
         </div>
       </div>
@@ -142,6 +303,8 @@ const Admin_UserPage = () => {
       {/* Modals */}
       <DeleteUserModal isOpen={showDeleteModal} onClose={closeDeleteModal} onConfirm={handleDeleteUser} />
       <SuccessModal isOpen={showSuccessModal} onClose={closeSuccessModal} />
+
+      {/*PopUps*/}
       {showPopup && <Admin_AddUserPopUp showPopup={showPopup} togglePopup={closeAddUserPopup} />}
       {showEditUserPopup && <Admin_EditUserPopUp showPopup={showEditUserPopup} togglePopup={() => setShowEditUserPopup(false)} />}
       {showGenerateReportPopup && <Admin_UserGenerateReport isOpen={showGenerateReportPopup} onClose={closeGenerateReportPopup} />}

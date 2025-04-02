@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { VscAccount } from "react-icons/vsc";
-import Sidebar_Admin from "../../components/SideBar_Admin";
 import Admin_ChangePasswordPopUp from "./Admin_ChangePasswordPopUp";
 import Admin_EditDetailsPopUp from "./Admin_EditDetailsPopUp";
-import Header_Admin from "../../components/Header_Admin";
+import Header_Admin from "../../components/Admin/Header_Admin";
+import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 
 const Label = ({ label, value }) => {
   return (
     <div className="flex items-center w-full">
-      <span className="w-1/4 text-left font-semibold text-gray-700">{label}</span>
+      <span className="w-1/4 text-left font-semibold text-gray-700">
+        {label}
+      </span>
       <div className="w-3/4 bg-gray-200 text-gray-900 text-left p-2 rounded-md shadow-md">
         {value}
       </div>
@@ -31,7 +33,7 @@ const Admin_ProfilePage = () => {
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
       {/* Header */}
-      <Header_Admin/>
+      <Header_Admin />
 
       {/* Main Layout */}
       <div className="flex">
@@ -65,13 +67,13 @@ const Admin_ProfilePage = () => {
               {/* Buttons */}
               <div className="flex justify-end mt-6 space-x-4">
                 <button
-                  className="px-6 py-2 bg-[#333333] text-[#FFD7A5] rounded-full shadow-md hover:bg-[#FFD7A5] hover:text-[#333333] transition duration-300"
+                  className="px-6 py-2 bg-[#333333] text-[#FFD7A5] rounded-full shadow-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
                   onClick={toggleEditDetailsPopup}
                 >
                   Edit Details
                 </button>
                 <button
-                  className="px-6 py-2 bg-[#333333] text-[#FFD7A5] rounded-full shadow-md hover:bg-[#FFD7A5] hover:text-[#333333] transition duration-300"
+                  className="px-6 py-2 bg-[#333333] text-[#FFD7A5] rounded-full shadow-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
                   onClick={toggleChangePasswordPopup}
                 >
                   Change Password

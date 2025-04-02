@@ -1,14 +1,10 @@
 import React, { useState } from "react";
 import { FaTimes } from "react-icons/fa";
 
-const Admin_ReservationsFilter = ({ showFilter, setShowFilter }) => {
+const Admin_UserFilter = ({ showFilter, setShowFilter }) => {
   const [filters, setFilters] = useState({
-    eventName: "",
     role: "",
-    date: "",
-    claimingTime: "",
-    ticketTier: "",
-    claimingStatus: "",
+    accountStatus: "",
     sortOrder: "",
   });
 
@@ -41,7 +37,7 @@ const Admin_ReservationsFilter = ({ showFilter, setShowFilter }) => {
 
           <h2 className="text-lg font-semibold mb-4">FILTER BY</h2>
           <div className="space-y-3">
-            {["Event Name", "Role", "Date", "Claiming Time", "Ticket Tier", "Claiming Status"].map((field) => (
+            {["Role", "Account Status"].map((field) => (
               <select
                 key={field}
                 name={field}
@@ -80,4 +76,4 @@ const Admin_ReservationsFilter = ({ showFilter, setShowFilter }) => {
   );
 };
 
-export default Admin_ReservationsFilter;
+export default Admin_UserFilter;
