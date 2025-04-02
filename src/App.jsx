@@ -37,6 +37,9 @@ import AdminUser from "./pages/Admin/Admin_UserPage";
 import AdminProfile from "./pages/Admin/Admin_ProfilePage";
 import AuditTrails from "./pages/Admin/Admin_AuditTrails";
 import AdminEventReports from "./pages/Admin/Admin_EventReports";
+
+import AdminArchive from "./pages/Admin/Admin_Archive";
+
 import AdminPublishEvent from "./pages/Admin/Admin_PublishEvent";
 import AdminScheduleEvent from "./pages/Admin/Admin_ScheduleEvent";
 
@@ -104,6 +107,7 @@ function App() {
           <Route path="/profile" element={<AdminProfile />} />
           <Route path="/audit-trails" element={<AuditTrails />} />
           <Route path="/event-report" element={<AdminEventReports />} />
+          <Route path="/archive" element={<AdminArchive />} />
 
           {/* ========================== FOOTER PAGES ========================== */}
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />

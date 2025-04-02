@@ -1,113 +1,71 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
 
-const Ticket = sequelize.define(
-  "Ticket",
-  {
-    ticket_id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
-    },
-    event_id: {
-      type: DataTypes.UUID,
-      allowNull: true, // Allow null for drafts
-      references: {
-        model: "events", // References the 'events' table
-        key: "event_id", // References the 'event_id' column in the 'events' table
+module.exports = (sequelize) => {
+  const Ticket = sequelize.define(
+    "Ticket",
+    {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
       },
-      onUpdate: "CASCADE",
-      onDelete: "CASCADE",
-    },
-    seat_type: {
-      type: DataTypes.STRING(20),
-      allowNull: true,
-      validate: {
-        isIn: {
-          args: [["Free", "Ticketed"]],
-          msg: "Seat type must be either 'Free' or 'Ticketed'.",
+      event_id: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: "events",
+          key: "id",
         },
       },
-    },
-    ticket_type: {
-      type: DataTypes.STRING(50),
-      allowNull: true, // Only required if seat_type is 'Ticketed'
-      validate: {
-        checkReservedType(value) {
-          if (this.seat_type === "Ticketed" && !value) {
-            throw new Error("Ticket type is required for ticketed seating.");
-          }
-        },
+      seat_type: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      ticket_type: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      price: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 0.0,
+      },
+      total_quantity: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      available_quantity: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      max_per_user: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 1,
+      },
+      is_active: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
       },
     },
-    price: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0.0,
-      validate: {
-        min: {
-          args: [0],
-          msg: "Price must be a non-negative value.",
+    {
+      tableName: "tickets",
+      timestamps: true,
+      hooks: {
+        beforeCreate: (ticket) => {
+          // Set available quantity equal to total quantity on creation
+          ticket.available_quantity = ticket.total_quantity;
         },
       },
-    },
-    total_quantity: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      validate: {
-        min: {
-          args: [1],
-          msg: "Total quantity must be at least 1.",
-        },
-      },
-    },
-    tickets_sold: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-      validate: {
-        min: {
-          args: [0],
-          msg: "Tickets sold cannot be negative.",
-        },
-        max(value) {
-          if (value > this.total_quantity) {
-            throw new Error("Tickets sold cannot exceed total quantity.");
-          }
-        },
-      },
-    },
-    max_per_user: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 1,
-      validate: {
-        min: {
-          args: [1],
-          msg: "Maximum tickets per user must be at least 1.",
-        },
-      },
-    },
-    allow_multiple_reservations: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-      allowNull: false,
-    },
-    require_emails: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false,
-    },
-  },
-  {
-    tableName: "tickets",
-    underscored: true,
-    timestamps: true,
-    createdAt: "created_at",
-    updatedAt: "updated_at",
-  }
-);
+    }
+  );
 
-Ticket.associate = (models) => {
-  Ticket.belongsTo(models.Event, { foreignKey: "event_id", as: "event" });
+  Ticket.associate = (models) => {
+    Ticket.belongsTo(models.Event, { foreignKey: "event_id", as: "event" });
+  };
+
+  return Ticket;
 };
-
-module.exports = Ticket;

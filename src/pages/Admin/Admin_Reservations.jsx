@@ -1,9 +1,23 @@
-import React from "react";
+import React, { useState } from "react";
 import { FaSearch, FaFilter } from "react-icons/fa";
+
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 
+import Sidebar_Admin from "../../components/SideBar_Admin";
+
+import Admin_ReservationScanQRPopUp from "./Admin_ReservationScanQRPopUp.jsx";
+import Admin_ReservationsFilter from "./Admin_ReservationsFilter";
+
+import Header_Admin from "../../components/Header_Admin";
+
+
+
 const Admin_Reservations = () => {
+  const [showQRPopup, setShowQRPopup] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
+
+
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
       {/* Header */}
@@ -30,35 +44,28 @@ const Admin_Reservations = () => {
 
             {/* Buttons */}
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-white text-black rounded-md">
+              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
                 Reset
               </button>
-              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2">
+              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+              onClick={() => setShowFilter(!showFilter)}>
                 <FaFilter /> Sort/Filter by
               </button>
             </div>
           </div>
 
+          {/* Filter Component */}
+          {showFilter && <Admin_ReservationsFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
+
           {/* Reservations Table */}
           <div className="overflow-x-auto rounded-md shadow-md max-h-[400px] overflow-y-auto">
             <table className="w-full text-black border-collapse border border-[#D6D3D3] bg-white rounded-md overflow-hidden">
-              <thead className="sticky top-0 bg-[#F09C32] text-[#333333] text-center">
+              <thead className="sticky top-0 bg-[#F09C32] text-[#333333] text-center z-1">
                 <tr>
-                  {[
-                    "Reservation ID",
-                    "Name",
-                    "Role",
-                    "Event Name",
-                    "Ticket Tier",
-                    "Claiming Date",
-                    "Claiming Time",
-                    "Amount",
-                    "Claiming Status",
-                  ].map((header, index) => (
-                    <th
-                      key={index}
-                      className="px-4 py-2 border border-[#D6D3D3] text-center"
-                    >
+
+                  {["Reservation ID", "Name", "Role", "Event Name", "Ticket Tier", "Claiming Date", "Claiming Time", "Amount", "Claiming Status"].map((header, index) => (
+                    <th key={index} className="px-4 py-2 border border-[#D6D3D3] text-center ">
+
                       {header}
                     </th>
                   ))}
@@ -274,20 +281,25 @@ const Admin_Reservations = () => {
 
           {/* Bottom Buttons */}
           <div className="flex justify-between items-center mt-6">
-            <button className="px-6 py-2 bg-[#F09C32] text-black rounded-md">
+            <button
+              className="px-6 py-2 bg-[#F09C32] text-black rounded-md hover:text-white hover:bg-[#CD8428] hover:scale-105 duration-100"
+              onClick={() => setShowQRPopup(true)}
+            >
               Scan QR Code
             </button>
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-[#C15454] text-white rounded-md">
+              <button className="px-4 py-2 bg-[#C15454] text-white rounded-md hover:bg-[#B83333] hover:scale-105 duration-100">
                 Reinstate
               </button>
-              <button className="px-4 py-2 bg-[#C15454] text-white rounded-md">
+              <button className="px-4 py-2 bg-[#C15454] text-white rounded-md hover:bg-[#B83333] hover:scale-105 duration-100">
                 Restore Unclaimed
               </button>
             </div>
           </div>
         </div>
       </div>
+      {/* QR Code Popup */}
+      {showQRPopup && <Admin_ReservationScanQRPopUp showPopup={showQRPopup} togglePopup={() => setShowQRPopup(false)} />}
     </div>
   );
 };

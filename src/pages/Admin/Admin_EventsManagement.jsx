@@ -1,5 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 import { FaSearch, FaArchive } from "react-icons/fa";
+import Admin_EventManagementFilter from "./Admin_EventsManagementFilter";
+
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import EventCard from "../../components/Admin/Admin_EventCard";
@@ -35,6 +39,7 @@ const AddEventButton = () => {
   );
 };
 
+<<<<<<< HEAD
 const EventTabs = ({ activeTab, setActiveTab }) => {
   const tabs = [
     { id: "published", label: "PUBLISHED" },
@@ -60,10 +65,15 @@ const EventTabs = ({ activeTab, setActiveTab }) => {
     </div>
   );
 };
+=======
+>>>>>>> 29d5319a3f46a09ea5b2bb374a4ef67cb87715d3
 
 const Admin_EventsManagement = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("published");
+
+
+  const [showFilter, setShowFilter] = useState(false);
 
   // State to control which popup is visible
   const [activePopup, setActivePopup] = useState(null);
@@ -405,10 +415,13 @@ const Admin_EventsManagement = () => {
     return null;
   };
 
+<<<<<<< HEAD
   // Determine if a section should show the Add Event button
   const shouldShowAddEvent = () => {
     return ["published", "unpublished"].includes(activeTab);
   };
+=======
+>>>>>>> 29d5319a3f46a09ea5b2bb374a4ef67cb87715d3
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
@@ -450,19 +463,29 @@ const Admin_EventsManagement = () => {
 
             {/* Buttons */}
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-white text-black rounded-md">
+              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
                 Reset
               </button>
-              <button className="px-4 py-2 bg-white text-black rounded-md">
+              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
+              onClick={() => setShowFilter(!showFilter)}>
                 Sort/Filter by
               </button>
-              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2">
+              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+               onClick={() => navigate("/archive")}>
                 <FaArchive />
               </button>
             </div>
           </div>
 
+<<<<<<< HEAD
           {shouldShowAddEvent() && <AddEventButton />}
+=======
+          {/* Filter Component */}
+          {showFilter && <Admin_EventManagementFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
+
+          {/* Add Event Section */}
+          <AddEventButton />
+>>>>>>> 29d5319a3f46a09ea5b2bb374a4ef67cb87715d3
 
           {/* Event Sections for the active tab */}
           {Object.keys(getEventsByTab()).map((category) => (
