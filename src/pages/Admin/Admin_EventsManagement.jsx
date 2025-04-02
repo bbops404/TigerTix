@@ -7,7 +7,6 @@ import Admin_EventManagementFilter from "./Admin_EventsManagementFilter";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import EventCard from "../../components/Admin/Admin_EventCard";
-import { useNavigate } from "react-router-dom";
 
 // Import popup components
 import EditEventDetailsPopup from "../../components/Admin/Popups/EditEventDetailsPopup";
@@ -39,10 +38,8 @@ const AddEventButton = () => {
   );
 };
 
-
 const Admin_EventsManagement = () => {
   const navigate = useNavigate();
-
 
   const [showFilter, setShowFilter] = useState(false);
 
@@ -275,7 +272,6 @@ const Admin_EventsManagement = () => {
     return null;
   };
 
-
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
       {/* Header */}
@@ -316,19 +312,28 @@ const Admin_EventsManagement = () => {
               <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
                 Reset
               </button>
-              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
-              onClick={() => setShowFilter(!showFilter)}>
+              <button
+                className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                onClick={() => setShowFilter(!showFilter)}
+              >
                 Sort/Filter by
               </button>
-              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
-               onClick={() => navigate("/archive")}>
+              <button
+                className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                onClick={() => navigate("/archive")}
+              >
                 <FaArchive />
               </button>
             </div>
           </div>
 
           {/* Filter Component */}
-          {showFilter && <Admin_EventManagementFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
+          {showFilter && (
+            <Admin_EventManagementFilter
+              showFilter={showFilter}
+              setShowFilter={setShowFilter}
+            />
+          )}
 
           {/* Add Event Section */}
           <AddEventButton />

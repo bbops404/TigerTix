@@ -82,28 +82,33 @@ function App() {
           <Route path="/change-password" element={<UpdatePassword />} />
 
           {/* ========================== ENDUSER PAGES ========================== */}
-          <Route element={<ProtectedRoutes role={["student", "employee", "alumni"]} />}>
-
-          <Route path="/home" element={<Home />} />
           <Route
-            path="/event-ticketed-enduser"
-            element={<EventTicketedEndUser />}
-          />
-          <Route path="/event-free-enduser" element={<EventFree_Enduser />} />
-          <Route
-            path="/event-coming-soon-enduser"
-            element={<EventComingSoon_Enduser />}
-          />
-          <Route path="/my-reservations" element={<MyReservations />} />
-          <Route path="/my-profile" element={<MyProfile />} />
-          <Route path="/confirm" element={<Home />} />
-          <Route path="/reservation" element={<Reservation />} />
-          <Route path="/reservation-receipt" element={<ReservationReceipt />} />
+            element={
+              <ProtectedRoutes role={["student", "employee", "alumni"]} />
+            }
+          >
+            <Route path="/home" element={<Home />} />
+            <Route
+              path="/event-ticketed-enduser"
+              element={<EventTicketedEndUser />}
+            />
+            <Route path="/event-free-enduser" element={<EventFree_Enduser />} />
+            <Route
+              path="/event-coming-soon-enduser"
+              element={<EventComingSoon_Enduser />}
+            />
+            <Route path="/my-reservations" element={<MyReservations />} />
+            <Route path="/my-profile" element={<MyProfile />} />
+            <Route path="/confirm" element={<Home />} />
+            <Route path="/reservation" element={<Reservation />} />
+            <Route
+              path="/reservation-receipt"
+              element={<ReservationReceipt />}
+            />
           </Route>
 
           {/* ========================== ADMIN PAGES ========================== */}
-          <Route element={<ProtectedRoutes role="admin" />}>
-
+          <Route element={<ProtectedRoutes role="admin" />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/event-management" element={<AdminEventsManagment />} />
           <Route path="/reservations" element={<AdminReservations />} />

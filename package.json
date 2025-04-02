@@ -12,6 +12,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@ljharb/tsconfig": "^0.2.3",
+    "@rollup/rollup-win32-x64-msvc": "^4.39.0",
     "axios": "^1.7.9",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",

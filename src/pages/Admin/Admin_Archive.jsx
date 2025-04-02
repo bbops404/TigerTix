@@ -2,11 +2,11 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArchive } from "react-icons/fa";
 import Header from "../../components/Header";
-import Sidebar_Admin from "../../components/SideBar_Admin";
-import Footer from "../../components/Footer"; 
+import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
+import Footer from "../../components/Footer";
 
 const Admin_Archive = () => {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
@@ -21,8 +21,10 @@ const Admin_Archive = () => {
         {/* Main Content */}
         <div className="flex-1 p-6">
           {/* Back Button */}
-          <button className="bg-[#E9E9E9] text-black px-10 py-1 rounded-full mb-6 hover:bg-[#FFAB40] hover:text-black transition duration-300"
-          onClick={() => navigate("/event-management")}>
+          <button
+            className="bg-[#E9E9E9] text-black px-10 py-1 rounded-full mb-6 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+            onClick={() => navigate("/event-management")}
+          >
             Back
           </button>
 
