@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { FaUser, FaLock } from "react-icons/fa";
+import { FaUser, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import { IoIosCloseCircleOutline } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 
@@ -14,6 +14,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -42,6 +43,10 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
     } else {
       alert("Invalid email or password. Please try again.");
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -78,18 +83,30 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
               </div>
             </div>
 
-            {/* Password Input */}
+            {/* Password Input with Toggle */}
             <div className="text-left">
               <p className="text-custom_black mb-1 text-sm">Password</p>
               <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 border-[#D8DADC] h-10 w-[300px]">
                 <FaLock className="w-4 h-4 text-gray-400" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   className="focus:outline-none text-sm w-full text-gray-600"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                <button
+                  onClick={togglePasswordVisibility}
+                  className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <FaEyeSlash className="w-4 h-4" />
+                  ) : (
+                    <FaEye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
             </div>
 
@@ -113,7 +130,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
 
             {/* Sign Up */}
             <div className="flex text-xs text-white pt-2">
-              <p className="mr-1 font-light">Don’t have an account?</p>
+              <p className="mr-1 font-light">Don't have an account?</p>
               <button
                 onClick={() => navigate("/verify")}
                 className="font-bold hover:underline focus:outline-none"
