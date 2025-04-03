@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { FaSearch, FaFilter, FaExclamationTriangle} from "react-icons/fa";
-import Sidebar_Admin from "../../components/SideBar_Admin";
-import Header_Admin from "../../components/Header_Admin";
+import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
+import Header_Admin from "../../components/Admin/Header_Admin";
 import Admin_AddUserPopUp from "./Admin_AddUserPopUp";
 import Admin_EditUserPopUp from "./Admin_EditUserPopUp";
 import Admin_UserGenerateReport from "./Admin_UserGenerateReportPopUp";

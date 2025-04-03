@@ -1,8 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArchive } from "react-icons/fa";
-import Header from "../../components/Header";
-import Sidebar_Admin from "../../components/SideBar_Admin";
+import Header_Admin from "../../components/Admin/Header_Admin";
+import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import Footer from "../../components/Footer"; 
 
 const Admin_Archive = () => {

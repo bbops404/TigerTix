@@ -20,7 +20,7 @@ const FAQs = () => {
 
   return (
     <div className="bg-[#202020] text-white min-h-screen font-Poppins">
-      <Header />
+      <Header showSearch={false} showAuthButtons={false} />
 
       {/* Return Button (Icon Only) */}
       <div className="px-6 mt-6">

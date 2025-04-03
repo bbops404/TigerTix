@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 
 const predefinedUsers = [
   { email: "admin@ust.edu.ph", password: "admin123", role: "admin" },
-  { email: "support@ust.edu.ph", password: "support123", role: "support" },
   { email: "user@ust.edu.ph", password: "user123", role: "user" },
 ];
 

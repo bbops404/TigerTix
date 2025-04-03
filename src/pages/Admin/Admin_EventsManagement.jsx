@@ -7,7 +7,6 @@ import Admin_EventManagementFilter from "./Admin_EventsManagementFilter";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import EventCard from "../../components/Admin/Admin_EventCard";
-import { useNavigate } from "react-router-dom";
 
 // Import popup components
 import EditEventDetailsPopup from "../../components/Admin/Popups/EditEventDetailsPopup";

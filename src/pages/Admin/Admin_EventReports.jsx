@@ -1,11 +1,6 @@
 import React, { useState } from "react";
-import {
-  FaSearch,
-  FaFilter,
-  FaChevronLeft,
-  FaChevronRight,
-} from "react-icons/fa";
-import Header_Admin from "../../components/Admin/Header_Admin";
+import { FaSearch, FaFilter, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import Header from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import eventPlaceholder from "../../assets/event_placeholder.jpg";
 import Admin_EventReportGenerateReport from "./Admin_EventReportGenerateReport";
@@ -49,7 +44,7 @@ const Admin_EventReports = () => {
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
-      <Header_Admin />
+      <Header showSearch={false} showAuthButtons={false} />
 
       <div className="flex">
         <Sidebar_Admin />
@@ -67,11 +62,9 @@ const Admin_EventReports = () => {
                   className="w-full pl-12 pr-4 py-2 rounded-full bg-gray-500 text-white outline-none"
                 />
               </div>
-
               <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">Reset</button>
               <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
               onClick={() => setShowFilter(!showFilter)}>
-
                 <FaFilter /> Sort/Filter by
               </button>
             </div>
@@ -91,7 +84,6 @@ const Admin_EventReports = () => {
             </button>
 
             <div className="w-full flex justify-center overflow-hidden space-x-2">
-
               {eventData.slice(currentIndex, currentIndex + visibleEvents).map((event) => (
                 <div
                   key={event.id}
@@ -108,9 +100,9 @@ const Admin_EventReports = () => {
                     onClick={openGenerateReport}>
                       Generate Report
                     </button>
-
                   </div>
-                ))}
+                </div>
+              ))}
             </div>
 
             <button
@@ -127,11 +119,9 @@ const Admin_EventReports = () => {
             <div className="flex justify-between items-center mb-4 top-0 bg-[#333333] z-10">
               <h2 className="text-lg font-bold">Event Summary</h2>
               <div className="flex gap-2">
-
                 <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">Reset</button>
                 <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
                 onClick={() => setShowFilter(!showFilter)}>
-
                   <FaFilter /> Sort/Filter by
                 </button>
               </div>
@@ -140,17 +130,14 @@ const Admin_EventReports = () => {
               <table className="w-full text-black bg-white rounded-md">
                 <thead className="sticky text-[14px] top-0 bg-[#F09C32] text-[#333333] text-center">
                   <tr>
-
                     {["Event Name", "Date", "Venue", "Event Category", "Type", "Availability", "Reservation Count", "Revenue", "Remaining Tickets"].map((header, index) => (
                       <th key={index} className="px-4 py-2 border border-gray-300">
-
                         {header}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="scrollbar-hide">
-
                   {[
                     {
                       name: "UAAP CDC",
@@ -220,12 +207,8 @@ const Admin_EventReports = () => {
                     },
                   ].map((event, index) => (
                     <tr key={index} className="border border-gray-300 text-center">
-
                       {Object.values(event).map((value, i) => (
-                        <td
-                          key={i}
-                          className="px-4 py-2 border border-gray-300"
-                        >
+                        <td key={i} className="px-4 py-2 border border-gray-300">
                           {value}
                         </td>
                       ))}

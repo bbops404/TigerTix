@@ -19,7 +19,7 @@ const Header_Admin = () => {
         <span className="text-gray-800 font-medium">Hi, Admin!</span>
 
         {/* Profile Icon - Routes to Admin Profile */}
-        <Link to="/adminprofile">
+        <Link to="/admin-profile">
           <FaUser className="text-gray-800 text-lg cursor-pointer hover:text-gray-600" />
         </Link>
 

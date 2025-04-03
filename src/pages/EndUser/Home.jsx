@@ -259,6 +259,24 @@ function Home() {
             buttonText: "Reserve Now",
             link: "/event-ticketed-enduser",
           },
+          {
+            image: "src/assets/event2.jpg",
+            name: "UAAP Season 87 Women's Basketball",
+            location: "Araneta Coliseum",
+            date: "September 15, 2024",
+            time: "11:30 AM",
+            buttonText: "Reserve Now",
+            link: "/event-ticketed-enduser",
+          },
+          {
+            image: "src/assets/event2.jpg",
+            name: "UAAP Season 87 Women's Basketball",
+            location: "Araneta Coliseum",
+            date: "September 15, 2024",
+            time: "11:30 AM",
+            buttonText: "Reserve Now",
+            link: "/event-ticketed-enduser",
+          },
         ]}
       />
       <EventSection

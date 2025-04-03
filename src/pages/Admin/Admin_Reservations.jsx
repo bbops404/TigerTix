@@ -4,12 +4,8 @@ import { FaSearch, FaFilter } from "react-icons/fa";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 
-import Sidebar_Admin from "../../components/SideBar_Admin";
-
 import Admin_ReservationScanQRPopUp from "./Admin_ReservationScanQRPopUp.jsx";
 import Admin_ReservationsFilter from "./Admin_ReservationsFilter";
-
-import Header_Admin from "../../components/Header_Admin";
 
 
 

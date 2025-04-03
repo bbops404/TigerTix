@@ -7,7 +7,7 @@ const TermsOfUse = () => {
   return (
     <div className="bg-[#202020] text-white min-h-screen">
 
-      <Header />
+<Header showSearch={false} showAuthButtons={false} />
       
       {/* Back Button */}
       <div className="px-6 mt-6">

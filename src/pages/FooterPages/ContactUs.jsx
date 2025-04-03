@@ -11,7 +11,7 @@ const ContactUs = () => {
     <div className="bg-[#202020] text-black min-h-screen w-full">
       {/* Top Yellow Section */}
       <div className="bg-[#F09C32] w-full text-white">
-        <Header />
+      <Header showSearch={false} showAuthButtons={false} />
 
         {/* Back Button */}
         <div className="px-6 mt-6">
