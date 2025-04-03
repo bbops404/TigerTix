@@ -1,42 +1,51 @@
+// routes/eventRoutes.js
 const express = require("express");
 const router = express.Router();
-const EventController = require("../controllers/eventController");
-const { authenticate, authorizeAdmin } = require("../middleware/auth");
+const eventController = require("../controllers/eventController");
+const ticketController = require("../controllers/ticketController");
+const claimingSlotController = require("../controllers/claimingSlotController");
 
-const eventController = new EventController();
+// Event routes
+router.get("/events", eventController.getAllEvents);
+router.get("/events/:id", eventController.getEventById);
+router.post("/events", eventController.createEvent);
+router.post("/events/draft", eventController.createDraftEvent);
+router.put("/events/:id", eventController.updateEvent);
+router.post("/events/cancel/:id", eventController.cancelEvent);
+router.post("/events/archive/:id", eventController.archiveEvent);
+router.delete("/events/:id", eventController.permanentlyDeleteEvent);
+router.post("/events/upload-image", eventController.uploadEventImage);
 
-// Public event routes (for end users)
-router.get("/public", eventController.getPublicEvents);
-router.get("/public/:id", eventController.getPublicEvent);
-
-// Protected routes (requires authentication)
-router.use(authenticate);
-
-// Admin-only routes (requires admin role)
-router.use(authorizeAdmin);
-
-// Draft event management
-router.post("/draft", eventController.createDraftEvent);
-
-// Full event creation and management
-router.post("/", eventController.createEvent);
-router.get("/", eventController.getEvents);
-router.get("/:id", eventController.getEvent);
-router.put("/:id", eventController.updateEvent);
-router.delete("/:id", eventController.deleteEvent);
-
-// Ticket and claiming slot management
-router.post("/:eventId/tickets", eventController.createTicketsBulk);
+// Ticket routes
+router.get("/events/:event_id/tickets", ticketController.getEventTickets);
+router.post("/events/:event_id/tickets", ticketController.createTicket);
 router.post(
-  "/:eventId/claiming-slots",
-  eventController.createClaimingSlotsBulk
+  "/events/:event_id/tickets/bulk",
+  ticketController.createTicketsBulk
 );
+router.put("/tickets/:ticket_id", ticketController.updateTicket);
+router.delete("/tickets/:ticket_id", ticketController.deleteTicket);
 
-// Event status management
-router.post("/:id/publish", eventController.publishEvent);
-router.post("/:id/cancel", eventController.cancelEvent);
-router.post("/:id/archive", eventController.archiveEvent);
-router.post("/:id/restore", eventController.restoreEvent);
-router.delete("/:id/permanent", eventController.permanentlyDeleteEvent);
+// Claiming slot routes
+router.get(
+  "/events/:event_id/claiming-slots",
+  claimingSlotController.getEventClaimingSlots
+);
+router.post(
+  "/events/:event_id/claiming-slots",
+  claimingSlotController.createClaimingSlot
+);
+router.post(
+  "/events/:event_id/claiming-slots/bulk",
+  claimingSlotController.createClaimingSlotsBulk
+);
+router.put(
+  "/claiming-slots/:slot_id",
+  claimingSlotController.updateClaimingSlot
+);
+router.delete(
+  "/claiming-slots/:slot_id",
+  claimingSlotController.deleteClaimingSlot
+);
 
 module.exports = router;

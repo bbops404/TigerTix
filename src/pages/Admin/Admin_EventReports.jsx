@@ -24,7 +24,8 @@ const eventData = [
 ];
 
 const Admin_EventReports = () => {
-  const [showGenerateSummaryPopup, setShowGenerateSummaryPopup] = useState(false);
+  const [showGenerateSummaryPopup, setShowGenerateSummaryPopup] =
+    useState(false);
   const openGenerateSummaryPopup = () => setShowGenerateSummaryPopup(true);
   const closeGenerateSummaryPopup = () => setShowGenerateSummaryPopup(false);
 
@@ -68,17 +69,25 @@ const Admin_EventReports = () => {
                 />
               </div>
 
-              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">Reset</button>
-              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
-              onClick={() => setShowFilter(!showFilter)}>
-
+              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
+                Reset
+              </button>
+              <button
+                className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                onClick={() => setShowFilter(!showFilter)}
+              >
                 <FaFilter /> Sort/Filter by
               </button>
             </div>
           </div>
 
           {/* Filter Component */}
-          {showFilter && <Admin_EventReportsFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
+          {showFilter && (
+            <Admin_EventReportsFilter
+              showFilter={showFilter}
+              setShowFilter={setShowFilter}
+            />
+          )}
 
           {/* Events */}
           <div className="relative flex items-center justify-center mb-10">
@@ -91,24 +100,29 @@ const Admin_EventReports = () => {
             </button>
 
             <div className="w-full flex justify-center overflow-hidden space-x-2">
-
-              {eventData.slice(currentIndex, currentIndex + visibleEvents).map((event) => (
-                <div
-                  key={event.id}
-                  className="transition-opacity duration-1000 opacity-100 transform hover:scale-105"
-                >
-                  <div className="p-2 rounded-lg">
-                    <img
-                      src={event.image}
-                      alt={event.name}
-                      className="w-[200px] h-[250px] object-cover rounded-lg mx-auto"
-                    />
-                    <p className="text-center mt-2 font-semibold">{event.name}</p>
-                    <button className="mt-2 w-full px-4 py-2 text-white font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105"
-                    onClick={openGenerateReport}>
-                      Generate Report
-                    </button>
-
+              {eventData
+                .slice(currentIndex, currentIndex + visibleEvents)
+                .map((event) => (
+                  <div
+                    key={event.id}
+                    className="transition-opacity duration-1000 opacity-100 transform hover:scale-105"
+                  >
+                    <div className="p-2 rounded-lg">
+                      <img
+                        src={event.image}
+                        alt={event.name}
+                        className="w-[200px] h-[250px] object-cover rounded-lg mx-auto"
+                      />
+                      <p className="text-center mt-2 font-semibold">
+                        {event.name}
+                      </p>
+                      <button
+                        className="mt-2 w-full px-4 py-2 text-white font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105"
+                        onClick={openGenerateReport}
+                      >
+                        Generate Report
+                      </button>
+                    </div>
                   </div>
                 ))}
             </div>
@@ -127,11 +141,13 @@ const Admin_EventReports = () => {
             <div className="flex justify-between items-center mb-4 top-0 bg-[#333333] z-10">
               <h2 className="text-lg font-bold">Event Summary</h2>
               <div className="flex gap-2">
-
-                <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">Reset</button>
-                <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
-                onClick={() => setShowFilter(!showFilter)}>
-
+                <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
+                  Reset
+                </button>
+                <button
+                  className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                  onClick={() => setShowFilter(!showFilter)}
+                >
                   <FaFilter /> Sort/Filter by
                 </button>
               </div>
@@ -140,17 +156,27 @@ const Admin_EventReports = () => {
               <table className="w-full text-black bg-white rounded-md">
                 <thead className="sticky text-[14px] top-0 bg-[#F09C32] text-[#333333] text-center">
                   <tr>
-
-                    {["Event Name", "Date", "Venue", "Event Category", "Type", "Availability", "Reservation Count", "Revenue", "Remaining Tickets"].map((header, index) => (
-                      <th key={index} className="px-4 py-2 border border-gray-300">
-
+                    {[
+                      "Event Name",
+                      "Date",
+                      "Venue",
+                      "Event Category",
+                      "Type",
+                      "Availability",
+                      "Reservation Count",
+                      "Revenue",
+                      "Remaining Tickets",
+                    ].map((header, index) => (
+                      <th
+                        key={index}
+                        className="px-4 py-2 border border-gray-300"
+                      >
                         {header}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="scrollbar-hide">
-
                   {[
                     {
                       name: "UAAP CDC",
@@ -219,8 +245,10 @@ const Admin_EventReports = () => {
                       remaining: 75,
                     },
                   ].map((event, index) => (
-                    <tr key={index} className="border border-gray-300 text-center">
-
+                    <tr
+                      key={index}
+                      className="border border-gray-300 text-center"
+                    >
                       {Object.values(event).map((value, i) => (
                         <td
                           key={i}
@@ -235,13 +263,26 @@ const Admin_EventReports = () => {
               </table>
             </div>
             <div className="flex justify-end">
-              <button className="w-[220px] h-[40px] mt-4 font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105" onClick={openGenerateSummaryPopup}>
+              <button
+                className="w-[220px] h-[40px] mt-4 font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105"
+                onClick={openGenerateSummaryPopup}
+              >
                 Generate Event Summary
               </button>
             </div>
           </div>
-          {showGenerateReport && <Admin_EventReportGenerateReport isOpen={showGenerateReport} onClose={closeGenerateReport} />}
-          {showGenerateSummaryPopup && <Admin_EventReportGenerateSummary isOpen={showGenerateSummaryPopup} onClose={closeGenerateSummaryPopup} />}
+          {showGenerateReport && (
+            <Admin_EventReportGenerateReport
+              isOpen={showGenerateReport}
+              onClose={closeGenerateReport}
+            />
+          )}
+          {showGenerateSummaryPopup && (
+            <Admin_EventReportGenerateSummary
+              isOpen={showGenerateSummaryPopup}
+              onClose={closeGenerateSummaryPopup}
+            />
+          )}
         </div>
       </div>
     </div>

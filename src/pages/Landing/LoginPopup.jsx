@@ -15,6 +15,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -45,6 +46,12 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
     }
   };
 
+  const selectPredefinedUser = (user) => {
+    setEmail(user.email);
+    setPassword(user.password);
+    setSelectedUser(user.role);
+  };
+
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
@@ -55,7 +62,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
         <div className="font-Poppins fixed top-0 left-0 w-full h-full z-50 bg-black bg-opacity-50 flex justify-center items-center backdrop-blur-sm">
           <div
             ref={loginPopupRef}
-            className="relative flex flex-col justify-center items-center space-y-2 bg-custom_yellow p-6 rounded-lg shadow-lg w-1/3 h-[400px]"
+            className="relative flex flex-col justify-center items-center space-y-2 bg-custom_yellow p-6 rounded-lg shadow-lg w-1/3 h-[480px]"
           >
             <button
               onClick={toggleLoginPopup}

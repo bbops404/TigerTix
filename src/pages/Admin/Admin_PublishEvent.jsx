@@ -7,7 +7,7 @@ import {
   CheckIcon,
   InfoIcon,
 } from "lucide-react";
-import eventService from "../Services/eventService";
+import eventService from "../Services/eventService.js";
 import React, { useState, useRef, useEffect } from "react";
 
 const EventDetails = ({ onNext, setFormValid, initialData }) => {
@@ -15,10 +15,13 @@ const EventDetails = ({ onNext, setFormValid, initialData }) => {
   const [eventDescription, setEventDescription] = useState(
     initialData?.eventDescription || ""
   );
+
+  // Separate date and time fields for start
   const [eventDate, setEventDate] = useState(initialData?.eventDate || "");
-  const [venue, setVenue] = useState(initialData?.venue || "");
   const [startTime, setStartTime] = useState(initialData?.startTime || "");
   const [endTime, setEndTime] = useState(initialData?.endTime || ""); // Optional
+
+  const [venue, setVenue] = useState(initialData?.venue || "");
   const [eventCategory, setEventCategory] = useState(
     initialData?.eventCategory || ""
   );
@@ -33,20 +36,34 @@ const EventDetails = ({ onNext, setFormValid, initialData }) => {
   const [showErrors, setShowErrors] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Function to extract date and time parts from datetime-local value
+  const splitDateTime = (dateTimeValue) => {
+    if (!dateTimeValue) return { date: "", time: "" };
+    const [datePart, timePart] = dateTimeValue.split("T");
+    return { date: datePart, time: timePart };
+  };
+
+  // For backward compatibility with the previous combined datetime format
+  const getCombinedDateTime = (date, time) => {
+    if (!date) return "";
+    return time ? `${date}T${time}` : date;
+  };
+
   // Check if all required fields are filled
   useEffect(() => {
     const requiredFields = {
       eventName,
       eventDescription,
       eventDate,
-      venue,
       startTime,
+      venue,
       eventCategory,
       eventType,
       eventImage,
     };
 
     const isValid = Object.entries(requiredFields).every(([key, value]) => {
+      // End time is optional
       return value !== "" && value !== null && value !== undefined;
     });
 
@@ -58,15 +75,14 @@ const EventDetails = ({ onNext, setFormValid, initialData }) => {
     eventName,
     eventDescription,
     eventDate,
-    venue,
     startTime,
+    venue,
     eventCategory,
     eventType,
     eventImage,
     setFormValid,
   ]);
 
-  // Fixed code
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -118,17 +134,15 @@ const EventDetails = ({ onNext, setFormValid, initialData }) => {
       isValid = false;
     }
 
-    if (!venue.trim()) {
-      errors.venue = "Venue is required";
-      isValid = false;
-    }
-
     if (!startTime) {
       errors.startTime = "Start time is required";
       isValid = false;
     }
 
-    // End time is optional, no validation needed
+    if (!venue.trim()) {
+      errors.venue = "Venue is required";
+      isValid = false;
+    }
 
     if (!eventCategory) {
       errors.eventCategory = "Event category is required";
@@ -145,21 +159,39 @@ const EventDetails = ({ onNext, setFormValid, initialData }) => {
       isValid = false;
     }
 
+    // Validate that event end time is after event start time if both are provided
+    if (startTime && endTime && endTime <= startTime) {
+      errors.endTime = "End time must be after start time";
+      isValid = false;
+    }
+
     setFormErrors(errors);
     return isValid;
   };
 
+  // In your EventDetails component's handleSubmit function:
+  // Update the EventDetails component's handleSubmit function
   const handleSubmit = () => {
     setShowErrors(true);
     const isValid = validateForm();
 
-    // Scroll to top if there are errors
     if (!isValid) {
+      console.error("Form validation failed");
       window.scrollTo(0, 0);
       return;
     }
 
-    // Only proceed if all validations pass
+    let eventStart = null;
+    let eventEnd = null;
+
+    if (eventDate && startTime) {
+      eventStart = new Date(`${eventDate}T${startTime}`);
+    }
+
+    if (eventDate && endTime) {
+      eventEnd = new Date(`${eventDate}T${endTime}`);
+    }
+
     // Collect event details data
     const eventDetailsData = {
       eventName,
@@ -167,17 +199,20 @@ const EventDetails = ({ onNext, setFormValid, initialData }) => {
       eventDate,
       venue,
       startTime,
-      endTime, // Optional field
+      endTime,
+      eventStart,
+      eventEnd,
       eventCategory,
       eventType,
       eventImage,
       imagePreview,
     };
 
-    // Pass data to parent
+    console.log("Submitting event details:", eventDetailsData);
+
+    // Call the parent's onNext function with the data
     onNext(eventDetailsData);
   };
-
   return (
     <div>
       <p className="text-[#FFAB40] text-3xl font-semibold mb-2">Add an Event</p>
@@ -291,8 +326,9 @@ const EventDetails = ({ onNext, setFormValid, initialData }) => {
               />
             </div>
           </div>
+
           <div>
-            <p className="text-[#FFAB40] text-sm mb-1">Time of Event:</p>
+            <p className="text-[#FFAB40] text-sm mb-1">Event Time:*</p>
             <div className="flex space-x-2 items-center">
               <div className="flex-1">
                 <p className="text-[#FFAB40] text-xs mb-1">Start* :</p>
@@ -308,15 +344,26 @@ const EventDetails = ({ onNext, setFormValid, initialData }) => {
                   } text-white rounded px-2 py-1.5 text-sm`}
                 />
               </div>
+
               <p className="text-white text-sm mt-5">to</p>
               <div className="flex-1">
                 <p className="text-[#FFAB40] text-xs mb-1">End (Optional):</p>
                 <input
                   type="time"
                   value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
+                  onChange={(e) => {
+                    setEndTime(e.target.value);
+                    setFormErrors({ ...formErrors, endTime: null });
+                  }}
+                  className={`w-full bg-[#1E1E1E] border ${
+                    formErrors.endTime ? "border-red-500" : "border-[#333333]"
+                  } text-white rounded px-2 py-1.5 text-sm`}
                 />
+                {showErrors && formErrors.endTime && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {formErrors.endTime}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -418,9 +465,6 @@ const EventDetails = ({ onNext, setFormValid, initialData }) => {
   );
 };
 
-// Modify TicketDetails component to handle the updated event types
-// Modified TicketDetails component with optional ticket tiers for Coming Soon
-// Enhanced TicketDetails component with improved Coming Soon options
 const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
   const [totalTickets, setTotalTickets] = useState(
     initialData?.totalTickets || 0
@@ -2487,6 +2531,20 @@ const SummaryDetails = ({
     });
   };
 
+  // Format datetime for display
+  const formatDateTime = (dateTimeStr) => {
+    if (!dateTimeStr) return "Not set";
+    const date = new Date(dateTimeStr);
+    return date.toLocaleString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   // Calculate total tickets
   const getTotalTickets = () => {
     if (eventType === "free") {
@@ -2624,12 +2682,8 @@ const SummaryDetails = ({
       eventDetails: {
         name: eventDetails?.eventName || "N/A",
         type: eventType,
-        date: eventDetails?.eventDate || "N/A",
-        time: eventDetails?.startTime
-          ? eventDetails?.endTime
-            ? `${eventDetails.startTime} to ${eventDetails.endTime}`
-            : eventDetails.startTime
-          : "N/A",
+        startDateTime: eventDetails?.eventStart || "N/A",
+        endDateTime: eventDetails?.eventEnd || "N/A",
         venue: eventDetails?.venue || "N/A",
         category: eventDetails?.eventCategory || "N/A",
         description: eventDetails?.eventDescription || "N/A",
@@ -2790,9 +2844,21 @@ const SummaryDetails = ({
                 </div>
 
                 <div>
-                  <p className="text-[#B8B8B8] text-xs">Event Date</p>
+                  <p className="text-[#B8B8B8] text-xs">Event Start</p>
                   <p className="text-white">
-                    {eventDetails?.eventDate || "N/A"}
+                    {formatDateTime(eventDetails?.eventStart) || "N/A"}
+                    {eventType === "coming_soon" && (
+                      <span className="text-[#FFAB40] ml-2 text-xs">
+                        (Tentative)
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[#B8B8B8] text-xs">Event End</p>
+                  <p className="text-white">
+                    {formatDateTime(eventDetails?.eventEnd) || "Not specified"}
                     {eventType === "coming_soon" && (
                       <span className="text-[#FFAB40] ml-2 text-xs">
                         (Tentative)
@@ -2805,20 +2871,6 @@ const SummaryDetails = ({
                   <p className="text-[#B8B8B8] text-xs">Venue</p>
                   <p className="text-white">
                     {eventDetails?.venue || "N/A"}
-                    {eventType === "coming_soon" && (
-                      <span className="text-[#FFAB40] ml-2 text-xs">
-                        (Tentative)
-                      </span>
-                    )}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[#B8B8B8] text-xs">Time</p>
-                  <p className="text-white">
-                    {eventDetails?.startTime && eventDetails?.endTime
-                      ? `${eventDetails.startTime} to ${eventDetails.endTime}`
-                      : eventDetails?.startTime || "N/A"}
                     {eventType === "coming_soon" && (
                       <span className="text-[#FFAB40] ml-2 text-xs">
                         (Tentative)
@@ -3165,14 +3217,19 @@ const Admin_PublishEvent = () => {
   const [formValid, setFormValid] = useState(false);
 
   const handleEventDetailsNext = (details) => {
+    console.log("Event Details Received:", details);
+    console.log("Event Type:", details.eventType);
+
     // Merge new details with existing state
-    setEventDetails((prev) => ({ ...prev, ...details }));
+    setEventDetails((prev) => {
+      const updatedDetails = { ...prev, ...details };
+      console.log("Updated Event Details:", updatedDetails);
+      return updatedDetails;
+    });
 
     // Check if it's a free event - if so, skip directly to availability details (step 4)
     if (details.eventType === "free") {
-      // For free events, we don't need to set any ticket details
-      // The AvailabilityDetails component already handles free events differently
-
+      console.log("Free event detected, skipping to step 4");
       // Set empty claiming details since we're skipping that step
       setClaimingDetails({
         claimingSummaries: [],
@@ -3182,6 +3239,7 @@ const Admin_PublishEvent = () => {
       // Jump to availability step
       setCurrentStep(4);
     } else {
+      console.log("Regular event, moving to ticket details step");
       // For other event types, proceed normally to ticket details (step 2)
       setCurrentStep(2);
     }
@@ -3506,21 +3564,27 @@ const Admin_PublishEvent = () => {
 
   // Function to handle saving event as draft
   // Function to handle saving event as draft
+  // Update the handleSaveAsDraft function
   const handleSaveAsDraft = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Prepare base draft event data - include only essential info
-      const draftData = {
-        name: eventDetails.eventName || "Untitled Event",
-        event_date: eventDetails.eventDate || null,
-        details: eventDetails.eventDescription || null,
-        category: eventDetails.eventCategory || null,
-        venue: eventDetails.venue || null,
+      // Prepare draft data with all collected information
+      const eventData = {
+        name: eventDetails.eventName,
+        event_date: eventDetails.eventDate,
+        details: eventDetails.eventDescription,
+        event_time: eventDetails.startTime
+          ? eventDetails.endTime
+            ? `${eventDetails.startTime} - ${eventDetails.endTime}`
+            : eventDetails.startTime
+          : null,
+        category: eventDetails.eventCategory,
+        venue: eventDetails.venue,
         event_type: eventType,
-        // These will be set by the createDraftEvent function
-        // visibility and status are automatically set to "unpublished" and "draft"
+        status: eventState.status,
+        visibility: eventState.visibility,
       };
 
       // Handle image upload if we have an image
@@ -3532,20 +3596,22 @@ const Admin_PublishEvent = () => {
           draftData.image = uploadResult.imageUrl;
         } catch (uploadError) {
           console.error("Image upload failed:", uploadError);
-          // Continue without image rather than failing the whole draft save
         }
       }
 
-      // Create the draft event using the appropriate endpoint
-      const eventResult = await eventService.createDraftEvent(draftData);
+      console.log("Draft data being sent:", eventData);
+
+      // Use the fixed createDraftEvent function
+      const eventResult = await eventService.createDraftEvent(eventData);
 
       // Show success message
       alert("Event successfully saved as draft!");
-
-      // Optionally redirect to another page or reset form
-      // window.location.href = "/admin/events";
     } catch (error) {
-      console.error("Draft creation error:", error);
+      console.error("Draft creation error:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
       setError(
         error.response?.data?.message ||
           "Failed to save draft. Please try again."
@@ -3554,6 +3620,9 @@ const Admin_PublishEvent = () => {
       setIsLoading(false);
     }
   };
+
+  // Make sure the render section properly displays the components based on currentStep
+  // In the return() section of Admin_PublishEvent:
 
   return (
     <div className="flex-col font-Poppins">
@@ -3580,6 +3649,7 @@ const Admin_PublishEvent = () => {
           )}
 
           <div className="w-full max-w-4xl">
+            {/* Make sure these components are rendered properly based on currentStep */}
             {currentStep === 1 && (
               <EventDetails
                 initialData={eventDetails}
@@ -3599,7 +3669,7 @@ const Admin_PublishEvent = () => {
               <ClaimingDetails
                 initialData={claimingDetails}
                 eventType={eventType}
-                ticketDetails={ticketDetails} // Pass ticket details so claiming can check if tickets exist
+                ticketDetails={ticketDetails}
                 onBack={handleBack}
                 onNext={handleClaimingDetailsNext}
               />
