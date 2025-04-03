@@ -99,7 +99,7 @@ function App() {
           <Route path="/events/schedule" element={<AdminPublishEvent />} />
           <Route path="/reservations" element={<AdminReservations />} />
           <Route path="/users" element={<AdminUser />} />
-          <Route path="/profile" element={<AdminProfile />} />
+          <Route path="/adminprofile" element={<AdminProfile />} />
           <Route path="/audit-trails" element={<AuditTrails />} />
           <Route path="/event-report" element={<AdminEventReports />} />
 

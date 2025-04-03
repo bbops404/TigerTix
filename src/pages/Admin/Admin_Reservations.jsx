@@ -4,20 +4,11 @@ import { FaSearch, FaFilter } from "react-icons/fa";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 
-import Sidebar_Admin from "../../components/SideBar_Admin";
-
 import Admin_ReservationScanQRPopUp from "./Admin_ReservationScanQRPopUp.jsx";
 import Admin_ReservationsFilter from "./Admin_ReservationsFilter";
-
-import Header_Admin from "../../components/Header_Admin";
-
-
-
 const Admin_Reservations = () => {
   const [showQRPopup, setShowQRPopup] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
-
-  
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
@@ -48,15 +39,22 @@ const Admin_Reservations = () => {
               <button className="px-4 py-2 bg-white text-black rounded-md">
                 Reset
               </button>
-              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2"
-              onClick={() => setShowFilter(!showFilter)}>
+              <button
+                className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2"
+                onClick={() => setShowFilter(!showFilter)}
+              >
                 <FaFilter /> Sort/Filter by
               </button>
             </div>
           </div>
 
           {/* Filter Component */}
-          {showFilter && <Admin_ReservationsFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
+          {showFilter && (
+            <Admin_ReservationsFilter
+              showFilter={showFilter}
+              setShowFilter={setShowFilter}
+            />
+          )}
 
           {/* Reservations Table */}
           <div className="overflow-x-auto rounded-md shadow-md max-h-[400px] overflow-y-auto">
@@ -311,7 +309,12 @@ const Admin_Reservations = () => {
         </div>
       </div>
       {/* QR Code Popup */}
-      {showQRPopup && <Admin_ReservationScanQRPopUp showPopup={showQRPopup} togglePopup={() => setShowQRPopup(false)} />}
+      {showQRPopup && (
+        <Admin_ReservationScanQRPopUp
+          showPopup={showQRPopup}
+          togglePopup={() => setShowQRPopup(false)}
+        />
+      )}
     </div>
   );
 };

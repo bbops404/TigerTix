@@ -272,7 +272,7 @@ function Home() {
             date: "September 4, 2024",
             time: "2:00 PM",
             buttonText: "View Details",
-            link: "/event-free",
+            link: "/event-free-enduser",
           },
         ]}
       />
@@ -287,7 +287,7 @@ function Home() {
             date: "September 4, 2024",
             time: "2:00 PM",
             buttonText: "View Details",
-            link: "/event-coming-soon",
+            link: "/event-coming-soon-enduser",
           },
           {
             image: "src/assets/event5.jpg",
@@ -296,7 +296,7 @@ function Home() {
             date: "September 15, 2024",
             time: "11:30 AM",
             buttonText: "View Details",
-            link: "/event-coming-soon",
+            link: "/event-coming-soon-enduser",
           },
         ]}
       />
