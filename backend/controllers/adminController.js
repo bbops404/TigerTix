@@ -8,7 +8,7 @@ const db = require("../models/Users"); // Import your User model
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await db.findAll({
-      attributes: ["user_id", "username", "email", "role", "first_name", "last_name", "status", "violation_count"]
+      attributes: ["user_id","username", "email", "role", "first_name", "last_name", "status", "violation_count"]
     });
     res.status(200).json(users);
   } catch (error) {
@@ -30,7 +30,7 @@ exports.deleteUser = async (req, res) => {
     // Find all users with the provided IDs
     const users = await db.findAll({
       where: {
-        id: ids,
+        user_id: ids,
       },
     });
 

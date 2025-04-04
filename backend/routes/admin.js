@@ -14,7 +14,7 @@ router.put("/users/:id/status", authenticate, authorizeAdmin, adminController.up
 router.put("/users/:id/role", authenticate, authorizeAdmin, adminController.updateUserType);
 
 // ✅ Protected route: Delete a user (only for admin)
-router.delete("/users", authenticate, authorizeAdmin, adminController.deleteUser);  // Changed to handle multiple users
+router.delete("/users/delete", authenticate, authorizeAdmin, adminController.deleteUser);  // Changed to handle multiple users
 
 // ✅ Protected route: Add a new user (only for admin)
 router.post("/users/add", authenticate, authorizeAdmin, adminController.addUser);
