@@ -38,12 +38,8 @@ import AdminUser from "./pages/Admin/Admin_UserPage";
 import AdminProfile from "./pages/Admin/Admin_ProfilePage";
 import AuditTrails from "./pages/Admin/Admin_AuditTrails";
 import AdminEventReports from "./pages/Admin/Admin_EventReports";
-
 import AdminPublishEvent from "./pages/Admin/Admin_PublishEvent";
 import AdminScheduleEvent from "./pages/Admin/Admin_ScheduleEvent";
-
-// ========================== SUPPORT STAFF PAGES ==========================
-// (Add support staff routes here when available)
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -81,34 +77,34 @@ function App() {
 
           {/* ========================== ENDUSER PAGES ========================== */}
           <Route element={<ProtectedRoutes role={["student", "employee", "alumni"]} />}>
-
-          <Route path="/home" element={<Home />} />
-          <Route
-            path="/event-ticketed-enduser"
-            element={<EventTicketedEndUser />}
-          />
-          <Route path="/event-free-enduser" element={<EventFree_Enduser />} />
-          <Route
-            path="/event-coming-soon-enduser"
-            element={<EventComingSoon_Enduser />}
-          />
-          <Route path="/my-reservations" element={<MyReservations />} />
-          <Route path="/my-profile" element={<MyProfile />} />
-          <Route path="/confirm" element={<Home />} />
-          <Route path="/reservation" element={<Reservation />} />
-          <Route path="/reservation-receipt" element={<ReservationReceipt />} />
+            <Route path="/home" element={<Home />} />
+            <Route
+              path="/event-ticketed-enduser"
+              element={<EventTicketedEndUser />}
+            />
+            <Route path="/event-free-enduser" element={<EventFree_Enduser />} />
+            <Route
+              path="/event-coming-soon-enduser"
+              element={<EventComingSoon_Enduser />}
+            />
+            <Route path="/my-reservations" element={<MyReservations />} />
+            <Route path="/my-profile" element={<MyProfile />} />
+            <Route path="/confirm" element={<Home />} />
+            <Route path="/reservation" element={<Reservation />} />
+            <Route path="/reservation-receipt" element={<ReservationReceipt />} />
           </Route>
 
           {/* ========================== ADMIN PAGES ========================== */}
           <Route element={<ProtectedRoutes role="admin" />}>
-
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/event-management" element={<AdminEventsManagment />} />
-          <Route path="/reservations" element={<AdminReservations />} />
-          <Route path="/users" element={<AdminUser />} />
-          <Route path="/profile" element={<AdminProfile />} />
-          <Route path="/audit-trails" element={<AuditTrails />} />
-          <Route path="/event-report" element={<AdminEventReports />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/events" element={<AdminEventsManagment />} />
+            <Route path="/reservations" element={<AdminReservations />} />
+            <Route path="/users" element={<AdminUser />} />
+            <Route path="/profile" element={<AdminProfile />} />
+            <Route path="/audit-trails" element={<AuditTrails />} />
+            <Route path="/event-report" element={<AdminEventReports />} />
+            <Route path="/events/publish" element={<AdminPublishEvent />} />
+          </Route>
 
           {/* ========================== FOOTER PAGES ========================== */}
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />

@@ -39,6 +39,8 @@ const ticketController = {
         max_per_user: max_per_user || 1,
       });
 
+      console.log("New Ticket Created:", newTicket);
+      
       return res.status(201).json({
         success: true,
         message: "Ticket tier created successfully",
