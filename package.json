@@ -13,7 +13,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@ljharb/tsconfig": "^0.2.3",
     "@tanstack/react-query": "^5.71.1",
-    "axios": "^1.7.9",
+    "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -49,6 +49,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
+    "msw": "^2.7.3",
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
     "vite": "^6.2.0"
