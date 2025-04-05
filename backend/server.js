@@ -44,12 +44,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-// Debug incoming cookies
+/*// Debug incoming cookies
 app.use((req, res, next) => {
   console.log("🔍 Incoming Cookies:", req.cookies);
   next();
-});
-
+});*/
 // Make Redis available in req
 app.use((req, res, next) => {
   req.redisClient = redisClient;
