@@ -53,4 +53,5 @@ ClaimingSlot.associate = (models) => {
   });
 };
 
+
 module.exports = ClaimingSlot;

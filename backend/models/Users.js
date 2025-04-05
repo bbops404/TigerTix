@@ -61,7 +61,7 @@ User.associate = (models) => {
   // Add this association
   User.hasMany(models.Reservation, {
     foreignKey: "user_id",
-    as: "reservations",
+    as: "Reservations", // The reservations made by the user
     onDelete: "CASCADE", // Optional: Delete reservations if the user is deleted
   });
 };

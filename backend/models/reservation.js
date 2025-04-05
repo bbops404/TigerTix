@@ -50,25 +50,25 @@ const Reservation = sequelize.define(
 Reservation.associate = (models) => {
     Reservation.belongsTo(models.User, {
       foreignKey: "user_id",
-      as: "user", // The reserver (middleman)
+      as: "User", // The reserver (middleman)
       onDelete: "CASCADE",
     });
   
     Reservation.belongsTo(models.Event, {
       foreignKey: "event_id",
-      as: "event",
+      as: "Event",
       onDelete: "CASCADE",
     });
   
     Reservation.belongsTo(models.ClaimingSlot, {
       foreignKey: "claiming_id",
-      as: "claimingSlot",
+      as: "ClaimingSlot",
       onDelete: "SET NULL",
     });
   
     Reservation.belongsTo(models.Ticket, {
       foreignKey: "ticket_id",
-      as: "tickets",
+      as: "Ticket",
       onDelete: "CASCADE",
     });
   };
