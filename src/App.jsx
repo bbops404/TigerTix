@@ -113,7 +113,7 @@ function App() {
           <Route path="/event-management" element={<AdminEventsManagment />} />
           <Route path="/reservations" element={<AdminReservations />} />
           <Route path="/users" element={<AdminUser />} />
-          <Route path="/profile" element={<AdminProfile />} />
+          <Route path="/admin-profile" element={<AdminProfile />} />
           <Route path="/audit-trails" element={<AuditTrails />} />
           <Route path="/event-report" element={<AdminEventReports />} />
           <Route path="/archive" element={<AdminArchive />} />

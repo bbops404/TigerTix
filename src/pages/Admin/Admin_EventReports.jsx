@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FaSearch,
   FaFilter,
@@ -11,6 +11,7 @@ import eventPlaceholder from "../../assets/event_placeholder.jpg";
 import Admin_EventReportGenerateReport from "./Admin_EventReportGenerateReport";
 import Admin_EventReportsFilter from "./Admin_EventReportsFilter";
 import Admin_EventReportGenerateSummary from "./Admin_EventReportGenerateSummaryPopUp";
+import axios from "axios";
 
 const eventData = [
   { id: 1, image: eventPlaceholder, name: "UAAP CDC" },
@@ -35,6 +36,8 @@ const Admin_EventReports = () => {
 
   const [showFilter, setShowFilter] = useState(false);
 
+  const [eventSummary, setEventSummary] = useState([]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const visibleEvents = 5;
 
@@ -47,6 +50,19 @@ const Admin_EventReports = () => {
       setCurrentIndex((prevIndex) => prevIndex + 1);
     }
   };
+
+  useEffect(() => {
+    // Fetching event summary data from the API
+    const fetchEventSummary = async () => {
+      try {
+        const response = await axios.get("http://localhost:5003/eventSummary");
+        setEventSummary(response.data);
+      } catch (error) {
+        console.error("Error fetching Event Summary:", error);
+      }
+    };
+    fetchEventSummary();
+  }, []); 
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
@@ -177,86 +193,17 @@ const Admin_EventReports = () => {
                   </tr>
                 </thead>
                 <tbody className="scrollbar-hide">
-                  {[
-                    {
-                      name: "UAAP CDC",
-                      date: "Oct 15, 2024",
-                      venue: "MOA Arena",
-                      category: "Cheerdance",
-                      type: "Competition",
-                      availability: "Available",
-                      count: 250,
-                      revenue: 500000,
-                      remaining: 50,
-                    },
-                    {
-                      name: "UST Homecoming",
-                      date: "Nov 10, 2024",
-                      venue: "UST Quadricentennial Pavilion",
-                      category: "Reunion",
-                      type: "Social Event",
-                      availability: "Limited",
-                      count: 150,
-                      revenue: 300000,
-                      remaining: 20,
-                    },
-                    {
-                      name: "Tigers Championship",
-                      date: "Dec 05, 2024",
-                      venue: "Smart Araneta Coliseum",
-                      category: "Sports",
-                      type: "Game",
-                      availability: "Sold Out",
-                      count: 500,
-                      revenue: 1000000,
-                      remaining: 0,
-                    },
-                    {
-                      name: "UST Men's Volleyball",
-                      date: "Jan 20, 2025",
-                      venue: "UST Gym",
-                      category: "Sports",
-                      type: "Game",
-                      availability: "Available",
-                      count: 200,
-                      revenue: 400000,
-                      remaining: 75,
-                    },
-                    {
-                      name: "Tigers Championship",
-                      date: "Dec 05, 2024",
-                      venue: "Smart Araneta Coliseum",
-                      category: "Sports",
-                      type: "Game",
-                      availability: "Sold Out",
-                      count: 500,
-                      revenue: 1000000,
-                      remaining: 0,
-                    },
-                    {
-                      name: "UST Women's Volleyball",
-                      date: "Jan 20, 2025",
-                      venue: "UST Gym",
-                      category: "Sports",
-                      type: "Game",
-                      availability: "Available",
-                      count: 200,
-                      revenue: 400000,
-                      remaining: 75,
-                    },
-                  ].map((event, index) => (
-                    <tr
-                      key={index}
-                      className="border border-gray-300 text-center"
-                    >
-                      {Object.values(event).map((value, i) => (
-                        <td
-                          key={i}
-                          className="px-4 py-2 border border-gray-300"
-                        >
-                          {value}
-                        </td>
-                      ))}
+                  {eventSummary.map((event, index) => (
+                    <tr key={index} className="border border-gray-300 text-center">
+                      <td className="px-4 py-2 border border-gray-300">{event.name}</td>
+                      <td className="px-4 py-2 border border-gray-300">{event.date}</td>
+                      <td className="px-4 py-2 border border-gray-300">{event.venue}</td>
+                      <td className="px-4 py-2 border border-gray-300">{event.category}</td>
+                      <td className="px-4 py-2 border border-gray-300">{event.type}</td>
+                      <td className="px-4 py-2 border border-gray-300">{event.availability}</td>
+                      <td className="px-4 py-2 border border-gray-300">{event.count}</td>
+                      <td className="px-4 py-2 border border-gray-300">₱{event.revenue.toLocaleString()}</td>
+                      <td className="px-4 py-2 border border-gray-300">{event.remaining}</td>
                     </tr>
                   ))}
                 </tbody>

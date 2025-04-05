@@ -80,15 +80,15 @@ const Admin_EditUserPopUp = ({ showPopup, togglePopup }) => {
                 <label>Username</label>
                 <input type="text" className="border p-2 rounded w-full" value={username} onChange={(e) => setUsername(e.target.value)} required />
               </div>
-              <div>
+              {/* <div>
                 <label>First Name</label>
                 <input type="text" className="border p-2 rounded w-full" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-              </div>
+              </div> */}
               <div>
                 <label>Password</label>
                 <input type="password" className="border p-2 rounded w-full" value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
-              <div>
+              {/* <div>
                 <label>Last Name</label>
                 <input type="text" className="border p-2 rounded w-full" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
               </div>
@@ -108,7 +108,7 @@ const Admin_EditUserPopUp = ({ showPopup, togglePopup }) => {
                     <option key={index} value={option}>{option}</option>
                   ))}
                 </select>
-              </div>
+              </div> */}
               <div>
                 <label>Account Status</label>
                 <select className="border p-2 rounded w-full" value={accountStatus} onChange={(e) => setAccountStatus(e.target.value)}>
@@ -117,6 +117,10 @@ const Admin_EditUserPopUp = ({ showPopup, togglePopup }) => {
                     <option key={index} value={option}>{option}</option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label>Confirm Password</label>
+                <input type="password" className="border p-2 rounded w-full" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
               </div>
             </div>
             <button type="submit" className="bg-[#FFAB40] text-white font-bold px-2 py-2 rounded w-full mt-4 hover:bg-[#E69530]">
