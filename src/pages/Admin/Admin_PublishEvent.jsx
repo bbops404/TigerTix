@@ -194,23 +194,21 @@ const EventDetails = ({ onNext, setFormValid, initialData }) => {
 
     // Collect event details data
     const eventDetailsData = {
-      eventName,
-      eventDescription,
-      eventDate,
-      venue,
-      startTime,
-      endTime,
-      eventStart,
-      eventEnd,
-      eventCategory,
-      eventType,
-      eventImage,
-      imagePreview,
+      eventName: eventName,
+      eventDescription: eventDescription,
+      eventDate: eventDate,
+      venue: venue,
+      startTime: startTime,
+      endTime: endTime,
+      eventStart: eventStart,
+      eventEnd: eventEnd,
+      eventCategory: eventCategory,
+      eventType: eventType,
+      eventImage: eventImage,
+      imagePreview: imagePreview,
     };
 
-    console.log("Submitting event details:", eventDetailsData);
-
-    // Call the parent's onNext function with the data
+    console.log("Submitting event details with eventType:", eventType);
     onNext(eventDetailsData);
   };
   return (
@@ -397,6 +395,7 @@ const EventDetails = ({ onNext, setFormValid, initialData }) => {
                   value="ticketed"
                   checked={eventType === "ticketed"}
                   onChange={() => {
+                    console.log("Setting event type to: ticketed");
                     setEventType("ticketed");
                     setFormErrors({ ...formErrors, eventType: null });
                   }}
@@ -466,9 +465,7 @@ const EventDetails = ({ onNext, setFormValid, initialData }) => {
 };
 
 const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
-  const [totalTickets, setTotalTickets] = useState(
-    initialData?.totalTickets || 0
-  );
+  const [totalTickets, setTotalTickets] = useState(0);
   const [tierType, setTierType] = useState(
     initialData?.tierType || "freeSeating"
   );
@@ -476,15 +473,22 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
     initialData?.hasTierInfo || false
   );
 
-  // Free seating specific fields - using empty strings
+  // Free seating specific fields
   const [freeSeatingTickets, setFreeSeatingTickets] = useState(
-    initialData?.freeSeating?.numberOfTickets?.toString() || "1"
+    initialData?.freeSeating?.numberOfTickets || ""
+  );
+  const [freeSeatingPrice, setFreeSeatingPrice] = useState(
+    initialData?.freeSeating?.price || ""
   );
   const [freeSeatingMaxPerPerson, setFreeSeatingMaxPerPerson] = useState(
-    initialData?.freeSeating?.maxPerPerson?.toString() || "1"
+    initialData?.freeSeating?.maxPerPerson || ""
   );
 
-  // Initialize ticket tiers with initial data or default state
+  // For validation
+  const [errors, setErrors] = useState({});
+  const [showErrors, setShowErrors] = useState(false);
+
+  // Initialize ticket tiers from initialData if available
   const [ticketTiers, setTicketTiers] = useState(
     initialData?.ticketTiers || {
       "General Admission": {
@@ -525,41 +529,7 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
     }
   );
   const [editingTierName, setEditingTierName] = useState("");
-  const [formErrors, setFormErrors] = useState({});
-  const [showErrors, setShowErrors] = useState(false);
 
-  // Validate ticketed tiers
-  const validateTicketedTiers = () => {
-    const errors = {};
-    let hasValidTier = false;
-
-    Object.entries(ticketTiers).forEach(([tierName, tierData]) => {
-      if (tierData.checked) {
-        hasValidTier = true;
-
-        if (!tierData.number || parseInt(tierData.number) <= 0) {
-          errors[`${tierName}_number`] = "Number of tickets is required";
-        }
-
-        if (!tierData.price || parseFloat(tierData.price) < 0) {
-          errors[`${tierName}_price`] = "Valid price is required";
-        }
-
-        if (!tierData.maxPerPerson || parseInt(tierData.maxPerPerson) <= 0) {
-          errors[`${tierName}_maxPerPerson`] =
-            "Max tickets per person is required";
-        }
-      }
-    });
-
-    if (!hasValidTier) {
-      errors.noTiers = "Please select and configure at least one ticket tier";
-    }
-
-    return errors;
-  };
-
-  // Standard handler functions (unchanged)
   const handleNumberChange = (tier, value) => {
     // Allow only numbers
     if (value === "" || /^\d*$/.test(value)) {
@@ -714,45 +684,114 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
       setFreeSeatingMaxPerPerson(value);
     }
   };
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (eventType === "coming_soon") {
+      // For coming soon events, only validate if includeTiers is true
+      if (includeTiers) {
+        if (tierType === "freeSeating") {
+          if (!freeSeatingTickets) {
+            newErrors.freeSeatingTickets = "Number of tickets is required";
+          }
+          if (!freeSeatingPrice) {
+            newErrors.freeSeatingPrice = "Price is required";
+          }
+          if (!freeSeatingMaxPerPerson) {
+            newErrors.freeSeatingMaxPerPerson =
+              "Max tickets per person is required";
+          }
+        } else {
+          // Check if at least one tier is selected
+          const anyTierChecked = Object.values(ticketTiers).some(
+            (tier) => tier.checked
+          );
+          if (!anyTierChecked) {
+            newErrors.tiers = "At least one ticket tier must be selected";
+          } else {
+            // Check if selected tiers have all required fields
+            Object.entries(ticketTiers).forEach(([tierName, tierData]) => {
+              if (tierData.checked) {
+                if (!tierData.number) {
+                  newErrors[`${tierName}_number`] = "Required";
+                }
+                if (!tierData.price) {
+                  newErrors[`${tierName}_price`] = "Required";
+                }
+                if (!tierData.maxPerPerson) {
+                  newErrors[`${tierName}_maxPerPerson`] = "Required";
+                }
+              }
+            });
+          }
+        }
+      }
+      // No validation needed if includeTiers is false
+    } else if (eventType === "free") {
+      // For free events, validate only tickets and max per person
+      if (!freeSeatingTickets) {
+        newErrors.freeSeatingTickets = "Number of tickets is required";
+      }
+      if (!freeSeatingMaxPerPerson) {
+        newErrors.freeSeatingMaxPerPerson =
+          "Max tickets per person is required";
+      }
+    } else {
+      // For regular ticketed events
+      if (tierType === "freeSeating") {
+        if (!freeSeatingTickets) {
+          newErrors.freeSeatingTickets = "Number of tickets is required";
+        }
+        if (!freeSeatingPrice) {
+          newErrors.freeSeatingPrice = "Price is required";
+        }
+        if (!freeSeatingMaxPerPerson) {
+          newErrors.freeSeatingMaxPerPerson =
+            "Max tickets per person is required";
+        }
+      } else {
+        // Check if at least one tier is selected
+        const anyTierChecked = Object.values(ticketTiers).some(
+          (tier) => tier.checked
+        );
+        if (!anyTierChecked) {
+          newErrors.tiers = "At least one ticket tier must be selected";
+        } else {
+          // Check if selected tiers have all required fields
+          Object.entries(ticketTiers).forEach(([tierName, tierData]) => {
+            if (tierData.checked) {
+              if (!tierData.number) {
+                newErrors[`${tierName}_number`] = "Required";
+              }
+              if (!tierData.price) {
+                newErrors[`${tierName}_price`] = "Required";
+              }
+              if (!tierData.maxPerPerson) {
+                newErrors[`${tierName}_maxPerPerson`] = "Required";
+              }
+            }
+          });
+        }
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = () => {
-    // Set show errors to true
     setShowErrors(true);
+    const isValid = validateForm();
+
+    if (!isValid) {
+      // Scroll to top if errors to make them visible
+      window.scrollTo(0, 0);
+      return;
+    }
 
     // For coming soon events - include tier information if selected
     if (eventType === "coming_soon") {
       if (includeTiers) {
-        // Validate based on tier type if we're including tiers
-        let errors = {};
-
-        if (tierType === "freeSeating") {
-          // Validate free seating fields
-          if (!freeSeatingTickets || parseInt(freeSeatingTickets) <= 0) {
-            errors.freeSeatingTickets = "Number of tickets is required";
-          }
-
-          if (!freeSeatingPrice || parseFloat(freeSeatingPrice) < 0) {
-            errors.freeSeatingPrice = "Valid price is required";
-          }
-
-          if (
-            !freeSeatingMaxPerPerson ||
-            parseInt(freeSeatingMaxPerPerson) <= 0
-          ) {
-            errors.freeSeatingMaxPerPerson =
-              "Max tickets per person is required";
-          }
-        } else {
-          // Validate ticketed tiers
-          errors = validateTicketedTiers();
-        }
-
-        // Set errors if any
-        if (Object.keys(errors).length > 0) {
-          setFormErrors(errors);
-          return;
-        }
-
         // Include ticket tiers similar to a regular ticketed event
         const parsedTicketTiers = {};
 
@@ -807,21 +846,6 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
 
     // For free events, set up free seating with zero price
     if (eventType === "free") {
-      // Basic validation
-      let errors = {};
-      if (!freeSeatingTickets || parseInt(freeSeatingTickets) <= 0) {
-        errors.freeSeatingTickets = "Number of tickets is required";
-      }
-
-      if (!freeSeatingMaxPerPerson || parseInt(freeSeatingMaxPerPerson) <= 0) {
-        errors.freeSeatingMaxPerPerson = "Max tickets per person is required";
-      }
-
-      if (Object.keys(errors).length > 0) {
-        setFormErrors(errors);
-        return;
-      }
-
       onNext({
         eventType: "free",
         tierType: "freeSeating",
@@ -839,33 +863,6 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
     }
 
     // For ticketed events with full ticket details
-    // Validate based on tier type
-    let errors = {};
-
-    if (tierType === "freeSeating") {
-      // Validate free seating fields
-      if (!freeSeatingTickets || parseInt(freeSeatingTickets) <= 0) {
-        errors.freeSeatingTickets = "Number of tickets is required";
-      }
-
-      if (!freeSeatingPrice || parseFloat(freeSeatingPrice) < 0) {
-        errors.freeSeatingPrice = "Valid price is required";
-      }
-
-      if (!freeSeatingMaxPerPerson || parseInt(freeSeatingMaxPerPerson) <= 0) {
-        errors.freeSeatingMaxPerPerson = "Max tickets per person is required";
-      }
-    } else {
-      // Validate ticketed tiers
-      errors = validateTicketedTiers();
-    }
-
-    // Set errors if any
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-
     const parsedTicketTiers = {};
 
     Object.keys(ticketTiers).forEach((tier) => {
@@ -910,32 +907,109 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
     // Pass the collected data to the parent component
     onNext(ticketDetailsData);
   };
+  const renderFreeSeatingForm = () => (
+    <div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="flex flex-col">
+          <label className="text-white text-sm mb-1">Number of Tickets:*</label>
+          <input
+            type="text"
+            value={freeSeatingTickets}
+            onChange={(e) => {
+              handleFreeSeatingTicketsChange(e.target.value);
+              if (showErrors)
+                setErrors({ ...errors, freeSeatingTickets: null });
+            }}
+            className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                     border ${
+                       errors.freeSeatingTickets
+                         ? "border-red-500"
+                         : "border-gray-600"
+                     } 
+                     focus:outline-none focus:border-[#FFAB40]`}
+            placeholder="Total available tickets"
+          />
+          {showErrors && errors.freeSeatingTickets && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.freeSeatingTickets}
+            </p>
+          )}
+        </div>
 
-  // Render errors for a specific tier
-  const renderTierErrors = (tierName) => {
-    const numberError = formErrors[`${tierName}_number`];
-    const priceError = formErrors[`${tierName}_price`];
-    const maxPerPersonError = formErrors[`${tierName}_maxPerPerson`];
+        {eventType !== "free" && (
+          <div className="flex flex-col">
+            <label className="text-white text-sm mb-1">Price (₱):*</label>
+            <input
+              type="text"
+              value={freeSeatingPrice}
+              onChange={(e) => {
+                handleFreeSeatingPriceChange(e.target.value);
+                if (showErrors)
+                  setErrors({ ...errors, freeSeatingPrice: null });
+              }}
+              className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                       border ${
+                         errors.freeSeatingPrice
+                           ? "border-red-500"
+                           : "border-gray-600"
+                       } 
+                       focus:outline-none focus:border-[#FFAB40]`}
+              placeholder="Ticket price"
+            />
+            {showErrors && errors.freeSeatingPrice && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.freeSeatingPrice}
+              </p>
+            )}
+          </div>
+        )}
 
-    return (
-      <>
-        {numberError && (
-          <p className="text-red-500 text-xs mt-1">{numberError}</p>
-        )}
-        {priceError && (
-          <p className="text-red-500 text-xs mt-1">{priceError}</p>
-        )}
-        {maxPerPersonError && (
-          <p className="text-red-500 text-xs mt-1">{maxPerPersonError}</p>
-        )}
-      </>
-    );
-  };
+        <div className="flex flex-col">
+          <label className="text-white text-sm mb-1">
+            Max Tickets Per Person:*
+          </label>
+          <input
+            type="text"
+            value={freeSeatingMaxPerPerson}
+            onChange={(e) => {
+              handleFreeSeatingMaxPerPersonChange(e.target.value);
+              if (showErrors)
+                setErrors({ ...errors, freeSeatingMaxPerPerson: null });
+            }}
+            className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                     border ${
+                       errors.freeSeatingMaxPerPerson
+                         ? "border-red-500"
+                         : "border-gray-600"
+                     } 
+                     focus:outline-none focus:border-[#FFAB40]`}
+            placeholder="Max tickets per person"
+          />
+          {showErrors && errors.freeSeatingMaxPerPerson && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.freeSeatingMaxPerPerson}
+            </p>
+          )}
+        </div>
+      </div>
+      <p className="text-[#B8B8B8] text-xs mt-3">
+        For maximum tickets per person, set between 1-10.
+      </p>
+    </div>
+  );
 
-  // For coming soon events - show option to add ticket tiers
+  // For Coming Soon events - show option to add ticket tiers
   if (eventType === "coming_soon") {
     return (
       <div className="w-full">
+        {/* Display error summary if validation fails */}
+        {showErrors && Object.keys(errors).length > 0 && (
+          <div className="bg-red-900 text-white p-3 rounded-md mb-4">
+            <p className="font-semibold">
+              Please fill in all required fields marked with an asterisk (*).
+            </p>
+          </div>
+        )}
         <div className="flex justify-between items-center mb-4">
           <div>
             <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
@@ -950,54 +1024,38 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
 
         <hr className="border-t border-gray-600 my-4" />
 
-        <div className="bg-[#1E1E1E] p-6 rounded-lg mb-6">
-          <div className="flex items-start mb-6">
-            <InfoIcon className="h-8 w-8 mr-4 text-[#FFAB40] mt-1" />
-            <div>
-              <p className="text-white text-lg font-semibold mb-2">
-                Coming Soon Event
-              </p>
-              <p className="text-white text-sm mb-4">
-                This event will be published with a "Coming Soon" tag.
-                Reservations will not be available until you update it later.
-              </p>
+        <div className="bg-[#1E1E1E] p-4 rounded-lg mb-6">
+          <div className="flex items-center mb-4">
+            <InfoIcon className="h-5 w-5 mr-2 text-[#FFAB40]" />
+            <p className="text-white text-sm">
+              This event will be published with a "Coming Soon" tag.
+              Reservations will not be available until you update it later.
+            </p>
+          </div>
 
-              <div className="bg-[#272727] p-4 rounded-lg">
-                <div className="flex items-center mb-2">
-                  <input
-                    type="checkbox"
-                    id="includeTiers"
-                    checked={includeTiers}
-                    onChange={(e) => setIncludeTiers(e.target.checked)}
-                    className="form-checkbox h-5 w-5 text-[#FFAB40] bg-[#2C2C2C] border-gray-600 rounded focus:ring-0 focus:outline-none mr-3"
-                  />
-                  <label
-                    htmlFor="includeTiers"
-                    className="text-white font-medium cursor-pointer"
-                  >
-                    Include ticket information for this Coming Soon event
-                  </label>
-                </div>
-                <p className="text-[#B8B8B8] text-sm ml-8 mb-2">
-                  When checked, ticket information will be visible to end users
-                  viewing this Coming Soon event.
-                </p>
-              </div>
-            </div>
+          <div className="my-4">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeTiers}
+                onChange={(e) => setIncludeTiers(e.target.checked)}
+                className="form-checkbox h-5 w-5 text-[#FFAB40] bg-[#2C2C2C] border-gray-600 rounded focus:ring-0 focus:outline-none"
+              />
+              <span className="text-white">
+                Include ticket tier information (optional)
+              </span>
+            </label>
+            <p className="text-[#B8B8B8] text-xs mt-1 ml-7">
+              This will allow you to set up ticket tiers in advance, but they
+              won't be available until the event is fully published.
+            </p>
           </div>
         </div>
 
         {/* Only show ticket configuration if includeTiers is checked */}
         {includeTiers && (
-          <div className="mt-6 border-t border-gray-700 pt-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[#FFAB40] text-xl font-semibold mb-3">
-                Ticket Structure{" "}
-              </h3>
-            </div>
-
-            <div className="flex items-center mb-5">
-              <p className="text-white text-sm mr-6">Seating Type:</p>
+          <div className="mt-6">
+            <div className="flex items-center mb-4">
               <div className="mr-4">
                 <input
                   type="radio"
@@ -1006,9 +1064,11 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
                   value="freeSeating"
                   checked={tierType === "freeSeating"}
                   onChange={() => setTierType("freeSeating")}
-                  className="mr-2"
                 />
-                <label htmlFor="freeSeating" className="text-sm text-white">
+                <label
+                  htmlFor="freeSeating"
+                  className="ml-2 text-sm text-white"
+                >
                   Free Seating
                 </label>
               </div>
@@ -1020,9 +1080,8 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
                   value="ticketed"
                   checked={tierType === "ticketed"}
                   onChange={() => setTierType("ticketed")}
-                  className="mr-2"
                 />
-                <label htmlFor="ticketed" className="text-sm text-white">
+                <label htmlFor="ticketed" className="ml-2 text-sm text-white">
                   Ticketed
                 </label>
               </div>
@@ -1034,7 +1093,7 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="flex flex-col">
                     <label className="text-white text-sm mb-1">
-                      Planned Number of Tickets:
+                      Number of Tickets:
                     </label>
                     <input
                       type="text"
@@ -1042,23 +1101,14 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
                       onChange={(e) =>
                         handleFreeSeatingTicketsChange(e.target.value)
                       }
-                      className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                               border ${
-                                 showErrors && formErrors.freeSeatingTickets
-                                   ? "border-red-500"
-                                   : "border-gray-600"
-                               } focus:outline-none focus:border-[#FFAB40]`}
+                      className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                               border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
                       placeholder="Total available tickets"
                     />
-                    {showErrors && formErrors.freeSeatingTickets && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {formErrors.freeSeatingTickets}
-                      </p>
-                    )}
                   </div>
                   <div className="flex flex-col">
                     <label className="text-white text-sm mb-1">
-                      Planned Price (₱):
+                      Price (₱):
                     </label>
                     <input
                       type="text"
@@ -1066,23 +1116,14 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
                       onChange={(e) =>
                         handleFreeSeatingPriceChange(e.target.value)
                       }
-                      className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                               border ${
-                                 showErrors && formErrors.freeSeatingPrice
-                                   ? "border-red-500"
-                                   : "border-gray-600"
-                               } focus:outline-none focus:border-[#FFAB40]`}
+                      className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                               border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
                       placeholder="Ticket price"
                     />
-                    {showErrors && formErrors.freeSeatingPrice && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {formErrors.freeSeatingPrice}
-                      </p>
-                    )}
                   </div>
                   <div className="flex flex-col">
                     <label className="text-white text-sm mb-1">
-                      Planned Max Tickets Per Person:
+                      Max Tickets Per Person:
                     </label>
                     <input
                       type="text"
@@ -1090,20 +1131,10 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
                       onChange={(e) =>
                         handleFreeSeatingMaxPerPersonChange(e.target.value)
                       }
-                      className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                               border ${
-                                 showErrors &&
-                                 formErrors.freeSeatingMaxPerPerson
-                                   ? "border-red-500"
-                                   : "border-gray-600"
-                               } focus:outline-none focus:border-[#FFAB40]`}
+                      className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                               border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
                       placeholder="Max tickets per person"
                     />
-                    {showErrors && formErrors.freeSeatingMaxPerPerson && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {formErrors.freeSeatingMaxPerPerson}
-                      </p>
-                    )}
                   </div>
                 </div>
                 <p className="text-[#B8B8B8] text-xs mt-3">
@@ -1115,24 +1146,12 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
             {/* Show ticket tiers for Coming Soon when selected */}
             {tierType === "ticketed" && (
               <>
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-white text-sm">
-                    Define planned ticket tiers (prices and quantities for
-                    planning only)
-                  </p>
-                  <button
-                    onClick={addNewTier}
-                    className="flex items-center bg-white text-black px-4 py-2 rounded-full hover:bg-[#FFAB40] transition-colors text-sm ml-auto"
-                  >
-                    <PlusIcon className="mr-2 h-4 w-4" /> Add Tier
-                  </button>
-                </div>
-
-                {showErrors && formErrors.noTiers && (
-                  <div className="bg-red-900 text-white p-3 rounded-md mb-4">
-                    <p className="font-semibold">{formErrors.noTiers}</p>
-                  </div>
-                )}
+                <button
+                  onClick={addNewTier}
+                  className="flex items-center bg-white text-black px-4 py-2 rounded-full hover:bg-[#FFAB40] transition-colors text-sm ml-auto mb-6"
+                >
+                  <PlusIcon className="mr-2 h-4 w-4" /> Add Tier
+                </button>
 
                 <div className="mb-2 grid grid-cols-[auto,200px,1fr,1fr,1fr,auto,auto] gap-4 items-center">
                   <div></div>
@@ -1184,13 +1203,9 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
                         onChange={(e) =>
                           handleNumberChange(tier, e.target.value)
                         }
-                        className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
-                                   border ${
-                                     showErrors && formErrors[`${tier}_number`]
-                                       ? "border-red-500"
-                                       : "border-gray-600"
-                                   } focus:outline-none focus:border-[#FFAB40] 
-                                   whitespace-nowrap overflow-hidden text-ellipsis`}
+                        className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
+                                   border border-gray-600 focus:outline-none focus:border-[#FFAB40] 
+                                   whitespace-nowrap overflow-hidden text-ellipsis"
                       />
                       <input
                         type="text"
@@ -1200,13 +1215,9 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
                         onChange={(e) =>
                           handlePriceChange(tier, e.target.value)
                         }
-                        className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
-                                   border ${
-                                     showErrors && formErrors[`${tier}_price`]
-                                       ? "border-red-500"
-                                       : "border-gray-600"
-                                   } focus:outline-none focus:border-[#FFAB40] 
-                                   whitespace-nowrap overflow-hidden text-ellipsis`}
+                        className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
+                                   border border-gray-600 focus:outline-none focus:border-[#FFAB40] 
+                                   whitespace-nowrap overflow-hidden text-ellipsis"
                       />
                       <input
                         type="text"
@@ -1216,14 +1227,9 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
                         onChange={(e) =>
                           handleMaxPerPersonChange(tier, e.target.value)
                         }
-                        className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
-                                   border ${
-                                     showErrors &&
-                                     formErrors[`${tier}_maxPerPerson`]
-                                       ? "border-red-500"
-                                       : "border-gray-600"
-                                   } focus:outline-none focus:border-[#FFAB40] 
-                                   whitespace-nowrap overflow-hidden text-ellipsis`}
+                        className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
+                                   border border-gray-600 focus:outline-none focus:border-[#FFAB40] 
+                                   whitespace-nowrap overflow-hidden text-ellipsis"
                       />
                       <button
                         onClick={
@@ -1249,7 +1255,6 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
                       >
                         <TrashIcon className="h-5 w-5" />
                       </button>
-                      {renderTierErrors(tier)}
                     </div>
                   ))}
                 </div>
@@ -1260,7 +1265,7 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
 
             <div className="mt-4 flex items-center justify-end">
               <span className="text-white text-sm mr-6">
-                Total Planned Tickets:
+                Total Number of Tickets:
               </span>
               <span className="text-[#FFAB40] font-semibold">
                 {tierType === "freeSeating"
@@ -1281,8 +1286,317 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
       </div>
     );
   }
-};
 
+  // For free events
+  if (eventType === "free") {
+    return (
+      <div className="w-full">
+        {/* Display error summary if validation fails */}
+        {showErrors && Object.keys(errors).length > 0 && (
+          <div className="bg-red-900 text-white p-3 rounded-md mb-4">
+            <p className="font-semibold">
+              Please fill in all required fields marked with an asterisk (*).
+            </p>
+          </div>
+        )}
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
+              Free Event Details
+            </p>
+            <p className="text-[13px] text-[#B8B8B8] mb-4">
+              Set the number of free tickets available for this event.
+            </p>
+          </div>
+        </div>
+
+        <hr className="border-t border-gray-600 my-4" />
+
+        <div className="bg-[#1E1E1E] p-4 rounded-lg mb-4">
+          <div className="flex items-center mb-4">
+            <InfoIcon className="h-5 w-5 mr-2 text-[#FFAB40]" />
+            <p className="text-white text-sm">
+              This is a free event. All tickets will be available at no cost.
+            </p>
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-white text-sm mb-1">
+              Number of Free Tickets:
+            </label>
+            <input
+              type="text"
+              value={freeSeatingTickets}
+              onChange={(e) => handleFreeSeatingTicketsChange(e.target.value)}
+              className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                       border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+              placeholder="Total available tickets"
+            />
+          </div>
+
+          <div className="flex flex-col mt-4">
+            <label className="text-white text-sm mb-1">
+              Max Tickets Per Person:
+            </label>
+            <input
+              type="text"
+              value={freeSeatingMaxPerPerson}
+              onChange={(e) =>
+                handleFreeSeatingMaxPerPersonChange(e.target.value)
+              }
+              className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                       border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+              placeholder="Max tickets per person"
+            />
+            <p className="text-[#B8B8B8] text-xs mt-2">
+              For maximum tickets per person, set between 1-10.
+            </p>
+          </div>
+        </div>
+
+        {/* Hidden button for parent component to trigger submit */}
+        <button
+          className="hidden ticket-submit-button"
+          onClick={handleSubmit}
+        />
+      </div>
+    );
+  }
+
+  // Regular ticketed event with full ticket details
+  return (
+    <div className="w-full">
+      {showErrors && Object.keys(errors).length > 0 && (
+        <div className="bg-red-900 text-white p-3 rounded-md mb-4">
+          <p className="font-semibold">
+            Please fill in all required fields marked with an asterisk (*).
+          </p>
+        </div>
+      )}
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
+            Ticket Details
+          </p>
+          <p className="text-[13px] text-[#B8B8B8] mb-4">
+            Select ticket types and set the total available tickets, ensuring
+            they match venue capacity and event needs.
+          </p>
+        </div>
+      </div>
+
+      <hr className="border-t border-gray-600 my-4" />
+      <div className="flex items-center mb-4">
+        <div className="mr-4">
+          <input
+            type="radio"
+            id="freeSeating"
+            name="tierType"
+            value="freeSeating"
+            checked={tierType === "freeSeating"}
+            onChange={() => setTierType("freeSeating")}
+          />
+          <label htmlFor="freeSeating" className="ml-2 text-sm text-white">
+            Free Seating
+          </label>
+        </div>
+        <div>
+          <input
+            type="radio"
+            id="ticketed"
+            name="tierType"
+            value="ticketed"
+            checked={tierType === "ticketed"}
+            onChange={() => setTierType("ticketed")}
+          />
+          <label htmlFor="ticketed" className="ml-2 text-sm text-white">
+            Ticketed
+          </label>
+        </div>
+      </div>
+
+      {/* Display for Free Seating */}
+      {tierType === "freeSeating" && (
+        <div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="flex flex-col">
+              <label className="text-white text-sm mb-1">
+                Number of Tickets:
+              </label>
+              <input
+                type="text"
+                value={freeSeatingTickets}
+                onChange={(e) => handleFreeSeatingTicketsChange(e.target.value)}
+                className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                         border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                placeholder="Total available tickets"
+              />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-white text-sm mb-1">Price (₱):</label>
+              <input
+                type="text"
+                value={freeSeatingPrice}
+                onChange={(e) => handleFreeSeatingPriceChange(e.target.value)}
+                className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                         border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                placeholder="Ticket price"
+              />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-white text-sm mb-1">
+                Max Tickets Per Person:
+              </label>
+              <input
+                type="text"
+                value={freeSeatingMaxPerPerson}
+                onChange={(e) =>
+                  handleFreeSeatingMaxPerPersonChange(e.target.value)
+                }
+                className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                         border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                placeholder="Max tickets per person"
+              />
+            </div>
+          </div>
+          <p className="text-[#B8B8B8] text-xs mt-3">
+            For maximum tickets per person, set between 1-10.
+          </p>
+        </div>
+      )}
+
+      {/* Only show ticket tiers and Add Tier button when "Ticketed" is selected */}
+      {tierType === "ticketed" && (
+        <>
+          <button
+            onClick={addNewTier}
+            className="flex items-center bg-white text-black px-4 py-2 rounded-full hover:bg-[#FFAB40] transition-colors text-sm ml-auto mb-6"
+          >
+            <PlusIcon className="mr-2 h-4 w-4" /> Add Tier
+          </button>
+
+          <div className="mb-2 grid grid-cols-[auto,200px,1fr,1fr,1fr,auto,auto] gap-4 items-center">
+            <div></div>
+            <p className="text-sm text-[#B8B8B8]">Tier Name</p>
+            <p className="text-sm text-[#B8B8B8]">Number of Tickets</p>
+            <p className="text-sm text-[#B8B8B8]">Price (₱)</p>
+            <p className="text-sm text-[#B8B8B8]">Max Per Person</p>
+            <div></div>
+            <div></div>
+          </div>
+
+          <div className="space-y-3">
+            {Object.keys(ticketTiers).map((tier) => (
+              <div
+                key={tier}
+                className="grid grid-cols-[auto,200px,1fr,1fr,1fr,auto,auto] gap-4 items-center"
+              >
+                <input
+                  type="checkbox"
+                  checked={ticketTiers[tier].checked}
+                  onChange={(e) => handleCheckboxChange(tier, e.target.checked)}
+                  className="form-checkbox h-5 w-5 text-[#FFAB40] bg-[#2C2C2C] border-gray-600 rounded focus:ring-0 focus:outline-none"
+                />
+                {ticketTiers[tier].isEditing ? (
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      value={editingTierName}
+                      onChange={(e) => handleTierNameChange(e.target.value)}
+                      className="bg-[#2C2C2C] text-white text-sm px-2 py-1 rounded mr-2"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <p className="text-white text-sm whitespace-nowrap mr-2">
+                      {tier}
+                    </p>
+                  </div>
+                )}
+                <input
+                  type="text"
+                  placeholder="Number of tickets"
+                  disabled={!ticketTiers[tier].checked}
+                  value={ticketTiers[tier].number}
+                  onChange={(e) => handleNumberChange(tier, e.target.value)}
+                  className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
+                             border border-gray-600 focus:outline-none focus:border-[#FFAB40] 
+                             whitespace-nowrap overflow-hidden text-ellipsis"
+                />
+                <input
+                  type="text"
+                  placeholder="Price"
+                  disabled={!ticketTiers[tier].checked}
+                  value={ticketTiers[tier].price}
+                  onChange={(e) => handlePriceChange(tier, e.target.value)}
+                  className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
+                             border border-gray-600 focus:outline-none focus:border-[#FFAB40] 
+                             whitespace-nowrap overflow-hidden text-ellipsis"
+                />
+                {/* Input for Max Per Person */}
+                <input
+                  type="text"
+                  placeholder="Max per person"
+                  disabled={!ticketTiers[tier].checked}
+                  value={ticketTiers[tier].maxPerPerson}
+                  onChange={(e) =>
+                    handleMaxPerPersonChange(tier, e.target.value)
+                  }
+                  className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded placeholder-gray-500 
+                             border border-gray-600 focus:outline-none focus:border-[#FFAB40] 
+                             whitespace-nowrap overflow-hidden text-ellipsis"
+                />
+                {/* Editing button that changes to a check mark when editing */}
+                <button
+                  onClick={
+                    ticketTiers[tier].isEditing
+                      ? saveNewTierName
+                      : () => startEditingTierName(tier)
+                  }
+                  className={
+                    ticketTiers[tier].isEditing
+                      ? "text-green-500 hover:text-green-700 transition-colors"
+                      : "text-[#FFAB40] hover:text-[#FFC661] transition-colors"
+                  }
+                >
+                  {ticketTiers[tier].isEditing ? (
+                    <CheckIcon className="h-5 w-5" />
+                  ) : (
+                    <EditIcon className="h-5 w-5" />
+                  )}
+                </button>
+                <button
+                  onClick={() => deleteTier(tier)}
+                  className="text-red-500 hover:text-red-700 transition-colors"
+                >
+                  <TrashIcon className="h-5 w-5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <hr className="border-t border-gray-600 my-4" />
+
+      <div className="mt-4 flex items-center justify-end">
+        <span className="text-white text-sm mr-6">
+          Total Number of Tickets:
+        </span>
+        <span className="text-[#FFAB40] font-semibold">
+          {tierType === "freeSeating"
+            ? freeSeatingTickets === ""
+              ? 0
+              : parseInt(freeSeatingTickets)
+            : totalTickets}
+        </span>
+      </div>
+
+      {/* Hidden button for parent component to trigger submit */}
+      <button className="hidden ticket-submit-button" onClick={handleSubmit} />
+    </div>
+  );
+};
 // Enhanced ClaimingDetails component with improved Coming Soon handling
 const ClaimingDetails = ({
   onBack,
@@ -2090,50 +2404,34 @@ const AvailabilityDetails = ({ onBack, onNext, eventType, initialData }) => {
   const validatePeriods = () => {
     const newErrors = {};
 
-    // For free events, only validate display period
-    if (eventType === "free") {
-      if (!displayStartDate || !displayEndDate) {
-        newErrors.displayPeriod = "Both start and end dates are required";
-      } else {
-        const displayStart = new Date(displayStartDate);
-        const displayEnd = new Date(displayEndDate);
-        // Validate that display start date is not in the past
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (displayStart < today) {
-          newErrors.displayPeriod = "Display start date cannot be in the past";
-        }
-        // Validate that end date is after start date
-        if (displayEnd <= displayStart) {
-          newErrors.displayPeriod = "Display end date must be after start date";
-        }
+    // For all event types, validate display period
+    if (!displayStartDate || !displayEndDate) {
+      newErrors.displayPeriod = "Both start and end dates are required";
+    } else {
+      const displayStart = new Date(displayStartDate);
+      const displayEnd = new Date(displayEndDate);
+
+      // Validate that display start date is not in the past
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (displayStart < today) {
+        newErrors.displayPeriod = "Display start date cannot be in the past";
       }
+
+      // Validate that end date is after start date
+      if (displayEnd <= displayStart) {
+        newErrors.displayPeriod = "Display end date must be after start date";
+      }
+    }
+
+    // For free events and coming soon events, we only need to validate display period
+    if (eventType === "free" || eventType === "coming_soon") {
       setErrors(newErrors);
       return Object.keys(newErrors).length === 0;
     }
 
-    // For coming soon events, ensure display period dates are set
-    if (eventType === "coming_soon") {
-      if (!displayStartDate || !displayEndDate) {
-        newErrors.displayPeriod =
-          "Both start and end dates are required for Coming Soon events";
-      } else {
-        const displayStart = new Date(displayStartDate);
-        const displayEnd = new Date(displayEndDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (displayStart < today) {
-          newErrors.displayPeriod = "Display start date cannot be in the past";
-        }
-        if (displayEnd <= displayStart) {
-          newErrors.displayPeriod = "Display end date must be after start date";
-        }
-      }
-      setErrors(newErrors);
-      return Object.keys(newErrors).length === 0;
-    }
-
-    // For regular ticketed events, validate both periods
+    // For ticketed events, also validate reservation period
     if (
       !reservationStartDate ||
       !reservationEndDate ||
@@ -2149,12 +2447,15 @@ const AvailabilityDetails = ({ onBack, onNext, eventType, initialData }) => {
       const reservationEnd = new Date(
         `${reservationEndDate}T${reservationEndTime}`
       );
+      const displayStart = new Date(displayStartDate);
+      const displayEnd = new Date(displayEndDate);
 
-      if (reservationStartDate < displayStartDate) {
+      // Check reservation period is within display period
+      if (reservationStart < displayStart) {
         newErrors.reservationPeriod =
           "Reservation start must be within display period";
       }
-      if (reservationEndDate > displayEndDate) {
+      if (reservationEnd > displayEnd) {
         newErrors.reservationPeriod =
           "Reservation end must be within display period";
       }
@@ -2173,19 +2474,22 @@ const AvailabilityDetails = ({ onBack, onNext, eventType, initialData }) => {
       return;
     }
 
-    // For all event types, use expanded data structure with both periods
+    // Make sure reservationPeriod is provided for ticketed events
+    // and optional for other event types
     const availabilityData = {
-      eventType,
       displayPeriod: {
         startDate: displayStartDate,
         endDate: displayEndDate,
       },
-      reservationPeriod: {
-        startDate: reservationStartDate,
-        endDate: reservationEndDate,
-        startTime: reservationStartTime,
-        endTime: reservationEndTime,
-      },
+      reservationPeriod:
+        eventType === "ticketed"
+          ? {
+              startDate: reservationStartDate,
+              endDate: reservationEndDate,
+              startTime: reservationStartTime,
+              endTime: reservationEndTime,
+            }
+          : null,
     };
 
     // Pass the data to the parent component
@@ -3216,52 +3520,42 @@ const Admin_PublishEvent = () => {
   const [error, setError] = useState(null);
   const [formValid, setFormValid] = useState(false);
 
+  // Get the event type from current eventDetails or default to "ticketed"
+  const eventType = eventDetails?.eventType || "ticketed";
+
+  console.log("Current step:", currentStep);
+  console.log("Current event type:", eventType);
+
+  useEffect(() => {
+    console.log("Step changed to:", currentStep);
+    console.log("Event details updated:", eventDetails);
+  }, [currentStep, eventDetails]);
+
   const handleEventDetailsNext = (details) => {
     console.log("Event Details Received:", details);
-    console.log("Event Type:", details.eventType);
 
-    // Merge new details with existing state
-    setEventDetails((prev) => {
-      const updatedDetails = { ...prev, ...details };
-      console.log("Updated Event Details:", updatedDetails);
-      return updatedDetails;
-    });
+    // Make sure eventType is explicitly captured from the incoming details
+    const eventType = details.eventType || "ticketed";
+    console.log("Event Type:", eventType);
 
-    // Check if it's a free event - if so, skip directly to availability details (step 4)
-    if (details.eventType === "free") {
-      console.log("Free event detected, skipping to step 4");
-      // Set empty claiming details since we're skipping that step
-      setClaimingDetails({
-        claimingSummaries: [],
-        availableDates: [],
-      });
+    // Set the entire event details object at once
+    setEventDetails(details);
 
-      // Jump to availability step
-      setCurrentStep(4);
-    } else {
-      console.log("Regular event, moving to ticket details step");
-      // For other event types, proceed normally to ticket details (step 2)
-      setCurrentStep(2);
-    }
+    // For free events, we still need to go through ticket details
+    // before jumping to claiming details
+    setCurrentStep(2);
   };
-
   const handleTicketDetailsNext = (details) => {
-    // Merge new details with existing state
+    console.log("Ticket Details Received:", details);
+
+    // Keep the eventType consistent from eventDetails
+    const eventType = eventDetails?.eventType || "ticketed";
+
+    // Make sure to merge new details with existing state
     setTicketDetails((prev) => ({ ...prev, ...details }));
 
-    // If it's a free event, skip directly to availability period (step 4)
-    if (eventDetails.eventType === "free") {
-      // Set empty claiming details since we're skipping that step
-      setClaimingDetails({
-        claimingSummaries: [],
-        availableDates: [],
-        includeClaimingInfo: false,
-      });
-      setCurrentStep(4);
-    } else {
-      // For other event types, proceed normally to claiming details (step 3)
-      setCurrentStep(3);
-    }
+    // Always proceed to claiming details (step 3)
+    setCurrentStep(3);
   };
 
   const handleClaimingDetailsNext = (details) => {
@@ -3279,9 +3573,6 @@ const Admin_PublishEvent = () => {
   const handleBack = () => {
     setCurrentStep((prevStep) => prevStep - 1);
   };
-
-  // Get the event type from current eventDetails or default to "ticketed"
-  const eventType = eventDetails?.eventType || "ticketed";
 
   // Function to determine the event status and visibility based on type and dates
   const determineEventState = () => {
@@ -3455,8 +3746,11 @@ const Admin_PublishEvent = () => {
         visibility: eventState.visibility,
       };
 
-      // Handle image upload
-      if (eventDetails.eventImage) {
+      // Handle image upload - Don't reupload if we already have a URL
+      if (
+        eventDetails.eventImage &&
+        !eventDetails.eventImage.startsWith("http")
+      ) {
         try {
           const uploadResult = await eventService.uploadEventImage(
             eventDetails.eventImage
@@ -3464,15 +3758,20 @@ const Admin_PublishEvent = () => {
           eventData.image = uploadResult.imageUrl;
         } catch (uploadError) {
           console.error("Image upload failed:", uploadError);
-          // Optionally, you can choose to continue without image or throw an error
+          setError("Failed to upload image. Please try again.");
+          setIsLoading(false);
+          return;
         }
+      } else if (eventDetails.eventImage) {
+        // If it's already a URL, just use it
+        eventData.image = eventDetails.eventImage;
       }
 
       // Create the event
       const eventResult = await eventService.createEvent(eventData);
       const eventId = eventResult.data.event_id;
 
-      // Handle ticket creation logic
+      // Handle ticket creation logic based on event type
       const shouldCreateTickets =
         eventType === "ticketed" ||
         (eventType === "coming_soon" && ticketDetails?.hasTierInfo) ||
@@ -3509,29 +3808,23 @@ const Admin_PublishEvent = () => {
         }
       }
 
-      // Update availability details
-      const shouldUpdateAvailability =
-        eventType === "ticketed" ||
-        (eventType === "coming_soon" && availabilityDetails.displayPeriod);
+      // Update availability details for all event types
+      const updateData = {
+        display_start_date: availabilityDetails.displayPeriod.startDate,
+        display_end_date: availabilityDetails.displayPeriod.endDate,
+      };
 
-      if (shouldUpdateAvailability) {
-        const updateData = {
-          display_start_date: availabilityDetails.displayPeriod.startDate,
-          display_end_date: availabilityDetails.displayPeriod.endDate,
-        };
-
-        // Add reservation period for ticketed events
-        if (eventType === "ticketed" && availabilityDetails.reservationPeriod) {
-          updateData.reservation_start = new Date(
-            `${availabilityDetails.reservationPeriod.startDate}T${availabilityDetails.reservationPeriod.startTime}`
-          ).toISOString();
-          updateData.reservation_end = new Date(
-            `${availabilityDetails.reservationPeriod.endDate}T${availabilityDetails.reservationPeriod.endTime}`
-          ).toISOString();
-        }
-
-        await eventService.updateEvent(eventId, updateData);
+      // Add reservation period for ticketed events only if it exists
+      if (eventType === "ticketed" && availabilityDetails.reservationPeriod) {
+        updateData.reservation_start = new Date(
+          `${availabilityDetails.reservationPeriod.startDate}T${availabilityDetails.reservationPeriod.startTime}`
+        ).toISOString();
+        updateData.reservation_end = new Date(
+          `${availabilityDetails.reservationPeriod.endDate}T${availabilityDetails.reservationPeriod.endTime}`
+        ).toISOString();
       }
+
+      await eventService.updateEvent(eventId, updateData);
 
       // Determine success message based on event type
       let successMessage = "";
@@ -3548,9 +3841,86 @@ const Admin_PublishEvent = () => {
           break;
       }
 
-      // Show success message and potentially redirect
+      // Show success message
       alert(successMessage);
-      // TODO: Add navigation or state reset as needed
+
+      // Reset state to allow creating another event
+      setCurrentStep(1);
+      setEventDetails({
+        eventName: "",
+        eventDescription: "",
+        eventDate: "",
+        venue: "",
+        startTime: "",
+        endTime: "",
+        eventCategory: "",
+        eventType: "ticketed",
+        eventImage: null,
+        imagePreview: null,
+      });
+      setTicketDetails({
+        tierType: "freeSeating",
+        hasTierInfo: false,
+        freeSeating: {
+          numberOfTickets: "",
+          price: "",
+          maxPerPerson: "",
+        },
+        ticketTiers: {
+          "General Admission": {
+            number: "",
+            price: "",
+            maxPerPerson: "",
+            checked: false,
+            isEditing: false,
+          },
+          "Upper Box": {
+            number: "",
+            price: "",
+            maxPerPerson: "",
+            checked: false,
+            isEditing: false,
+          },
+          "Lower Box": {
+            number: "",
+            price: "",
+            maxPerPerson: "",
+            checked: false,
+            isEditing: false,
+          },
+          Patron: {
+            number: "",
+            price: "",
+            maxPerPerson: "",
+            checked: false,
+            isEditing: false,
+          },
+          VIP: {
+            number: "",
+            price: "",
+            maxPerPerson: "",
+            checked: false,
+            isEditing: false,
+          },
+        },
+      });
+      setClaimingDetails({
+        claimingSummaries: [],
+        availableDates: [],
+        includeClaimingInfo: false,
+      });
+      setAvailabilityDetails({
+        displayPeriod: {
+          startDate: "",
+          endDate: "",
+        },
+        reservationPeriod: {
+          startDate: "",
+          endDate: "",
+          startTime: "",
+          endTime: "",
+        },
+      });
     } catch (error) {
       console.error("Event creation error:", error);
       setError(
@@ -3563,12 +3933,13 @@ const Admin_PublishEvent = () => {
   };
 
   // Function to handle saving event as draft
-  // Function to handle saving event as draft
-  // Update the handleSaveAsDraft function
   const handleSaveAsDraft = async () => {
     try {
       setIsLoading(true);
       setError(null);
+
+      // Get the event state
+      const eventState = determineEventState();
 
       // Prepare draft data with all collected information
       const eventData = {
@@ -3583,8 +3954,8 @@ const Admin_PublishEvent = () => {
         category: eventDetails.eventCategory,
         venue: eventDetails.venue,
         event_type: eventType,
-        status: eventState.status,
-        visibility: eventState.visibility,
+        status: "draft", // Always set as draft
+        visibility: "unpublished", // Always unpublished for drafts
       };
 
       // Handle image upload if we have an image
@@ -3593,7 +3964,7 @@ const Admin_PublishEvent = () => {
           const uploadResult = await eventService.uploadEventImage(
             eventDetails.eventImage
           );
-          draftData.image = uploadResult.imageUrl;
+          eventData.image = uploadResult.imageUrl;
         } catch (uploadError) {
           console.error("Image upload failed:", uploadError);
         }
@@ -3601,7 +3972,7 @@ const Admin_PublishEvent = () => {
 
       console.log("Draft data being sent:", eventData);
 
-      // Use the fixed createDraftEvent function
+      // Use the createDraftEvent function
       const eventResult = await eventService.createDraftEvent(eventData);
 
       // Show success message
@@ -3620,9 +3991,6 @@ const Admin_PublishEvent = () => {
       setIsLoading(false);
     }
   };
-
-  // Make sure the render section properly displays the components based on currentStep
-  // In the return() section of Admin_PublishEvent:
 
   return (
     <div className="flex-col font-Poppins">
@@ -3649,43 +4017,38 @@ const Admin_PublishEvent = () => {
           )}
 
           <div className="w-full max-w-4xl">
-            {/* Make sure these components are rendered properly based on currentStep */}
-            {currentStep === 1 && (
+            {currentStep === 1 ? (
               <EventDetails
                 initialData={eventDetails}
                 onNext={handleEventDetailsNext}
                 setFormValid={setFormValid}
               />
-            )}
-            {currentStep === 2 && (
+            ) : currentStep === 2 ? (
               <TicketDetails
                 initialData={ticketDetails}
-                eventType={eventType}
+                eventType={eventDetails.eventType}
                 onBack={handleBack}
                 onNext={handleTicketDetailsNext}
               />
-            )}
-            {currentStep === 3 && (
+            ) : currentStep === 3 ? (
               <ClaimingDetails
                 initialData={claimingDetails}
-                eventType={eventType}
+                eventType={eventDetails.eventType}
                 ticketDetails={ticketDetails}
                 onBack={handleBack}
                 onNext={handleClaimingDetailsNext}
               />
-            )}
-            {currentStep === 4 && (
+            ) : currentStep === 4 ? (
               <AvailabilityDetails
                 initialData={{
                   ...availabilityDetails,
                   imagePreview: eventDetails.imagePreview,
                 }}
-                eventType={eventType}
+                eventType={eventDetails.eventType}
                 onBack={handleBack}
                 onNext={handleAvailabilityDetailsNext}
               />
-            )}
-            {currentStep === 5 && (
+            ) : (
               <SummaryDetails
                 eventDetails={eventDetails}
                 ticketDetails={ticketDetails}
@@ -3728,45 +4091,33 @@ const Admin_PublishEvent = () => {
                   </button>
                 )}
 
-                {currentStep === 1 && (
+                {currentStep < 5 && (
                   <button
                     onClick={() => {
-                      document.querySelector(".event-submit-button").click();
-                    }}
-                    className="bg-white text-black px-9 py-2 rounded-full text-xs font-semibold"
-                  >
-                    Next
-                  </button>
-                )}
+                      let submitButtonSelector = "";
 
-                {currentStep === 2 && (
-                  <button
-                    onClick={() => {
-                      document.querySelector(".ticket-submit-button").click();
-                    }}
-                    className="bg-white text-black px-9 py-2 rounded-full text-xs font-semibold"
-                  >
-                    Next
-                  </button>
-                )}
+                      switch (currentStep) {
+                        case 1:
+                          submitButtonSelector = ".event-submit-button";
+                          break;
+                        case 2:
+                          submitButtonSelector = ".ticket-submit-button";
+                          break;
+                        case 3:
+                          submitButtonSelector = ".claiming-submit-button";
+                          break;
+                        case 4:
+                          submitButtonSelector = ".availability-submit-button";
+                          break;
+                      }
 
-                {currentStep === 3 && (
-                  <button
-                    onClick={() => {
-                      document.querySelector(".claiming-submit-button").click();
-                    }}
-                    className="bg-white text-black px-9 py-2 rounded-full text-xs font-semibold"
-                  >
-                    Next
-                  </button>
-                )}
-
-                {currentStep === 4 && (
-                  <button
-                    onClick={() => {
-                      document
-                        .querySelector(".availability-submit-button")
-                        .click();
+                      const submitButton =
+                        document.querySelector(submitButtonSelector);
+                      if (submitButton) {
+                        submitButton.click();
+                      } else {
+                        console.error(`Could not find ${submitButtonSelector}`);
+                      }
                     }}
                     className="bg-white text-black px-9 py-2 rounded-full text-xs font-semibold"
                   >
@@ -3794,5 +4145,4 @@ const Admin_PublishEvent = () => {
     </div>
   );
 };
-
 export default Admin_PublishEvent;
