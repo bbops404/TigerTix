@@ -1765,24 +1765,45 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
 
 // Modified AvailabilityDetails component
 const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  // Display period state
+  const [displayStartDate, setDisplayStartDate] = useState("");
+  const [displayEndDate, setDisplayEndDate] = useState("");
+  const [displayStartTime, setDisplayStartTime] = useState("");
+  const [displayEndTime, setDisplayEndTime] = useState("");
+
+  // Reservation period state
+  const [reservationStartDate, setReservationStartDate] = useState("");
+  const [reservationEndDate, setReservationEndDate] = useState("");
+  const [reservationStartTime, setReservationStartTime] = useState("");
+  const [reservationEndTime, setReservationEndTime] = useState("");
 
   const handleSubmit = () => {
-    // For all event types, use simplified data structure
+    // For all event types, use expanded data structure with display and reservation periods
     const availabilityData = {
       eventType,
-      period: {
-        startDate: startDate || new Date().toISOString().split("T")[0], // default to today
+      displayPeriod: {
+        startDate: displayStartDate || new Date().toISOString().split("T")[0], // default to today
         endDate:
-          endDate ||
-          new Date(new Date().setMonth(new Date().getMonth() + 1))
+          displayEndDate ||
+          new Date(new Date().setMonth(new Date().getMonth() + 3))
             .toISOString()
-            .split("T")[0], // default to a month from now
-        startTime: startTime || "08:00",
-        endTime: endTime || "20:00",
+            .split("T")[0], // default to three months from now
+        startTime: displayStartTime || "00:00", // default to 12:00 AM
+        endTime: displayEndTime || "23:59", // default to 11:59 PM
+      },
+      reservationPeriod: {
+        startDate:
+          reservationStartDate ||
+          displayStartDate ||
+          new Date().toISOString().split("T")[0],
+        endDate:
+          reservationEndDate ||
+          displayEndDate ||
+          new Date(new Date().setMonth(new Date().getMonth() + 3))
+            .toISOString()
+            .split("T")[0],
+        startTime: reservationStartTime || "08:00",
+        endTime: reservationEndTime || "20:00",
       },
     };
 
@@ -1797,10 +1818,10 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
         <div className="flex justify-between items-center mb-4">
           <div>
             <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
-              Free Event Display Period
+              Free Event Availability
             </p>
             <p className="text-[13px] text-[#B8B8B8] mb-4">
-              Set when this free event should appear on the platform
+              Set display and reservation periods for this free event
             </p>
           </div>
         </div>
@@ -1823,55 +1844,135 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
           </div>
 
           <div className="w-2/3 space-y-4">
-            <div className="space-y-3">
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">Start Date:</p>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-              </div>
+            {/* Display Period Section */}
+            <div className="border border-gray-700 rounded-lg p-4">
+              <p className="text-[#FFAB40] font-medium mb-3">Display Period</p>
+              <div className="space-y-3">
+                <div className="flex gap-4">
+                  <div className="w-1/2">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      Start Display Date:
+                    </p>
+                    <input
+                      type="date"
+                      value={displayStartDate}
+                      onChange={(e) => setDisplayStartDate(e.target.value)}
+                      className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="w-1/2">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      Start Display Time:
+                    </p>
+                    <input
+                      type="time"
+                      value={displayStartTime}
+                      onChange={(e) => setDisplayStartTime(e.target.value)}
+                      className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                      placeholder="00:00"
+                    />
+                  </div>
+                </div>
+                <p className="text-[#B8B8B8] text-xs mt-1 mb-3">
+                  When should this event appear on the platform?
+                </p>
 
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">End Date:</p>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
+                <div className="flex gap-4">
+                  <div className="w-1/2">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      End Display Date:
+                    </p>
+                    <input
+                      type="date"
+                      value={displayEndDate}
+                      onChange={(e) => setDisplayEndDate(e.target.value)}
+                      className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="w-1/2">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      End Display Time:
+                    </p>
+                    <input
+                      type="time"
+                      value={displayEndTime}
+                      onChange={(e) => setDisplayEndTime(e.target.value)}
+                      className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                      placeholder="23:59"
+                    />
+                  </div>
+                </div>
+                <p className="text-[#B8B8B8] text-xs mt-1 mb-3">
+                  When should this event stop showing on the platform?
+                </p>
               </div>
+            </div>
 
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">
-                  Daily Opening Time:
-                </p>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-                <p className="text-[#B8B8B8] text-xs mt-1">
-                  Time when reservations open each day
-                </p>
-              </div>
+            {/* Reservation Period Section */}
+            <div className="border border-gray-700 rounded-lg p-4">
+              <p className="text-[#FFAB40] font-medium mb-3">
+                Reservation Period
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    Start Reservation Date:
+                  </p>
+                  <input
+                    type="date"
+                    value={reservationStartDate}
+                    onChange={(e) => setReservationStartDate(e.target.value)}
+                    className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                  />
+                  <p className="text-[#B8B8B8] text-xs mt-1">
+                    When can users start making reservations?
+                  </p>
+                </div>
 
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">
-                  Daily Closing Time:
-                </p>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-                <p className="text-[#B8B8B8] text-xs mt-1">
-                  Time when reservations close each day
-                </p>
+                <div>
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    End Reservation Date:
+                  </p>
+                  <input
+                    type="date"
+                    value={reservationEndDate}
+                    onChange={(e) => setReservationEndDate(e.target.value)}
+                    className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                  />
+                  <p className="text-[#B8B8B8] text-xs mt-1">
+                    When do reservations close?
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    Reservation Start Time:
+                  </p>
+                  <input
+                    type="time"
+                    value={reservationStartTime}
+                    onChange={(e) => setReservationStartTime(e.target.value)}
+                    className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                  />
+                  <p className="text-[#B8B8B8] text-xs mt-1">
+                    Time when reservations become available
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    Reservation End Time:
+                  </p>
+                  <input
+                    type="time"
+                    value={reservationEndTime}
+                    onChange={(e) => setReservationEndTime(e.target.value)}
+                    className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                  />
+                  <p className="text-[#B8B8B8] text-xs mt-1">
+                    Time when reservations are no longer available
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -1890,7 +1991,7 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
     );
   }
 
-  // For coming soon events, also show a modified form
+  // For coming soon events, show only display period
   if (eventType === "coming_soon") {
     return (
       <div className="w-full">
@@ -1923,32 +2024,39 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
           </div>
 
           <div className="w-2/3 space-y-4">
-            <div className="space-y-3">
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">Start Date:</p>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-                <p className="text-xs text-[#B8B8B8] mt-1">
-                  When should this "Coming Soon" event start appearing?
-                </p>
-              </div>
+            <div className="border border-gray-700 rounded-lg p-4">
+              <p className="text-[#FFAB40] font-medium mb-3">Display Period</p>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    Start Display Date:
+                  </p>
+                  <input
+                    type="date"
+                    value={displayStartDate}
+                    onChange={(e) => setDisplayStartDate(e.target.value)}
+                    className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                  />
+                  <p className="text-xs text-[#B8B8B8] mt-1">
+                    When should this "Coming Soon" event start appearing?
+                  </p>
+                </div>
 
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">End Date:</p>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-                <p className="text-xs text-[#B8B8B8] mt-1">
-                  When should the "Coming Soon" notice be removed if not
-                  updated?
-                </p>
+                <div>
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    End Display Date:
+                  </p>
+                  <input
+                    type="date"
+                    value={displayEndDate}
+                    onChange={(e) => setDisplayEndDate(e.target.value)}
+                    className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                  />
+                  <p className="text-xs text-[#B8B8B8] mt-1">
+                    When should the "Coming Soon" notice be removed if not
+                    updated?
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -1968,17 +2076,16 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
     );
   }
 
-  // For ticketed events - full form
+  // For ticketed events - full form with both periods
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-4">
         <div>
           <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
-            Event Availability Period
+            Event Availability
           </p>
           <p className="text-[13px] text-[#B8B8B8] mb-4">
-            Set when the event should appear on the platform and be available
-            for reservations
+            Set display and reservation periods for this event
           </p>
         </div>
       </div>
@@ -1996,51 +2103,135 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
 
         {/* Availability Period Inputs */}
         <div className="w-2/3 space-y-4">
-          <div className="space-y-3">
-            <div>
-              <p className="text-[#FFAB40] text-sm mb-1">Start Date:</p>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-              />
-            </div>
+          {/* Display Period Section */}
+          <div className="border border-gray-700 rounded-lg p-4">
+            <p className="text-[#FFAB40] font-medium mb-3">Display Period</p>
+            <div className="space-y-3">
+              <div className="flex gap-4">
+                <div className="w-1/2">
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    Start Display Date:
+                  </p>
+                  <input
+                    type="date"
+                    value={displayStartDate}
+                    onChange={(e) => setDisplayStartDate(e.target.value)}
+                    className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="w-1/2">
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    Start Display Time:
+                  </p>
+                  <input
+                    type="time"
+                    value={displayStartTime}
+                    onChange={(e) => setDisplayStartTime(e.target.value)}
+                    className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                    placeholder="00:00"
+                  />
+                </div>
+              </div>
+              <p className="text-[#B8B8B8] text-xs mt-1 mb-3">
+                When should this event appear on the platform?
+              </p>
 
-            <div>
-              <p className="text-[#FFAB40] text-sm mb-1">End Date:</p>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div>
-              <p className="text-[#FFAB40] text-sm mb-1">Daily Opening Time:</p>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-              />
-              <p className="text-[#B8B8B8] text-xs mt-1">
-                Time when reservations open each day
+              <div className="flex gap-4">
+                <div className="w-1/2">
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    End Display Date:
+                  </p>
+                  <input
+                    type="date"
+                    value={displayEndDate}
+                    onChange={(e) => setDisplayEndDate(e.target.value)}
+                    className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="w-1/2">
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    End Display Time:
+                  </p>
+                  <input
+                    type="time"
+                    value={displayEndTime}
+                    onChange={(e) => setDisplayEndTime(e.target.value)}
+                    className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                    placeholder="23:59"
+                  />
+                </div>
+              </div>
+              <p className="text-[#B8B8B8] text-xs mt-1 mb-3">
+                When should this event stop showing on the platform?
               </p>
             </div>
+          </div>
 
-            <div>
-              <p className="text-[#FFAB40] text-sm mb-1">Daily Closing Time:</p>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-              />
-              <p className="text-[#B8B8B8] text-xs mt-1">
-                Time when reservations close each day
-              </p>
+          {/* Reservation Period Section */}
+          <div className="border border-gray-700 rounded-lg p-4">
+            <p className="text-[#FFAB40] font-medium mb-3">
+              Reservation Period
+            </p>
+            <div className="space-y-3">
+              <div>
+                <p className="text-[#FFAB40] text-sm mb-1">
+                  Start Reservation Date:
+                </p>
+                <input
+                  type="date"
+                  value={reservationStartDate}
+                  onChange={(e) => setReservationStartDate(e.target.value)}
+                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                />
+                <p className="text-[#B8B8B8] text-xs mt-1">
+                  When can users start making reservations?
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[#FFAB40] text-sm mb-1">
+                  End Reservation Date:
+                </p>
+                <input
+                  type="date"
+                  value={reservationEndDate}
+                  onChange={(e) => setReservationEndDate(e.target.value)}
+                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                />
+                <p className="text-[#B8B8B8] text-xs mt-1">
+                  When do reservations close?
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[#FFAB40] text-sm mb-1">
+                  Reservation Start Time:
+                </p>
+                <input
+                  type="time"
+                  value={reservationStartTime}
+                  onChange={(e) => setReservationStartTime(e.target.value)}
+                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                />
+                <p className="text-[#B8B8B8] text-xs mt-1">
+                  Time when reservations become available
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[#FFAB40] text-sm mb-1">
+                  Reservation End Time:
+                </p>
+                <input
+                  type="time"
+                  value={reservationEndTime}
+                  onChange={(e) => setReservationEndTime(e.target.value)}
+                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
+                />
+                <p className="text-[#B8B8B8] text-xs mt-1">
+                  Time when reservations are no longer available
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -2497,8 +2688,7 @@ const SummaryDetails = ({
     </div>
   );
 };
-// Modified Admin_PublishEvent component
-// Modified Admin_PublishEvent component with Save as Draft button
+
 const Admin_PublishEvent = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [eventDetails, setEventDetails] = useState(null);
