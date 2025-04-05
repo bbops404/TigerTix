@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { IoArrowBack } from "react-icons/io5";
+import axios from 'axios';
+
 
 const EditUserModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
@@ -33,7 +35,7 @@ const SuccessModal = ({ isOpen, onClose }) => {
   );
 };
 
-const Admin_EditUserPopUp = ({ showPopup, togglePopup }) => {
+const Admin_EditUserPopUp = ({ showPopup, togglePopup, selectedUserIds }) => {
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -44,28 +46,87 @@ const Admin_EditUserPopUp = ({ showPopup, togglePopup }) => {
   const [accountStatus, setAccountStatus] = useState("");
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isSuccessModalOpen, setSuccessModalOpen] = useState(false);
+  const token = "your-auth-token"; // Replace this with your actual token
 
-  const roles = ["Student", "Faculty", "Alumni"];
+  const roles = ["Student", "Employee", "Alumni", "Admin", "Support Staff"];
   const statuses = ["Active", "Restricted", "Suspended"];
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!username || !firstName || !lastName || !email || !password || !confirmPassword || !role || !accountStatus) {
-      alert("All fields are required!");
-      return;
-    }
-    if (password !== confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
+
+    
     setConfirmModalOpen(true);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setConfirmModalOpen(false);
-    setSuccessModalOpen(true);
+  
+    try {
+      // Loop through selected users and send update requests for each one
+      const updatePromises = selectedUserIds.map(async (userId) => {
+        try {
+          // Update status for each user
+          const token = sessionStorage.getItem('authToken'); // 
+          const statusResponse = await axios.put(
+            `http://localhost:5002/admin/users/${userId}/status`,
+            { status: accountStatus.toLowerCase() },
+            {
+              withCredentials: true,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+  
+          // Update role for each user
+          const roleResponse = await axios.put(
+            `http://localhost:5002/admin/users/${userId}/role`,
+            { role: role.toLowerCase() },
+            {
+              withCredentials: true,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+  
+          // Optionally handle the response to check for successful update
+          if (statusResponse.status === 200 && roleResponse.status === 200) {
+            console.log(`User ${userId} updated successfully`);
+            setSuccessModalOpen(true);
+          } else {
+            console.error(`Failed to update user ${userId}`);
+          }
+        } catch (error) {
+          console.error(`Error updating user ${userId}:`, error);
+          alert(`Failed to update user ${userId}. Please try again.`);
+        }
+      });
+  
+      // Wait for all update promises to resolve
+      await Promise.all(updatePromises);
+      
+      // Show success modal after all updates are complete
+  
+    } catch (error) {
+      console.error("Error updating users:", error);
+      
+      // Handle different types of errors
+      if (error.response) {
+        // Server responded with a status code outside of 2xx
+        alert(error.response.data.message || "Failed to update users.");
+      } else if (error.request) {
+        // Request was made but no response received
+        alert("No response from server. Check your connection.");
+      } else {
+        // Something else happened
+        alert("An unexpected error occurred.");
+      }
+    }
   };
-
+  
   return (
     showPopup && (
       <div className="fixed top-0 left-0 w-full h-full flex justify-center items-center bg-black bg-opacity-50 z-20">
@@ -76,30 +137,6 @@ const Admin_EditUserPopUp = ({ showPopup, togglePopup }) => {
           <h2 className="text-xl font-bold text-center mb-6">EDIT USER</h2>
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label>Username</label>
-                <input type="text" className="border p-2 rounded w-full" value={username} onChange={(e) => setUsername(e.target.value)} required />
-              </div>
-              <div>
-                <label>First Name</label>
-                <input type="text" className="border p-2 rounded w-full" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-              </div>
-              <div>
-                <label>Password</label>
-                <input type="password" className="border p-2 rounded w-full" value={password} onChange={(e) => setPassword(e.target.value)} required />
-              </div>
-              <div>
-                <label>Last Name</label>
-                <input type="text" className="border p-2 rounded w-full" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-              </div>
-              <div>
-                <label>Confirm Password</label>
-                <input type="password" className="border p-2 rounded w-full" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
-              </div>
-              <div>
-                <label>Email</label>
-                <input type="email" className="border p-2 rounded w-full" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              </div>
               <div>
                 <label>Role</label>
                 <select className="border p-2 rounded w-full" value={role} onChange={(e) => setRole(e.target.value)}>

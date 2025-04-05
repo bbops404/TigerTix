@@ -9,7 +9,7 @@ const authenticate = async (req, res, next) => {
     const token = req.cookies?.token; 
 
     if (!token) {
-      console.log("🚨 No token found in cookies!");
+      console.log("🚨 No token found in cookiessss!");
       return res.status(401).json({ message: "Unauthorized. No token provided." });
     }
 

@@ -21,11 +21,11 @@ const Sidebar = () => {
           <li
             className={`group flex flex-col items-center w-[100px] cursor-pointer transition-colors text-center p-3 
               ${
-                location.pathname.startsWith("/dashboard")
+                location.pathname.startsWith("/admin-dashboard")
                   ? "bg-[#997342]"
                   : "hover:bg-[#997342]"
               }`}
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/admin-dashboard")}
           >
             <div
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors
@@ -39,7 +39,7 @@ const Sidebar = () => {
               <Home size={20} />
             </div>
             <span className="text-white text-center w-full py-2">
-              Dashboard
+              Admin Dashboard
             </span>
           </li>
 

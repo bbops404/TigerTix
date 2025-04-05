@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const { Sequelize } = require("sequelize");
 const jwt = require("jsonwebtoken");
 const User = require("../models/Users");
+
 require("dotenv").config();
 
 const redis = new Redis();
@@ -164,7 +165,7 @@ exports.login = async (req, res) => {
 
         res.cookie("token", token, {
             httpOnly: true,
-            secure: false, // Ensure false for localhost
+            secure: process.env.NODE_ENV === "production", // Only send over HTTPS
             sameSite: "Lax",
             maxAge: 3600000, // 1 hour
         });

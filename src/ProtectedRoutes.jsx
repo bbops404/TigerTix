@@ -25,7 +25,6 @@ const ProtectedRoutes = ({ role }) => {
         return <Navigate to="/admin-dashboard" replace />;
     }
 
-       
     // ✅ If the user is authenticated and the role is admin, redirect to /admin-dashboard
     if (token && userRole === "admin") {
         console.warn("Admin authenticated. Redirecting to admin-dashboard.");
@@ -36,6 +35,8 @@ const ProtectedRoutes = ({ role }) => {
     if (allowedRoles.includes(userRole)) {
         console.warn(`User role "${userRole}" authorized. Redirecting to /home.`);
         return <Navigate to="/home" replace />;
+        console.warn(`Unauthorized access. User role: "${userRole}". Redirecting to admin-dashboard.`);
+        return <Navigate to="/admin-dashboard" replace />;
     }
 
 
