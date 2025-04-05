@@ -21,9 +21,23 @@ const ProtectedRoutes = ({ role }) => {
 
     // ✅ If the user's role isn't in the allowed list, restrict access
     if (!allowedRoles.includes(userRole)) {
-        console.warn(`Unauthorized access. User role: "${userRole}". Redirecting to home.`);
+        console.warn(`Unauthorized access. User role: "${userRole}". Redirecting admin dashboard.`);
+        return <Navigate to="/admin-dashboard" replace />;
+    }
+
+       
+    // ✅ If the user is authenticated and the role is admin, redirect to /admin-dashboard
+    if (token && userRole === "admin") {
+        console.warn("Admin authenticated. Redirecting to admin-dashboard.");
+        return <Navigate to="/admin-dashboard" replace />;
+    }
+
+    // ✅ If the user's role is in the allowed list, redirect to /home
+    if (allowedRoles.includes(userRole)) {
+        console.warn(`User role "${userRole}" authorized. Redirecting to /home.`);
         return <Navigate to="/home" replace />;
     }
+
 
     return <Outlet />; // ✅ If authorized, render the requested page
 };

@@ -110,7 +110,7 @@ function App() {
           {/* ========================== ADMIN PAGES ========================== */}
           <Route element={<ProtectedRoutes role="admin" />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/event-management" element={<AdminEventsManagment />} />
+          <Route path="/events" element={<AdminEventsManagment />} />
           <Route path="/reservations" element={<AdminReservations />} />
           <Route path="/users" element={<AdminUser />} />
           <Route path="/profile" element={<AdminProfile />} />
