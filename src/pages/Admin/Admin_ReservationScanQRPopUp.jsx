@@ -17,7 +17,8 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
   const WIDTH = 600;
 
   const startVideo = () => {
-    navigator.mediaDevices.getUserMedia({ video: true })
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
       .then((stream) => {
         setPlaying(true);
         setStream(stream);
@@ -32,7 +33,7 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
   const stopVideo = () => {
     setPlaying(false);
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       setStream(null);
     }
   };
@@ -49,7 +50,10 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
       }`}
     >
       <div className="bg-white rounded-lg shadow-lg w-[700px] h-[600px] p-6 relative flex flex-col items-center">
-        <button onClick={handleClose} className="absolute top-4 left-4 text-gray-600">
+        <button
+          onClick={handleClose}
+          className="absolute top-4 left-4 text-gray-600"
+        >
           <IoArrowBack size={20} />
         </button>
         <div className="flex-1 flex flex-col items-center justify-center w-full">
@@ -62,10 +66,14 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
                 autoPlay
                 className="app__videoFeed"
               ></video>
-              <p className="mt-2 text-lg text-[12px] text-black mt-2">Please show your QR code on the Webcam</p>
+              <p className="mt-2 text-lg text-[12px] text-black">
+                Please show your QR code on the Webcam
+              </p>
             </>
           ) : (
-            <p className="text-lg font-medium text-gray-700">Scanning stopped</p>
+            <p className="text-lg font-medium text-gray-700">
+              Scanning stopped
+            </p>
           )}
         </div>
         <button

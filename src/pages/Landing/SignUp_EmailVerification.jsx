@@ -8,9 +8,10 @@ import * as yup from "yup";
 import OtpInput from "../../components/OtpInput";
 import { useNavigate } from "react-router-dom";
 import axios from "axios"; // Import Axios
+
 import LoginPopup from "./LoginPopup";
 
-// Validation Schema (Only Email)
+
 const schema = yup
   .object({
     email: yup
@@ -28,6 +29,7 @@ const SignUp = () => {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
+
   const [knownOtp] = useState("1234"); // ✅ Hardcoded OTP for testing
   const navigate = useNavigate();
 
@@ -85,6 +87,7 @@ const SignUp = () => {
         }
       }
       
+
       alert("Failed to send OTP. Please try again.");
     }
   };
@@ -96,12 +99,14 @@ const SignUp = () => {
     if (otp.length === 6) {
       try {
         // Send OTP to backend for validation
+
         const response = await axios.post("http://localhost:5002/auth/validate-otp", { email, otp });
         
         if (response.status === 200) {
           alert("OTP confirmed successfully.");
           sessionStorage.setItem("verifiedEmail", email);
           navigate("/sign-up", { state: { email } });
+
         }
       } catch (error) {
         console.error("Error confirming OTP:", error);

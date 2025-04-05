@@ -3,12 +3,15 @@ import Header from "../../components/Header";
 import sample_image from "../../assets/sample_image.png";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 import axios from "axios";
+
 import LoginPopup from "./LoginPopup";
 import SuccessModal from "../../components/SuccessModal";
+
 
 const SignUp_UserDetails = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState("Select an option"); // Default text
+
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -19,6 +22,7 @@ const SignUp_UserDetails = () => {
   const dropdownRef = useRef(null);
  
 
+
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   const [loginPopup, setLoginPopup] = useState(false);  
@@ -26,6 +30,7 @@ const SignUp_UserDetails = () => {
     setLoginPopup((prev) => !prev);
   };
   const navigate = useNavigate();
+
 
   const options = ["Student", "Employee", "Alumni"];
   
@@ -41,7 +46,7 @@ const SignUp_UserDetails = () => {
 
   const userRole = role.toLowerCase();  
 
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const verifiedEmail = sessionStorage.getItem("verifiedEmail");
@@ -96,6 +101,7 @@ const SignUp_UserDetails = () => {
   
 
 
+
   return (
     <div>
       <Header showSearch={false} showAuthButtons={false} />
@@ -135,6 +141,7 @@ const SignUp_UserDetails = () => {
 
             {/* Form Inputs */}
             <form onSubmit={handleSubmit}>
+
              
               <div className="flex">
                 <div className="flex flex-col mr-2">
@@ -148,6 +155,7 @@ const SignUp_UserDetails = () => {
                     />
                   </div>
                 </div>
+
                 <div className="flex flex-col">
                   <p className="text-xs">First Name</p>
                   <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-md border-2 border-[#D8DADC] h-8 w-56">
@@ -260,6 +268,7 @@ const SignUp_UserDetails = () => {
   title="Success!"
   message="Your account has been created successfully. Please log in."
 />
+
 
 
             </form>

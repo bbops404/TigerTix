@@ -1,9 +1,8 @@
-
-
 import React, { useState } from "react";
-import { FaSearch, FaFilter, FaExclamationTriangle} from "react-icons/fa";
-import Sidebar_Admin from "../../components/SideBar_Admin";
-import Header_Admin from "../../components/Header_Admin";
+import { FaSearch, FaFilter, FaExclamationTriangle } from "react-icons/fa";
+import Header_Admin from "../../components/Admin/Header_Admin";
+import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
+
 import Admin_AddUserPopUp from "./Admin_AddUserPopUp";
 import Admin_EditUserPopUp from "./Admin_EditUserPopUp";
 import Admin_UserGenerateReport from "./Admin_UserGenerateReportPopUp";
@@ -18,11 +17,23 @@ const DeleteUserModal = ({ isOpen, onClose, onConfirm }) => {
           <FaExclamationTriangle className="text-[#C15454] text-xl" />
           <h2 className="text-2xl text-black font-bold">Delete User</h2>
         </div>
-        <p className="text-black mt-2">Are you sure you want to delete the selected user(s)?</p>
+        <p className="text-black mt-2">
+          Are you sure you want to delete the selected user(s)?
+        </p>
         <p className="text-gray-600 text-sm">You cannot undo this later.</p>
         <div className="flex justify-end gap-2 mt-10">
-          <button onClick={onClose} className="px-8 py-1 bg-gray-700 text-white rounded-2xl hover:scale-105">Cancel</button>
-          <button onClick={onConfirm} className="px-8 py-1 bg-[#C15454] text-white rounded-2xl hover:scale-105">Delete</button>
+          <button
+            onClick={onClose}
+            className="px-8 py-1 bg-gray-700 text-white rounded-2xl hover:scale-105"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-8 py-1 bg-[#C15454] text-white rounded-2xl hover:scale-105"
+          >
+            Delete
+          </button>
         </div>
       </div>
     </div>
@@ -35,16 +46,21 @@ const SuccessModal = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white p-6 rounded-xl w-[500px] h-[200px] shadow-lg">
         <h2 className="text-2xl text-black font-bold">User Deleted</h2>
-        <p className="text-gray-600 mt-2">The user has been successfully removed.</p>
+        <p className="text-gray-600 mt-2">
+          The user has been successfully removed.
+        </p>
         <div className="flex justify-end mt-4">
-          <button onClick={onClose} className="mt-10 px-8 py-1 bg-[#F09C32] text-white rounded-2xl hover:scale-105">OK</button>
+          <button
+            onClick={onClose}
+            className="mt-10 px-8 py-1 bg-[#F09C32] text-white rounded-2xl hover:scale-105"
+          >
+            OK
+          </button>
         </div>
       </div>
     </div>
   );
 };
-
-
 
 const Admin_UserPage = () => {
   const [showPopup, setShowPopup] = useState(false);
@@ -72,7 +88,6 @@ const Admin_UserPage = () => {
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
-
       {/* Header */}
       <Header_Admin />
 
@@ -91,23 +106,31 @@ const Admin_UserPage = () => {
               />
             </div>
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">Reset</button>
-              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
-              onClick={() => setShowFilter(!showFilter)}>
+              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
+                Reset
+              </button>
+              <button
+                className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                onClick={() => setShowFilter(!showFilter)}
+              >
                 <FaFilter /> Sort/Filter by
               </button>
             </div>
           </div>
 
           {/* Filter Component */}
-          {showFilter && <Admin_UserFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
+          {showFilter && (
+            <Admin_UserFilter
+              showFilter={showFilter}
+              setShowFilter={setShowFilter}
+            />
+          )}
 
           {/* Users Table */}
           <div className="overflow-x-auto rounded-md shadow-md max-h-[400px] overflow-y-auto">
             <table className="w-full text-black border-collapse border border-[#D6D3D3] bg-white rounded-md overflow-hidden">
               <thead className="sticky top-0 bg-[#F09C32] text-[#333333] text-center z-1">
                 <tr>
-
                   {[
                     "Username",
                     "Full Name",
@@ -122,13 +145,11 @@ const Admin_UserPage = () => {
                     >
                       {header}
                     </th>
-
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {[
-
                   {
                     username: "olivesangels",
                     fullName: "Olive's Angels",
@@ -257,7 +278,6 @@ const Admin_UserPage = () => {
                     status: "Active",
                     violations: 0,
                   },
-
                 ].map((user, index) => (
                   <tr
                     key={index}
@@ -292,22 +312,61 @@ const Admin_UserPage = () => {
 
           {/* Bottom Buttons */}
           <div className="flex justify-center gap-4 mt-6">
-            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={() => setShowEditUserPopup(true)}>Edit User</button>
-            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={openAddUserPopup}>Add User</button>
-            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={openDeleteModal}>Delete User/s</button>
-            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={openGenerateReportPopup}>Generate Report</button>
+            <button
+              className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+              onClick={() => setShowEditUserPopup(true)}
+            >
+              Edit User
+            </button>
+            <button
+              className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+              onClick={openAddUserPopup}
+            >
+              Add User
+            </button>
+            <button
+              className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+              onClick={openDeleteModal}
+            >
+              Delete User/s
+            </button>
+            <button
+              className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+              onClick={openGenerateReportPopup}
+            >
+              Generate Report
+            </button>
           </div>
         </div>
       </div>
 
       {/* Modals */}
-      <DeleteUserModal isOpen={showDeleteModal} onClose={closeDeleteModal} onConfirm={handleDeleteUser} />
+      <DeleteUserModal
+        isOpen={showDeleteModal}
+        onClose={closeDeleteModal}
+        onConfirm={handleDeleteUser}
+      />
       <SuccessModal isOpen={showSuccessModal} onClose={closeSuccessModal} />
 
       {/*PopUps*/}
-      {showPopup && <Admin_AddUserPopUp showPopup={showPopup} togglePopup={closeAddUserPopup} />}
-      {showEditUserPopup && <Admin_EditUserPopUp showPopup={showEditUserPopup} togglePopup={() => setShowEditUserPopup(false)} />}
-      {showGenerateReportPopup && <Admin_UserGenerateReport isOpen={showGenerateReportPopup} onClose={closeGenerateReportPopup} />}
+      {showPopup && (
+        <Admin_AddUserPopUp
+          showPopup={showPopup}
+          togglePopup={closeAddUserPopup}
+        />
+      )}
+      {showEditUserPopup && (
+        <Admin_EditUserPopUp
+          showPopup={showEditUserPopup}
+          togglePopup={() => setShowEditUserPopup(false)}
+        />
+      )}
+      {showGenerateReportPopup && (
+        <Admin_UserGenerateReport
+          isOpen={showGenerateReportPopup}
+          onClose={closeGenerateReportPopup}
+        />
+      )}
     </div>
   );
 };
