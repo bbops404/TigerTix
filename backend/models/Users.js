@@ -1,3 +1,4 @@
+
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 
@@ -56,6 +57,5 @@ const User = sequelize.define(
   }
 );
 
-// Remove the individual sync call
 
 module.exports = User;

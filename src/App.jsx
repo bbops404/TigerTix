@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import ProtectedRoutes from "./ProtectedRoutes"; // Import the protected route
 
 // ========================== FOOTER PAGES ==========================
 import Footer from "./components/Footer";
@@ -79,6 +80,8 @@ function App() {
           <Route path="/change-password" element={<UpdatePassword />} />
 
           {/* ========================== ENDUSER PAGES ========================== */}
+          <Route element={<ProtectedRoutes role={["student", "employee", "alumni"]} />}>
+
           <Route path="/home" element={<Home />} />
           <Route
             path="/event-ticketed-enduser"
@@ -94,12 +97,13 @@ function App() {
           <Route path="/confirm" element={<Home />} />
           <Route path="/reservation" element={<Reservation />} />
           <Route path="/reservation-receipt" element={<ReservationReceipt />} />
+          </Route>
 
           {/* ========================== ADMIN PAGES ========================== */}
-          <Route path="/dashboard" element={<AdminDashboard />} />
-          <Route path="/events" element={<AdminEventsManagment />} />
-          <Route path="/events/publish" element={<AdminPublishEvent />} />
-          <Route path="/events/schedule" element={<AdminPublishEvent />} />
+          <Route element={<ProtectedRoutes role="admin" />}>
+
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/event-management" element={<AdminEventsManagment />} />
           <Route path="/reservations" element={<AdminReservations />} />
           <Route path="/users" element={<AdminUser />} />
           <Route path="/profile" element={<AdminProfile />} />

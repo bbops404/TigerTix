@@ -5,11 +5,12 @@ const path = require("path");
 const fs = require("fs");
 const morgan = require("morgan");
 const cron = require("node-cron");
+const cookieParser = require("cookie-parser");
+const Redis = require("ioredis");
+
 const db = require("./models");
 const eventController = require("./controllers/eventController");
-
-const Redis = require("ioredis");
-const redisClient = new Redis(); // Default Redis connection on localhost:6379
+const pool = require('./config/db');
 
 const app = express();
 const port = process.env.PORT || 5002;
@@ -26,46 +27,59 @@ if (!fs.existsSync(eventsUploadsDir)) {
   console.log("Events uploads directory created successfully! 📁");
 }
 
+// Redis setup
+const redisClient = new Redis();
+redisClient.on("connect", () => console.log("Connected to Redis successfully! 🔥"));
+redisClient.on("error", (err) => console.error("Redis connection error:", err));
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: "Content-Type,Authorization",
+}));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-// Serve static files from uploads directory
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// Redis setup
-redisClient.on("connect", () => {
-  console.log("Connected to Redis successfully! 🔥");
-});
-redisClient.on("error", (err) => {
-  console.error("Redis connection error:", err);
+// Debug incoming cookies
+app.use((req, res, next) => {
+  console.log("🔍 Incoming Cookies:", req.cookies);
+  next();
 });
 
-// Make Redis client available to all routes
+// Make Redis available in req
 app.use((req, res, next) => {
   req.redisClient = redisClient;
   next();
 });
 
+// Serve static files from uploads directory
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // Routes
 const authRoutes = require("./routes/auth");
 app.use("/auth", authRoutes);
+
 const eventRoutes = require("./routes/eventRoutes");
 app.use("/api", eventRoutes);
 
-// Sample route to test API
+const privateroute = require("./routes/privateroute");
+app.use("/privateroute", privateroute);
+
+// Root route
 app.get("/", (req, res) => {
   res.send("Server is running! 🚀");
 });
 
-// Health check route
+// Health check
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server is running" });
 });
 
-// Schedule cron job to update event statuses (runs every hour)
+// Cron job to update event statuses every hour
 cron.schedule("0 * * * *", () => {
   console.log("Running scheduled task: updating event statuses");
   eventController.updateEventStatuses();
@@ -73,15 +87,12 @@ cron.schedule("0 * * * *", () => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  // Handle Multer errors
   if (err.name === "MulterError") {
     return res.status(400).json({
       success: false,
       message: `Upload error: ${err.message}`,
     });
   }
-
-  // Handle other errors
   console.error("Server error:", err);
   res.status(500).json({
     success: false,
@@ -90,7 +101,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Handle 404 errors
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -101,11 +112,12 @@ app.use((req, res) => {
 // Start server and sync database
 const startServer = async () => {
   try {
-    // Sync database tables
+    await db.sequelize.authenticate();
+    console.log('Sequelize connected successfully! 🎉');
+
     await db.sync({ force: false });
     console.log("Database tables synchronized successfully! 📊");
 
-    // Start server after database sync
     app.listen(port, () => {
       console.log(`Server running on port ${port} 🚀`);
     });
@@ -115,5 +127,4 @@ const startServer = async () => {
   }
 };
 
-// Initialize the server
 startServer();

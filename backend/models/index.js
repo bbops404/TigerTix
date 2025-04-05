@@ -1,3 +1,4 @@
+
 const { Sequelize } = require("sequelize");
 const sequelize = require("../config/db");
 
@@ -36,5 +37,6 @@ db.sync = async (options = {}) => {
     throw error;
   }
 };
+
 
 module.exports = db;

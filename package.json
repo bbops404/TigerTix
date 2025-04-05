@@ -12,15 +12,23 @@
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@ljharb/tsconfig": "^0.2.3",
+
     "@swc/core": "^1.11.16",
     "axios": "^1.7.9",
     "bcryptjs": "^3.0.2",
     "form-data": "^4.0.2",
-    "ioredis": "^5.5.0",
+
+    "cors": "^2.8.5",
+    "ioredis": "^5.6.0",
+    "jsonwebtoken": "^9.0.2",
+
     "lucide-react": "^0.475.0",
     "nodemailer": "^6.10.0",
     "pg": "^8.13.3",
     "pg-hstore": "^2.3.4",
+
+    "prop-types": "^15.8.1",
+
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.2",
@@ -37,6 +45,7 @@
     "@eslint/js": "^9.17.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",

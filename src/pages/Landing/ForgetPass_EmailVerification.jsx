@@ -7,6 +7,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import OtpInput from "../../components/OtpInput";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 // Validation Schema (Only Email)
 const schema = yup
@@ -25,7 +26,7 @@ const ForgetPassword = () => {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [knownOtp] = useState("1234"); // ✅ Hardcoded OTP for testing
+  const navigate = useNavigate();
 
   const {
     register,
@@ -35,34 +36,43 @@ const ForgetPassword = () => {
     resolver: yupResolver(schema),
   });
 
-  // Handler for email submission
-  const onSubmit = (data) => {
-    setEmail(data.email); // Store the email
-    setShowOtpInput(true); // Show OTP input
-    alert(`Verification code sent to: ${data.email}`);
-    // Send email to backend for verification
+  // Handler for email submission (Request OTP)
+  const onSubmit = async (data) => {
+    try {
+      setEmail(data.email); // Store email
+      const response = await axios.post("http://localhost:5002/auth/request-password-reset", {
+        email: data.email,
+      });
+      alert(response.data.message);
+      setShowOtpInput(true); // Show OTP input
+    } catch (error) {
+      alert(error.response?.data?.message || "Error sending OTP.");
+    }
   };
 
-  // Handler for confirming OTP via button click
-  const handleConfirmOtp = () => {
-    if (otp.length === 4) {
-      if (otp === knownOtp) {
-        console.log("Confirming OTP:", otp);
-        alert(`OTP ${otp} confirmed for ${email}`);
+  // Handler for confirming OTP
+  const handleConfirmOtp = async () => {
+    if (otp.length === 6) {
+      try {
+        const response = await axios.post("http://localhost:5002/auth/validate-password-reset-otp", {
+          email,
+          otp,
+        });
+        alert(response.data.message);
+        sessionStorage.setItem("verifiedEmail", email);
         navigate("/change-password");
-        // Send OTP to backend for validation
+      } catch (error) {
+        alert(error.response?.data?.message || "Invalid OTP.");
       }
     } else {
       alert("Please enter the complete OTP.");
     }
   };
-  const navigate = useNavigate();
 
   return (
     <div>
       <Header showSearch={false} showAuthButtons={false} />
       <div className="flex">
-        {/* Left Image Section */}
         <div className="w-1/2 relative h-[90vh]">
           <img
             src={sample_image}
@@ -72,7 +82,6 @@ const ForgetPassword = () => {
           <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(180deg,rgba(0,0,0,0.7),rgba(255,171,64,0.7))]"></div>
         </div>
 
-        {/* Right Form Section */}
         <div className="w-1/2 bg-custom_black flex flex-col items-center justify-center font-Poppins h-[90vh]">
           <p className="font-bold text-4xl text-white pb-7">Forget Password</p>
 
@@ -84,17 +93,14 @@ const ForgetPassword = () => {
                     Enter your UST Email
                   </p>
                   <p className="text-custom_black/85 mb-4 text-[12px] font-light">
-                    Enter your email address to receive a verification code and
-                    confirm that your email exists.
+                    Enter your email address to receive a verification code and confirm that your email exists.
                   </p>
                 </div>
 
-                {/* Email Form */}
                 <form
                   onSubmit={handleSubmit(onSubmit)}
                   className="flex flex-col items-center w-full"
                 >
-                  {/* Email Input Field */}
                   <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 border-[#D8DADC] h-10 w-72">
                     <MdEmail className="w-4 h-4 text-gray-400" />
                     <input
@@ -110,7 +116,6 @@ const ForgetPassword = () => {
                     </p>
                   )}
 
-                  {/* Submit Button */}
                   <button
                     type="submit"
                     className="bg-custom_black text-white px-4 py-2 mt-5 w-72 text-sm rounded-md font-semibold hover:text-custom_yellow transition-all duration-300 transform hover:scale-105"
@@ -122,21 +127,16 @@ const ForgetPassword = () => {
             ) : (
               <>
                 <div className="w-full ml-3 pr-4">
-                  <p className="text-custom_black/85 mb-2 text-lg font-semibold">
-                    Enter OTP
-                  </p>
+                  <p className="text-custom_black/85 mb-2 text-lg font-semibold">Enter OTP</p>
                   <p className="text-custom_black/85 mb-4 text-[12px] font-light">
-                    A verification code has been sent to{" "}
-                    <strong>{email}</strong>. Please enter the code below to
-                    confirm your email.
+                    A verification code has been sent to <strong>{email}</strong>. Please enter the code below to confirm your email.
                   </p>
                 </div>
 
                 <div className="flex justify-center">
-                  <OtpInput length={4} setOtp={setOtp} />
+                  <OtpInput length={6} setOtp={setOtp} />
                 </div>
 
-                {/* Confirm OTP Button */}
                 <div className="flex justify-center">
                   <button
                     onClick={handleConfirmOtp}
