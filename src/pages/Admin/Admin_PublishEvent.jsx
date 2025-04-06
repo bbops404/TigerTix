@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import {
@@ -7,21 +7,34 @@ import {
   EditIcon,
   CheckIcon,
   InfoIcon,
+  AlertCircleIcon,
 } from "lucide-react";
 
-// Modified EventDetails component with updated event types
-const EventDetails = ({ onNext }) => {
-  const [eventName, setEventName] = useState("");
-  const [eventDescription, setEventDescription] = useState("");
-  const [eventDate, setEventDate] = useState("");
-  const [venue, setVenue] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [eventCategory, setEventCategory] = useState("");
-  const [eventType, setEventType] = useState("ticketed"); // Changed default to "ticketed"
-  const [eventImage, setEventImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+// Modified EventDetails component with updated event types and validation
+const EventDetails = ({ onNext, initialData }) => {
+  const [eventName, setEventName] = useState(initialData?.eventName || "");
+  const [eventDescription, setEventDescription] = useState(
+    initialData?.eventDescription || ""
+  );
+  const [eventDate, setEventDate] = useState(initialData?.eventDate || "");
+  const [venue, setVenue] = useState(initialData?.venue || "");
+  const [startTime, setStartTime] = useState(initialData?.startTime || "");
+  const [endTime, setEndTime] = useState(initialData?.endTime || ""); // End time is optional
+  const [eventCategory, setEventCategory] = useState(
+    initialData?.eventCategory || ""
+  );
+  const [eventType, setEventType] = useState(
+    initialData?.eventType || "ticketed"
+  );
+  const [eventImage, setEventImage] = useState(initialData?.eventImage || null);
+  const [imagePreview, setImagePreview] = useState(
+    initialData?.imagePreview || null
+  );
+  const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
+
+  // Define today at component level so it's available throughout the component
+  const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -41,23 +54,66 @@ const EventDetails = ({ onNext }) => {
     fileInputRef.current.click();
   };
 
-  const handleSubmit = () => {
-    // Collect event details data without validation
-    const eventDetailsData = {
-      eventName,
-      eventDescription,
-      eventDate,
-      venue,
-      startTime,
-      endTime,
-      eventCategory,
-      eventType,
-      eventImage,
-      imagePreview, // Added to pass the preview to the summary
-    };
+  const validate = () => {
+    const newErrors = {};
 
-    // Pass data to parent
-    onNext(eventDetailsData);
+    if (!eventName.trim()) newErrors.eventName = "Event name is required";
+    if (!eventDescription.trim())
+      newErrors.eventDescription = "Event description is required";
+
+    // Enhanced date validation
+    if (!eventDate) {
+      newErrors.eventDate = "Event date is required";
+    } else {
+      // For ticketed and free events (not coming soon), validate that event date is in the future
+      if (eventType !== "coming_soon") {
+        if (eventDate < today) {
+          newErrors.eventDate = "Event date must be in the future";
+        }
+      }
+    }
+
+    if (!venue.trim()) newErrors.venue = "Venue is required";
+    if (!startTime) newErrors.startTime = "Start time is required";
+    if (!eventCategory) newErrors.eventCategory = "Category is required";
+    // End time is optional, so no validation needed
+
+    // Image is recommended but not required
+    if (!imagePreview && !eventImage) {
+      newErrors.image = "Event image is recommended";
+    }
+
+    // Validate time if both start and end time are provided
+    if (startTime && endTime && startTime >= endTime) {
+      newErrors.timeRange = "End time must be after start time";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (validate()) {
+      // Collect event details data
+      const eventDetailsData = {
+        eventName,
+        eventDescription,
+        eventDate,
+        venue,
+        startTime,
+        endTime,
+        eventCategory,
+        eventType,
+        eventImage,
+        imagePreview,
+      };
+
+      // Pass data to parent
+      onNext(eventDetailsData);
+    } else {
+      // Scroll to the top to show errors
+      window.scrollTo(0, 0);
+    }
   };
 
   return (
@@ -67,6 +123,21 @@ const EventDetails = ({ onNext }) => {
         Create a new event for the reservation system by filling out the
         necessary details. Ensure all information is accurate before saving.
       </p>
+
+      {Object.keys(errors).length > 0 && (
+        <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
+          <div className="flex items-center text-red-500 mb-2">
+            <AlertCircleIcon className="h-5 w-5 mr-2" />
+            <p className="font-semibold">Please fix the following errors:</p>
+          </div>
+          <ul className="list-disc pl-10 text-sm text-red-400">
+            {Object.values(errors).map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <hr className="border-t border-gray-600 my-4" />
 
       <div className="grid grid-cols-2 gap-1 items-start">
@@ -87,7 +158,9 @@ const EventDetails = ({ onNext }) => {
           ) : (
             <button
               onClick={handleUploadButtonClick}
-              className="bg-[#2E2E2E] text-[#FFAB40] text-sm font-semibold py-2 px-4 rounded-full"
+              className={`bg-[#2E2E2E] text-[#FFAB40] text-sm font-semibold py-2 px-4 rounded-full ${
+                errors.image ? "border-2 border-red-500" : ""
+              }`}
             >
               Upload Image
             </button>
@@ -101,7 +174,9 @@ const EventDetails = ({ onNext }) => {
               placeholder="Enter Event Name"
               value={eventName}
               onChange={(e) => setEventName(e.target.value)}
-              className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
+              className={`w-full bg-[#1E1E1E] border ${
+                errors.eventName ? "border-red-500" : "border-[#333333]"
+              } text-white rounded px-2 py-1.5 text-sm`}
             />
           </div>
           <div>
@@ -110,7 +185,9 @@ const EventDetails = ({ onNext }) => {
               placeholder="Enter Event Description"
               value={eventDescription}
               onChange={(e) => setEventDescription(e.target.value)}
-              className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm h-20 resize-none"
+              className={`w-full bg-[#1E1E1E] border ${
+                errors.eventDescription ? "border-red-500" : "border-[#333333]"
+              } text-white rounded px-2 py-1.5 text-sm h-20 resize-none`}
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -120,8 +197,17 @@ const EventDetails = ({ onNext }) => {
                 type="date"
                 value={eventDate}
                 onChange={(e) => setEventDate(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
+                min={eventType !== "coming_soon" ? today : undefined}
+                className={`w-full bg-[#1E1E1E] border ${
+                  errors.eventDate ? "border-red-500" : "border-[#333333]"
+                } text-white rounded px-2 py-1.5 text-sm`}
               />
+              {errors.eventDate && (
+                <p className="text-red-500 text-xs mt-1">
+                  <AlertCircleIcon className="h-3 w-3 inline mr-1" />
+                  {errors.eventDate}
+                </p>
+              )}
             </div>
             <div>
               <p className="text-[#FFAB40] text-sm mb-1">Event Venue:</p>
@@ -130,7 +216,9 @@ const EventDetails = ({ onNext }) => {
                 placeholder="Venue"
                 value={venue}
                 onChange={(e) => setVenue(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
+                className={`w-full bg-[#1E1E1E] border ${
+                  errors.venue ? "border-red-500" : "border-[#333333]"
+                } text-white rounded px-2 py-1.5 text-sm`}
               />
             </div>
           </div>
@@ -141,7 +229,9 @@ const EventDetails = ({ onNext }) => {
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
+                className={`w-full bg-[#1E1E1E] border ${
+                  errors.startTime ? "border-red-500" : "border-[#333333]"
+                } text-white rounded px-2 py-1.5 text-sm`}
               />
               <p className="text-white text-sm">to</p>
               <input
@@ -149,18 +239,28 @@ const EventDetails = ({ onNext }) => {
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
                 className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
+                placeholder="Optional"
               />
             </div>
+            <p className="text-[#B8B8B8] text-xs mt-1">End time is optional</p>
+            {errors.timeRange && (
+              <p className="text-red-500 text-xs mt-1">
+                <AlertCircleIcon className="h-3 w-3 inline mr-1" />
+                {errors.timeRange}
+              </p>
+            )}
           </div>
           <div>
             <p className="text-[#FFAB40] text-sm mb-1">Category:</p>
             <select
               value={eventCategory}
               onChange={(e) => setEventCategory(e.target.value)}
-              className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-2 py-1.5 text-sm"
+              className={`w-full bg-[#1E1E1E] border ${
+                errors.eventCategory ? "border-red-500" : "border-[#333333]"
+              } text-white rounded px-2 py-1.5 text-sm`}
             >
               <option value="">Select Category</option>
-              <option value="UST IPEA">UST IPEA</option>
+              <option value="IPEA Event">IPEA Event</option>
               <option value="UAAP">UAAP</option>
             </select>
           </div>
@@ -230,19 +330,36 @@ const EventDetails = ({ onNext }) => {
   );
 };
 
-// Modify TicketDetails component to handle the updated event types
-// Modified TicketDetails component with optional ticket tiers for Coming Soon
-const TicketDetails = ({ onBack, onNext, eventType }) => {
+// Modified TicketDetails component with validation
+const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
   const [totalTickets, setTotalTickets] = useState(0);
-  const [tierType, setTierType] = useState("freeSeating");
-  const [includeTiers, setIncludeTiers] = useState(false); // New state for Coming Soon option
+  const [tierType, setTierType] = useState(
+    initialData?.tierType || "freeSeating"
+  );
+  const [includeTiers, setIncludeTiers] = useState(
+    initialData?.hasTierInfo || false
+  );
+  const [errors, setErrors] = useState({});
 
-  // Free seating specific fields - using empty strings
-  const [freeSeatingTickets, setFreeSeatingTickets] = useState("");
-  const [freeSeatingPrice, setFreeSeatingPrice] = useState("");
-  const [freeSeatingMaxPerPerson, setFreeSeatingMaxPerPerson] = useState("");
+  // Free seating specific fields
+  const [freeSeatingTickets, setFreeSeatingTickets] = useState(
+    initialData?.freeSeating?.numberOfTickets
+      ? initialData.freeSeating.numberOfTickets.toString()
+      : ""
+  );
+  const [freeSeatingPrice, setFreeSeatingPrice] = useState(
+    initialData?.freeSeating?.price
+      ? initialData.freeSeating.price.toString()
+      : ""
+  );
+  const [freeSeatingMaxPerPerson, setFreeSeatingMaxPerPerson] = useState(
+    initialData?.freeSeating?.maxPerPerson
+      ? initialData.freeSeating.maxPerPerson.toString()
+      : ""
+  );
 
-  const [ticketTiers, setTicketTiers] = useState({
+  // Initialize ticket tiers
+  const defaultTiers = {
     "General Admission": {
       number: "",
       price: "",
@@ -278,8 +395,29 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
       checked: false,
       isEditing: false,
     },
+  };
+
+  // Setup initial ticket tiers from initialData if available
+  const [ticketTiers, setTicketTiers] = useState(() => {
+    if (initialData?.ticketTiers) {
+      return initialData.ticketTiers;
+    }
+    return defaultTiers;
   });
+
   const [editingTierName, setEditingTierName] = useState("");
+
+  // Recalculate total tickets when component mounts
+  useEffect(() => {
+    if (tierType === "ticketed") {
+      const total = Object.values(ticketTiers).reduce(
+        (sum, tier) =>
+          sum + (tier.checked && tier.number ? parseInt(tier.number) : 0),
+        0
+      );
+      setTotalTickets(total);
+    }
+  }, []);
 
   const handleNumberChange = (tier, value) => {
     // Allow only numbers
@@ -436,7 +574,59 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
     }
   };
 
+  // Validate the form
+  const validate = () => {
+    const newErrors = {};
+
+    if (eventType === "coming_soon" && !includeTiers) {
+      // No validation needed if coming soon with no tiers
+      return true;
+    }
+
+    if (tierType === "freeSeating") {
+      if (!freeSeatingTickets)
+        newErrors.freeSeatingTickets = "Number of tickets is required";
+      if (eventType !== "free" && !freeSeatingPrice)
+        newErrors.freeSeatingPrice = "Price is required";
+      if (!freeSeatingMaxPerPerson)
+        newErrors.freeSeatingMaxPerPerson =
+          "Max tickets per person is required";
+    } else {
+      // Check if at least one tier is selected
+      const anyTierChecked = Object.values(ticketTiers).some(
+        (tier) => tier.checked
+      );
+      if (!anyTierChecked) {
+        newErrors.tiers = "At least one ticket tier must be selected";
+      } else {
+        // Check if all selected tiers have required fields
+        let tierErrors = false;
+        Object.entries(ticketTiers).forEach(([tierName, tier]) => {
+          if (tier.checked) {
+            if (!tier.number) tierErrors = true;
+            if (eventType !== "free" && !tier.price) tierErrors = true;
+            if (!tier.maxPerPerson) tierErrors = true;
+          }
+        });
+
+        if (tierErrors) {
+          newErrors.tierDetails =
+            "All selected tiers must have number, price, and max per person values";
+        }
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = () => {
+    if (!validate()) {
+      // Scroll to the top to show errors
+      window.scrollTo(0, 0);
+      return;
+    }
+
     // For coming soon events - include tier information if selected
     if (eventType === "coming_soon") {
       if (includeTiers) {
@@ -531,8 +721,9 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
       };
     });
 
-    // Collect ticket information without validation
+    // Collect ticket information
     const ticketDetailsData = {
+      eventType: "ticketed",
       tierType,
       ticketTiers: parsedTicketTiers,
       totalTickets:
@@ -573,6 +764,20 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
         </div>
 
         <hr className="border-t border-gray-600 my-4" />
+
+        {Object.keys(errors).length > 0 && (
+          <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
+            <div className="flex items-center text-red-500 mb-2">
+              <AlertCircleIcon className="h-5 w-5 mr-2" />
+              <p className="font-semibold">Please fix the following errors:</p>
+            </div>
+            <ul className="list-disc pl-10 text-sm text-red-400">
+              {Object.values(errors).map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="bg-[#1E1E1E] p-4 rounded-lg mb-6">
           <div className="flex items-center mb-4">
@@ -651,8 +856,12 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                       onChange={(e) =>
                         handleFreeSeatingTicketsChange(e.target.value)
                       }
-                      className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                               border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                      className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                               border ${
+                                 errors.freeSeatingTickets
+                                   ? "border-red-500"
+                                   : "border-gray-600"
+                               } focus:outline-none focus:border-[#FFAB40]`}
                       placeholder="Total available tickets"
                     />
                   </div>
@@ -666,8 +875,12 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                       onChange={(e) =>
                         handleFreeSeatingPriceChange(e.target.value)
                       }
-                      className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                               border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                      className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                               border ${
+                                 errors.freeSeatingPrice
+                                   ? "border-red-500"
+                                   : "border-gray-600"
+                               } focus:outline-none focus:border-[#FFAB40]`}
                       placeholder="Ticket price"
                     />
                   </div>
@@ -681,8 +894,12 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                       onChange={(e) =>
                         handleFreeSeatingMaxPerPersonChange(e.target.value)
                       }
-                      className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                               border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                      className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                               border ${
+                                 errors.freeSeatingMaxPerPerson
+                                   ? "border-red-500"
+                                   : "border-gray-600"
+                               } focus:outline-none focus:border-[#FFAB40]`}
                       placeholder="Max tickets per person"
                     />
                   </div>
@@ -696,6 +913,24 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
             {/* Show ticket tiers for Coming Soon when selected */}
             {tierType === "ticketed" && (
               <>
+                {errors.tiers && (
+                  <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-4">
+                    <p className="text-red-400 text-sm flex items-center">
+                      <AlertCircleIcon className="h-4 w-4 mr-1" />
+                      {errors.tiers}
+                    </p>
+                  </div>
+                )}
+
+                {errors.tierDetails && (
+                  <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-4">
+                    <p className="text-red-400 text-sm flex items-center">
+                      <AlertCircleIcon className="h-4 w-4 mr-1" />
+                      {errors.tierDetails}
+                    </p>
+                  </div>
+                )}
+
                 <button
                   onClick={addNewTier}
                   className="flex items-center bg-white text-black px-4 py-2 rounded-full hover:bg-[#FFAB40] transition-colors text-sm ml-auto mb-6"
@@ -854,6 +1089,20 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
 
         <hr className="border-t border-gray-600 my-4" />
 
+        {Object.keys(errors).length > 0 && (
+          <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
+            <div className="flex items-center text-red-500 mb-2">
+              <AlertCircleIcon className="h-5 w-5 mr-2" />
+              <p className="font-semibold">Please fix the following errors:</p>
+            </div>
+            <ul className="list-disc pl-10 text-sm text-red-400">
+              {Object.values(errors).map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="bg-[#1E1E1E] p-4 rounded-lg mb-4">
           <div className="flex items-center mb-4">
             <InfoIcon className="h-5 w-5 mr-2 text-[#FFAB40]" />
@@ -870,8 +1119,12 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
               type="text"
               value={freeSeatingTickets}
               onChange={(e) => handleFreeSeatingTicketsChange(e.target.value)}
-              className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                       border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+              className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                       border ${
+                         errors.freeSeatingTickets
+                           ? "border-red-500"
+                           : "border-gray-600"
+                       } focus:outline-none focus:border-[#FFAB40]`}
               placeholder="Total available tickets"
             />
           </div>
@@ -886,8 +1139,12 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
               onChange={(e) =>
                 handleFreeSeatingMaxPerPersonChange(e.target.value)
               }
-              className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                       border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+              className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                       border ${
+                         errors.freeSeatingMaxPerPerson
+                           ? "border-red-500"
+                           : "border-gray-600"
+                       } focus:outline-none focus:border-[#FFAB40]`}
               placeholder="Max tickets per person"
             />
             <p className="text-[#B8B8B8] text-xs mt-2">
@@ -921,6 +1178,21 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
       </div>
 
       <hr className="border-t border-gray-600 my-4" />
+
+      {Object.keys(errors).length > 0 && (
+        <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
+          <div className="flex items-center text-red-500 mb-2">
+            <AlertCircleIcon className="h-5 w-5 mr-2" />
+            <p className="font-semibold">Please fix the following errors:</p>
+          </div>
+          <ul className="list-disc pl-10 text-sm text-red-400">
+            {Object.values(errors).map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="flex items-center mb-4">
         <div className="mr-4">
           <input
@@ -962,8 +1234,12 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                 type="text"
                 value={freeSeatingTickets}
                 onChange={(e) => handleFreeSeatingTicketsChange(e.target.value)}
-                className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                         border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                         border ${
+                           errors.freeSeatingTickets
+                             ? "border-red-500"
+                             : "border-gray-600"
+                         } focus:outline-none focus:border-[#FFAB40]`}
                 placeholder="Total available tickets"
               />
             </div>
@@ -973,8 +1249,12 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                 type="text"
                 value={freeSeatingPrice}
                 onChange={(e) => handleFreeSeatingPriceChange(e.target.value)}
-                className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                         border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                         border ${
+                           errors.freeSeatingPrice
+                             ? "border-red-500"
+                             : "border-gray-600"
+                         } focus:outline-none focus:border-[#FFAB40]`}
                 placeholder="Ticket price"
               />
             </div>
@@ -988,8 +1268,12 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
                 onChange={(e) =>
                   handleFreeSeatingMaxPerPersonChange(e.target.value)
                 }
-                className="bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
-                         border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                className={`bg-[#2C2C2C] text-white text-sm px-3 py-2 rounded 
+                         border ${
+                           errors.freeSeatingMaxPerPerson
+                             ? "border-red-500"
+                             : "border-gray-600"
+                         } focus:outline-none focus:border-[#FFAB40]`}
                 placeholder="Max tickets per person"
               />
             </div>
@@ -1003,6 +1287,24 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
       {/* Only show ticket tiers and Add Tier button when "Ticketed" is selected */}
       {tierType === "ticketed" && (
         <>
+          {errors.tiers && (
+            <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-4">
+              <p className="text-red-400 text-sm flex items-center">
+                <AlertCircleIcon className="h-4 w-4 mr-1" />
+                {errors.tiers}
+              </p>
+            </div>
+          )}
+
+          {errors.tierDetails && (
+            <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-4">
+              <p className="text-red-400 text-sm flex items-center">
+                <AlertCircleIcon className="h-4 w-4 mr-1" />
+                {errors.tierDetails}
+              </p>
+            </div>
+          )}
+
           <button
             onClick={addNewTier}
             className="flex items-center bg-white text-black px-4 py-2 rounded-full hover:bg-[#FFAB40] transition-colors text-sm ml-auto mb-6"
@@ -1132,20 +1434,66 @@ const TicketDetails = ({ onBack, onNext, eventType }) => {
     </div>
   );
 };
-
-// Update ClaimingDetails component to remove contact information sections
-const ClaimingDetails = ({ onBack, onNext, eventType }) => {
+// Updated ClaimingDetails component that skips for free and coming soon events
+const ClaimingDetails = ({
+  onBack,
+  onNext,
+  eventType,
+  initialData,
+  eventDate,
+}) => {
   const [claimingDate, setClaimingDate] = useState("");
   const [claimingStartTime, setClaimingStartTime] = useState("");
   const [claimingEndTime, setClaimingEndTime] = useState("");
   const [claimingVenue, setClaimingVenue] = useState("");
   const [maxReservations, setMaxReservations] = useState("");
-  const [dateList, setDateList] = useState([]);
+  const [dateList, setDateList] = useState(initialData?.availableDates || []);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [claimingSummaries, setClaimingSummaries] = useState([]);
+  const [claimingSummaries, setClaimingSummaries] = useState(
+    initialData?.claimingSummaries || []
+  );
   const [selectedSummary, setSelectedSummary] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [errors, setErrors] = useState({});
 
+  const validateClaimingDate = (claimingDate) => {
+    if (!claimingDate || !eventDate) return true; // Skip validation if either date is missing
+
+    const eventDateObj = new Date(eventDate);
+    const claimingDateObj = new Date(claimingDate);
+
+    // Claiming date must be before event date
+    return claimingDateObj < eventDateObj;
+  };
+
+  // Add notification for invalid claiming date
+  const getClaimingDateNotification = (claimingDate) => {
+    if (!claimingDate || !eventDate) return null;
+
+    const eventDateObj = new Date(eventDate);
+    const claimingDateObj = new Date(claimingDate);
+
+    // If claiming date is on or after event date
+    if (claimingDateObj >= eventDateObj) {
+      return {
+        type: "error",
+        message: "Claiming date must be before the event date",
+      };
+    }
+
+    // If claiming date is very close to the event date (less than 2 days before)
+    const daysBefore = Math.floor(
+      (eventDateObj - claimingDateObj) / (1000 * 60 * 60 * 24)
+    );
+    if (daysBefore < 2) {
+      return {
+        type: "warning",
+        message: `Claiming date is only ${daysBefore} day(s) before the event`,
+      };
+    }
+
+    return null;
+  };
   // Sync dates from summaries to datelist
   const syncDateListWithSummaries = (summaries) => {
     const uniqueDates = [...new Set(summaries.map((summary) => summary.date))];
@@ -1157,6 +1505,12 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
   // Add date to the list
   const addDate = () => {
     if (claimingDate && !dateList.includes(claimingDate)) {
+      // Check if claiming date is valid
+      if (!validateClaimingDate(claimingDate)) {
+        alert("Claiming date must be before the event date");
+        return;
+      }
+
       setDateList([...dateList, claimingDate]);
       setSelectedDate(claimingDate);
       setClaimingDate("");
@@ -1204,13 +1558,40 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
     setIsEditing(false);
   };
 
+  // Validate the claiming details
+  const validate = () => {
+    const newErrors = {};
+
+    // Only validate for ticketed events, skip validation for free and coming soon
+    if (eventType === "ticketed") {
+      if (claimingSummaries.length === 0) {
+        newErrors.summaries = "At least one claiming schedule must be added";
+      }
+
+      // Validate all claiming dates against event date
+      if (eventDate) {
+        const invalidClaimingDates = claimingSummaries.filter(
+          (summary) => !validateClaimingDate(summary.date)
+        );
+
+        if (invalidClaimingDates.length > 0) {
+          newErrors.claimingDates =
+            "All claiming dates must be before the event date";
+        }
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
   const handleSubmit = () => {
-    // For free or promotional events - simplified structure without contact info
+    // For free or promotional events - skip this step
     if (eventType === "free") {
+      // Simple empty structure since free events skip claiming details
       onNext({
         eventType: "free",
-        claimingSummaries: claimingSummaries,
-        availableDates: dateList,
+        claimingSummaries: [],
+        availableDates: [],
       });
       return;
     }
@@ -1225,7 +1606,14 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
       return;
     }
 
-    // For regular events with claiming details
+    // For regular ticketed events
+    if (!validate()) {
+      // Scroll to the top to show errors
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    // Sync dates from summaries to datelist
     syncDateListWithSummaries(claimingSummaries);
 
     // Check if there's unsaved data
@@ -1257,6 +1645,7 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
 
         setTimeout(() => {
           onNext({
+            eventType: "ticketed",
             claimingSummaries: updatedSummaries,
             availableDates: dateList,
           });
@@ -1266,47 +1655,39 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
     }
 
     onNext({
+      eventType: "ticketed",
       claimingSummaries: claimingSummaries,
       availableDates: dateList,
     });
   };
 
-  // For free/promotional events, show a simplified form
+  // For free/promotional events, show a simplified message
   if (eventType === "free") {
     return (
       <div className="w-full">
         <div className="mb-4">
           <p className="text-[#FFAB40] text-2xl font-semibold mb-1">
-            Claiming Details - Free Event
+            Free Event - No Claiming Details Required
           </p>
           <p className="text-xs text-[#B8B8B8]">
-            Set up claiming details for your free event tickets.
+            Free/Promotional events don't require claiming details.
           </p>
         </div>
 
         <hr className="border-t border-gray-600 my-3" />
 
-        <div className="flex flex-col space-y-3">
-          {!isEditing && (
-            <div className="flex items-center">
-              <p className="text-[#FFAB40] text-sm mr-2">Available Date:</p>
-              <input
-                type="date"
-                value={claimingDate}
-                onChange={(e) => setClaimingDate(e.target.value)}
-                className="w-auto max-w-xs bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
-              />
-              <button
-                onClick={addDate}
-                className="ml-2 bg-[#FFAB40] text-black px-3 py-1 rounded-full text-xs font-semibold"
-              >
-                Add to List
-              </button>
+        <div className="bg-[#1E1E1E] rounded-lg p-4 flex items-center justify-center">
+          <div className="text-center p-6">
+            <div className="mb-4 flex justify-center">
+              <InfoIcon className="h-12 w-12 text-[#FFAB40]" />
             </div>
-          )}
-
-          {/* Rest of the claiming form same as for regular events */}
-          {/* ... */}
+            <p className="text-white text-lg mb-2">Claiming Details Skipped</p>
+            <p className="text-[#B8B8B8] text-sm">
+              For free/promotional events, claiming details are not required.
+              Users can directly access or view the event without needing to
+              claim tickets.
+            </p>
+          </div>
         </div>
 
         <button
@@ -1323,11 +1704,10 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
       <div className="w-full">
         <div className="mb-4">
           <p className="text-[#FFAB40] text-2xl font-semibold mb-1">
-            Coming Soon - Claiming Details
+            Coming Soon - No Claiming Details Required
           </p>
           <p className="text-xs text-[#B8B8B8]">
-            This is a "Coming Soon" event. Claiming details will be added later
-            when the event is fully published.
+            "Coming Soon" events don't require claiming details yet.
           </p>
         </div>
 
@@ -1372,7 +1752,39 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
 
       <hr className="border-t border-gray-600 my-3" />
 
+      {Object.keys(errors).length > 0 && (
+        <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
+          <div className="flex items-center text-red-500 mb-2">
+            <AlertCircleIcon className="h-5 w-5 mr-2" />
+            <p className="font-semibold">Please fix the following errors:</p>
+          </div>
+          <ul className="list-disc pl-10 text-sm text-red-400">
+            {Object.values(errors).map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="flex flex-col space-y-3">
+        {eventDate && (
+          <div className="mb-4 p-3 bg-[#1E1E1E] border-l-4 border-[#FFAB40] rounded-r">
+            <p className="flex items-center text-sm">
+              <InfoIcon className="h-4 w-4 mr-2 text-[#FFAB40]" />
+              <span className="text-white">
+                Event Date:{" "}
+                <span className="text-[#FFAB40]">
+                  {new Date(eventDate).toLocaleDateString()}
+                </span>
+              </span>
+            </p>
+            <p className="text-xs text-[#B8B8B8] ml-6 mt-1">
+              All ticket claiming dates must be scheduled before this date
+            </p>
+          </div>
+        )}
+
+        {/* When adding claiming date, show notification if needed */}
         {!isEditing && (
           <div className="flex items-center">
             <p className="text-[#FFAB40] text-sm mr-2">Available Date:</p>
@@ -1380,6 +1792,7 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
               type="date"
               value={claimingDate}
               onChange={(e) => setClaimingDate(e.target.value)}
+              max={eventDate} // Set max date to event date
               className="w-auto max-w-xs bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
             />
             <button
@@ -1388,6 +1801,20 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
             >
               Add to List
             </button>
+
+            {/* Show notification if needed */}
+            {claimingDate && getClaimingDateNotification(claimingDate) && (
+              <div
+                className={`ml-2 text-xs ${
+                  getClaimingDateNotification(claimingDate).type === "error"
+                    ? "text-red-400"
+                    : "text-yellow-400"
+                }`}
+              >
+                <AlertCircleIcon className="inline h-3 w-3 mr-1" />
+                {getClaimingDateNotification(claimingDate).message}
+              </div>
+            )}
           </div>
         )}
 
@@ -1762,35 +2189,166 @@ const ClaimingDetails = ({ onBack, onNext, eventType }) => {
     </div>
   );
 };
+// Enhanced AvailabilityDetails component with validation
+const AvailabilityDetails = ({
+  onBack,
+  onNext,
+  eventType,
+  initialData,
+  eventDate,
+}) => {
+  // Initialize with existing data if available
+  // Display period state
+  const [displayStartDate, setDisplayStartDate] = useState(
+    initialData?.displayPeriod?.startDate || ""
+  );
+  const [displayEndDate, setDisplayEndDate] = useState(
+    initialData?.displayPeriod?.endDate || ""
+  );
+  const [displayStartTime, setDisplayStartTime] = useState(
+    initialData?.displayPeriod?.startTime || ""
+  );
+  const [displayEndTime, setDisplayEndTime] = useState(
+    initialData?.displayPeriod?.endTime || ""
+  );
 
-// Modified AvailabilityDetails component
-const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  // Reservation period state - only for ticketed events
+  const [reservationStartDate, setReservationStartDate] = useState(
+    initialData?.reservationPeriod?.startDate || ""
+  );
+  const [reservationEndDate, setReservationEndDate] = useState(
+    initialData?.reservationPeriod?.endDate || ""
+  );
+  const [reservationStartTime, setReservationStartTime] = useState(
+    initialData?.reservationPeriod?.startTime || ""
+  );
+  const [reservationEndTime, setReservationEndTime] = useState(
+    initialData?.reservationPeriod?.endTime || ""
+  );
+
+  // Error state
+  const [errors, setErrors] = useState({});
+  // Warnings for date issues that don't block submission but should be noted
+  const [warnings, setWarnings] = useState({});
+
+  // Validate the availability details
+  const validate = () => {
+    const newErrors = {};
+    const newWarnings = {};
+
+    // Validate display period for all event types
+    if (!displayStartDate)
+      newErrors.displayStartDate = "Start display date is required";
+    if (!displayEndDate)
+      newErrors.displayEndDate = "End display date is required";
+
+    // Validate display times
+    if (!displayStartTime)
+      newErrors.displayStartTime = "Start display time is required";
+    if (!displayEndTime)
+      newErrors.displayEndTime = "End display time is required";
+
+    // For ticketed events only, validate reservation period
+    if (eventType === "ticketed") {
+      if (!reservationStartDate)
+        newErrors.reservationStartDate = "Start reservation date is required";
+      if (!reservationEndDate)
+        newErrors.reservationEndDate = "End reservation date is required";
+      if (!reservationStartTime)
+        newErrors.reservationStartTime = "Start reservation time is required";
+      if (!reservationEndTime)
+        newErrors.reservationEndTime = "End reservation time is required";
+    }
+
+    // Date range validation
+    if (
+      displayStartDate &&
+      displayEndDate &&
+      displayStartDate > displayEndDate
+    ) {
+      newErrors.displayDateRange = "Display end date must be after start date";
+    }
+
+    if (
+      eventType === "ticketed" &&
+      reservationStartDate &&
+      reservationEndDate &&
+      reservationStartDate > reservationEndDate
+    ) {
+      newErrors.reservationDateRange =
+        "Reservation end date must be after start date";
+    }
+
+    // New validation: Ensure display and reservation periods are before the event date
+    if (
+      displayEndDate &&
+      eventDate &&
+      new Date(displayEndDate) > new Date(eventDate)
+    ) {
+      newErrors.displayEndDateEvent =
+        "Display end date must be before or on the event date";
+    }
+
+    if (
+      eventType === "ticketed" &&
+      reservationEndDate &&
+      eventDate &&
+      new Date(reservationEndDate) > new Date(eventDate)
+    ) {
+      newErrors.reservationEndDateEvent =
+        "Reservation end date must be before or on the event date";
+    }
+
+    setErrors(newErrors);
+    setWarnings(newWarnings);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = () => {
-    // For all event types, use simplified data structure
+    if (!validate()) {
+      // Scroll to the top to show errors
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    // For all event types, use expanded data structure with display period
     const availabilityData = {
       eventType,
-      period: {
-        startDate: startDate || new Date().toISOString().split("T")[0], // default to today
+      displayPeriod: {
+        startDate: displayStartDate || new Date().toISOString().split("T")[0], // default to today
         endDate:
-          endDate ||
-          new Date(new Date().setMonth(new Date().getMonth() + 1))
+          displayEndDate ||
+          new Date(new Date().setMonth(new Date().getMonth() + 3))
             .toISOString()
-            .split("T")[0], // default to a month from now
-        startTime: startTime || "08:00",
-        endTime: endTime || "20:00",
+            .split("T")[0], // default to three months from now
+        startTime: displayStartTime || "00:00", // default to 12:00 AM
+        endTime: displayEndTime || "23:59", // default to 11:59 PM
       },
     };
+
+    // Only add reservation period for ticketed events
+    if (eventType === "ticketed") {
+      availabilityData.reservationPeriod = {
+        startDate:
+          reservationStartDate ||
+          displayStartDate ||
+          new Date().toISOString().split("T")[0],
+        endDate:
+          reservationEndDate ||
+          displayEndDate ||
+          new Date(new Date().setMonth(new Date().getMonth() + 3))
+            .toISOString()
+            .split("T")[0],
+        startTime: reservationStartTime || "08:00",
+        endTime: reservationEndTime || "20:00",
+      };
+    }
 
     // Pass the data to the parent component
     onNext(availabilityData);
   };
 
-  // For free events, show a modified form
+  // For free events, show a simplified form with only display period
   if (eventType === "free") {
     return (
       <div className="w-full">
@@ -1807,6 +2365,36 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
 
         <hr className="border-t border-gray-600 my-4" />
 
+        {Object.keys(errors).length > 0 && (
+          <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
+            <div className="flex items-center text-red-500 mb-2">
+              <AlertCircleIcon className="h-5 w-5 mr-2" />
+              <p className="font-semibold">Please fix the following errors:</p>
+            </div>
+            <ul className="list-disc pl-10 text-sm text-red-400">
+              {Object.values(errors).map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {Object.keys(warnings).length > 0 && (
+          <div className="bg-yellow-900/30 border border-yellow-500 rounded-md p-3 mb-4">
+            <div className="flex items-center text-yellow-500 mb-2">
+              <AlertCircleIcon className="h-5 w-5 mr-2" />
+              <p className="font-semibold">
+                Warnings (you can still continue):
+              </p>
+            </div>
+            <ul className="list-disc pl-10 text-sm text-yellow-400">
+              {Object.values(warnings).map((warning, index) => (
+                <li key={index}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="flex gap-6">
           <div className="w-1/3">
             <p className="text-[#FFAB40] text-sm mb-2">Event Preview</p>
@@ -1820,57 +2408,118 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
                 </div>
               </div>
             </div>
+
+            {/* Display event date reference */}
+            {eventDate && (
+              <div className="mt-3 p-2 bg-[#2A2A2A] rounded border border-[#FFAB40]">
+                <p className="text-sm text-white">
+                  <span className="text-[#FFAB40]">Event Date:</span>{" "}
+                  {new Date(eventDate).toLocaleDateString()}
+                </p>
+                <p className="text-xs text-[#B8B8B8] mt-1">
+                  All display periods should end before this date
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="w-2/3 space-y-4">
-            <div className="space-y-3">
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">Start Date:</p>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-              </div>
+            {/* Display Period Section */}
+            <div className="border border-gray-700 rounded-lg p-4">
+              <p className="text-[#FFAB40] font-medium mb-3">Display Period</p>
+              <div className="space-y-3">
+                {errors.displayDateRange && (
+                  <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-2">
+                    <p className="text-red-400 text-sm flex items-center">
+                      <AlertCircleIcon className="h-4 w-4 mr-1" />
+                      {errors.displayDateRange}
+                    </p>
+                  </div>
+                )}
 
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">End Date:</p>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-              </div>
+                {errors.displayEndDateEvent && (
+                  <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-2">
+                    <p className="text-red-400 text-sm flex items-center">
+                      <AlertCircleIcon className="h-4 w-4 mr-1" />
+                      {errors.displayEndDateEvent}
+                    </p>
+                  </div>
+                )}
 
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">
-                  Daily Opening Time:
+                <div className="flex gap-4">
+                  <div className="w-1/2">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      Start Display Date:
+                    </p>
+                    <input
+                      type="date"
+                      value={displayStartDate}
+                      onChange={(e) => setDisplayStartDate(e.target.value)}
+                      className={`w-full bg-[#1E1E1E] border ${
+                        errors.displayStartDate
+                          ? "border-red-500"
+                          : "border-[#333333]"
+                      } text-white rounded px-3 py-2 text-sm`}
+                    />
+                  </div>
+                  <div className="w-1/2">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      Start Display Time:
+                    </p>
+                    <input
+                      type="time"
+                      value={displayStartTime}
+                      onChange={(e) => setDisplayStartTime(e.target.value)}
+                      className={`w-full bg-[#1E1E1E] border ${
+                        errors.displayStartTime
+                          ? "border-red-500"
+                          : "border-[#333333]"
+                      } text-white rounded px-3 py-2 text-sm`}
+                      placeholder="00:00"
+                    />
+                  </div>
+                </div>
+                <p className="text-[#B8B8B8] text-xs mt-1 mb-3">
+                  When should this event appear on the platform?
                 </p>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-                <p className="text-[#B8B8B8] text-xs mt-1">
-                  Time when reservations open each day
-                </p>
-              </div>
 
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">
-                  Daily Closing Time:
-                </p>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-                <p className="text-[#B8B8B8] text-xs mt-1">
-                  Time when reservations close each day
+                <div className="flex gap-4">
+                  <div className="w-1/2">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      End Display Date:
+                    </p>
+                    <input
+                      type="date"
+                      value={displayEndDate}
+                      onChange={(e) => setDisplayEndDate(e.target.value)}
+                      max={eventDate} // Ensure date picker doesn't allow dates after event
+                      className={`w-full bg-[#1E1E1E] border ${
+                        errors.displayEndDate || errors.displayEndDateEvent
+                          ? "border-red-500"
+                          : "border-[#333333]"
+                      } text-white rounded px-3 py-2 text-sm`}
+                    />
+                  </div>
+                  <div className="w-1/2">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      End Display Time:
+                    </p>
+                    <input
+                      type="time"
+                      value={displayEndTime}
+                      onChange={(e) => setDisplayEndTime(e.target.value)}
+                      className={`w-full bg-[#1E1E1E] border ${
+                        errors.displayEndTime
+                          ? "border-red-500"
+                          : "border-[#333333]"
+                      } text-white rounded px-3 py-2 text-sm`}
+                      placeholder="23:59"
+                    />
+                  </div>
+                </div>
+                <p className="text-[#B8B8B8] text-xs mt-1 mb-3">
+                  When should this event stop showing on the platform? (Must be
+                  before the event date)
                 </p>
               </div>
             </div>
@@ -1878,7 +2527,8 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
         </div>
 
         <p className="text-[#B8B8B8] text-xs mt-4 border-t border-gray-600 pt-4">
-          Note: This is a free event. All tickets will be available at no cost.
+          Note: Free events don't require a reservation period. Users can simply
+          view the event during the display period.
         </p>
 
         {/* Hidden button for parent component to trigger submit */}
@@ -1890,7 +2540,7 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
     );
   }
 
-  // For coming soon events, also show a modified form
+  // For coming soon events, show only display period
   if (eventType === "coming_soon") {
     return (
       <div className="w-full">
@@ -1906,6 +2556,20 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
         </div>
 
         <hr className="border-t border-gray-600 my-4" />
+
+        {Object.keys(errors).length > 0 && (
+          <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
+            <div className="flex items-center text-red-500 mb-2">
+              <AlertCircleIcon className="h-5 w-5 mr-2" />
+              <p className="font-semibold">Please fix the following errors:</p>
+            </div>
+            <ul className="list-disc pl-10 text-sm text-red-400">
+              {Object.values(errors).map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="flex gap-6">
           <div className="w-1/3">
@@ -1923,32 +2587,90 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
           </div>
 
           <div className="w-2/3 space-y-4">
-            <div className="space-y-3">
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">Start Date:</p>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-                <p className="text-xs text-[#B8B8B8] mt-1">
-                  When should this "Coming Soon" event start appearing?
-                </p>
-              </div>
+            <div className="border border-gray-700 rounded-lg p-4">
+              <p className="text-[#FFAB40] font-medium mb-3">Display Period</p>
+              <div className="space-y-3">
+                {errors.displayDateRange && (
+                  <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-2">
+                    <p className="text-red-400 text-sm flex items-center">
+                      <AlertCircleIcon className="h-4 w-4 mr-1" />
+                      {errors.displayDateRange}
+                    </p>
+                  </div>
+                )}
 
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">End Date:</p>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-                />
-                <p className="text-xs text-[#B8B8B8] mt-1">
-                  When should the "Coming Soon" notice be removed if not
-                  updated?
-                </p>
+                <div className="flex gap-4">
+                  <div className="w-1/2">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      Start Display Date:
+                    </p>
+                    <input
+                      type="date"
+                      value={displayStartDate}
+                      onChange={(e) => setDisplayStartDate(e.target.value)}
+                      className={`w-full bg-[#1E1E1E] border ${
+                        errors.displayStartDate
+                          ? "border-red-500"
+                          : "border-[#333333]"
+                      } text-white rounded px-3 py-2 text-sm`}
+                    />
+                    <p className="text-xs text-[#B8B8B8] mt-1">
+                      When should this "Coming Soon" event start appearing?
+                    </p>
+                  </div>
+                  <div className="w-1/2">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      Start Display Time:
+                    </p>
+                    <input
+                      type="time"
+                      value={displayStartTime}
+                      onChange={(e) => setDisplayStartTime(e.target.value)}
+                      className={`w-full bg-[#1E1E1E] border ${
+                        errors.displayStartTime
+                          ? "border-red-500"
+                          : "border-[#333333]"
+                      } text-white rounded px-3 py-2 text-sm`}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="w-1/2">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      End Display Date:
+                    </p>
+                    <input
+                      type="date"
+                      value={displayEndDate}
+                      onChange={(e) => setDisplayEndDate(e.target.value)}
+                      className={`w-full bg-[#1E1E1E] border ${
+                        errors.displayEndDate
+                          ? "border-red-500"
+                          : "border-[#333333]"
+                      } text-white rounded px-3 py-2 text-sm`}
+                    />
+                    <p className="text-xs text-[#B8B8B8] mt-1">
+                      When should the "Coming Soon" notice be removed if not
+                      updated?
+                    </p>
+                  </div>
+                  <div className="w-1/2">
+                    <p className="text-[#FFAB40] text-sm mb-1">
+                      End Display Time:
+                    </p>
+                    <input
+                      type="time"
+                      value={displayEndTime}
+                      onChange={(e) => setDisplayEndTime(e.target.value)}
+                      className={`w-full bg-[#1E1E1E] border ${
+                        errors.displayEndTime
+                          ? "border-red-500"
+                          : "border-[#333333]"
+                      } text-white rounded px-3 py-2 text-sm`}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1968,22 +2690,49 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
     );
   }
 
-  // For ticketed events - full form
+  // For ticketed events - full form with both periods
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-4">
         <div>
           <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
-            Event Availability Period
+            Event Availability
           </p>
           <p className="text-[13px] text-[#B8B8B8] mb-4">
-            Set when the event should appear on the platform and be available
-            for reservations
+            Set display and reservation periods for this event
           </p>
         </div>
       </div>
 
       <hr className="border-t border-gray-600 my-4" />
+
+      {Object.keys(errors).length > 0 && (
+        <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
+          <div className="flex items-center text-red-500 mb-2">
+            <AlertCircleIcon className="h-5 w-5 mr-2" />
+            <p className="font-semibold">Please fix the following errors:</p>
+          </div>
+          <ul className="list-disc pl-10 text-sm text-red-400">
+            {Object.values(errors).map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {Object.keys(warnings).length > 0 && (
+        <div className="bg-yellow-900/30 border border-yellow-500 rounded-md p-3 mb-4">
+          <div className="flex items-center text-yellow-500 mb-2">
+            <AlertCircleIcon className="h-5 w-5 mr-2" />
+            <p className="font-semibold">Warnings (you can still continue):</p>
+          </div>
+          <ul className="list-disc pl-10 text-sm text-yellow-400">
+            {Object.values(warnings).map((warning, index) => (
+              <li key={index}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex gap-6">
         {/* Event Picture Preview */}
@@ -1992,55 +2741,232 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
           <div className="w-full aspect-square bg-[#1E1E1E] border-2 border-dashed border-[#FFAB40] rounded-lg flex items-center justify-center overflow-hidden">
             <div className="text-[#B8B8B8] text-sm">Event Image Preview</div>
           </div>
+
+          {/* Display event date reference */}
+          {eventDate && (
+            <div className="mt-3 p-2 bg-[#2A2A2A] rounded border border-[#FFAB40]">
+              <p className="text-sm text-white">
+                <span className="text-[#FFAB40]">Event Date:</span>{" "}
+                {new Date(eventDate).toLocaleDateString()}
+              </p>
+              <p className="text-xs text-[#B8B8B8] mt-1">
+                All display and reservation periods should end before this date
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Availability Period Inputs */}
         <div className="w-2/3 space-y-4">
-          <div className="space-y-3">
-            <div>
-              <p className="text-[#FFAB40] text-sm mb-1">Start Date:</p>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-              />
-            </div>
+          {/* Display Period Section */}
+          <div className="border border-gray-700 rounded-lg p-4">
+            <p className="text-[#FFAB40] font-medium mb-3">Display Period</p>
+            <div className="space-y-3">
+              {errors.displayDateRange && (
+                <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-2">
+                  <p className="text-red-400 text-sm flex items-center">
+                    <AlertCircleIcon className="h-4 w-4 mr-1" />
+                    {errors.displayDateRange}
+                  </p>
+                </div>
+              )}
 
-            <div>
-              <p className="text-[#FFAB40] text-sm mb-1">End Date:</p>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-              />
-            </div>
+              {errors.displayEndDateEvent && (
+                <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-2">
+                  <p className="text-red-400 text-sm flex items-center">
+                    <AlertCircleIcon className="h-4 w-4 mr-1" />
+                    {errors.displayEndDateEvent}
+                  </p>
+                </div>
+              )}
 
-            <div>
-              <p className="text-[#FFAB40] text-sm mb-1">Daily Opening Time:</p>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-              />
-              <p className="text-[#B8B8B8] text-xs mt-1">
-                Time when reservations open each day
+              <div className="flex gap-4">
+                <div className="w-1/2">
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    Start Display Date:
+                  </p>
+                  <input
+                    type="date"
+                    value={displayStartDate}
+                    onChange={(e) => setDisplayStartDate(e.target.value)}
+                    className={`w-full bg-[#1E1E1E] border ${
+                      errors.displayStartDate
+                        ? "border-red-500"
+                        : "border-[#333333]"
+                    } text-white rounded px-3 py-2 text-sm`}
+                  />
+                </div>
+                <div className="w-1/2">
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    Start Display Time:
+                  </p>
+                  <input
+                    type="time"
+                    value={displayStartTime}
+                    onChange={(e) => setDisplayStartTime(e.target.value)}
+                    className={`w-full bg-[#1E1E1E] border ${
+                      errors.displayStartTime
+                        ? "border-red-500"
+                        : "border-[#333333]"
+                    } text-white rounded px-3 py-2 text-sm`}
+                    placeholder="00:00"
+                  />
+                </div>
+              </div>
+              <p className="text-[#B8B8B8] text-xs mt-1 mb-3">
+                When should this event appear on the platform?
+              </p>
+
+              <div className="flex gap-4">
+                <div className="w-1/2">
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    End Display Date:
+                  </p>
+                  <input
+                    type="date"
+                    value={displayEndDate}
+                    onChange={(e) => setDisplayEndDate(e.target.value)}
+                    max={eventDate} // Ensure date picker doesn't allow dates after event
+                    className={`w-full bg-[#1E1E1E] border ${
+                      errors.displayEndDate || errors.displayEndDateEvent
+                        ? "border-red-500"
+                        : "border-[#333333]"
+                    } text-white rounded px-3 py-2 text-sm`}
+                  />
+                </div>
+                <div className="w-1/2">
+                  <p className="text-[#FFAB40] text-sm mb-1">
+                    End Display Time:
+                  </p>
+                  <input
+                    type="time"
+                    value={displayEndTime}
+                    onChange={(e) => setDisplayEndTime(e.target.value)}
+                    className={`w-full bg-[#1E1E1E] border ${
+                      errors.displayEndTime
+                        ? "border-red-500"
+                        : "border-[#333333]"
+                    } text-white rounded px-3 py-2 text-sm`}
+                    placeholder="23:59"
+                  />
+                </div>
+              </div>
+              <p className="text-[#B8B8B8] text-xs mt-1 mb-3">
+                When should this event stop showing on the platform? (Must be
+                before the event date)
               </p>
             </div>
+          </div>
 
-            <div>
-              <p className="text-[#FFAB40] text-sm mb-1">Daily Closing Time:</p>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-2 text-sm"
-              />
-              <p className="text-[#B8B8B8] text-xs mt-1">
-                Time when reservations close each day
-              </p>
+          {/* Reservation Period Section */}
+          <div className="border border-gray-700 rounded-lg p-4">
+            <p className="text-[#FFAB40] font-medium mb-3">
+              Reservation Period
+            </p>
+            <div className="space-y-3">
+              {errors.reservationDateRange && (
+                <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-2">
+                  <p className="text-red-400 text-sm flex items-center">
+                    <AlertCircleIcon className="h-4 w-4 mr-1" />
+                    {errors.reservationDateRange}
+                  </p>
+                </div>
+              )}
+
+              {errors.reservationEndDateEvent && (
+                <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-2">
+                  <p className="text-red-400 text-sm flex items-center">
+                    <AlertCircleIcon className="h-4 w-4 mr-1" />
+                    {errors.reservationEndDateEvent}
+                  </p>
+                </div>
+              )}
+
+              {warnings.shortReservationPeriod && (
+                <div className="bg-yellow-900/20 border border-yellow-500 rounded-md p-2 mb-2">
+                  <p className="text-yellow-400 text-sm flex items-center">
+                    <AlertCircleIcon className="h-4 w-4 mr-1" />
+                    {warnings.shortReservationPeriod}
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-[#FFAB40] text-sm mb-1">
+                  Start Reservation Date:
+                </p>
+                <input
+                  type="date"
+                  value={reservationStartDate}
+                  onChange={(e) => setReservationStartDate(e.target.value)}
+                  className={`w-full bg-[#1E1E1E] border ${
+                    errors.reservationStartDate
+                      ? "border-red-500"
+                      : "border-[#333333]"
+                  } text-white rounded px-3 py-2 text-sm`}
+                />
+                <p className="text-[#B8B8B8] text-xs mt-1">
+                  When can users start making reservations?
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[#FFAB40] text-sm mb-1">
+                  End Reservation Date:
+                </p>
+                <input
+                  type="date"
+                  value={reservationEndDate}
+                  onChange={(e) => setReservationEndDate(e.target.value)}
+                  max={eventDate} // Ensure date picker doesn't allow dates after event
+                  className={`w-full bg-[#1E1E1E] border ${
+                    errors.reservationEndDate || errors.reservationEndDateEvent
+                      ? "border-red-500"
+                      : "border-[#333333]"
+                  } text-white rounded px-3 py-2 text-sm`}
+                />
+                <p className="text-[#B8B8B8] text-xs mt-1">
+                  When do reservations close? (Must be before the event date)
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[#FFAB40] text-sm mb-1">
+                  Reservation Start Time:
+                </p>
+                <input
+                  type="time"
+                  value={reservationStartTime}
+                  onChange={(e) => setReservationStartTime(e.target.value)}
+                  className={`w-full bg-[#1E1E1E] border ${
+                    errors.reservationStartTime
+                      ? "border-red-500"
+                      : "border-[#333333]"
+                  } text-white rounded px-3 py-2 text-sm`}
+                />
+                <p className="text-[#B8B8B8] text-xs mt-1">
+                  Time when reservations become available
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[#FFAB40] text-sm mb-1">
+                  Reservation End Time:
+                </p>
+                <input
+                  type="time"
+                  value={reservationEndTime}
+                  onChange={(e) => setReservationEndTime(e.target.value)}
+                  className={`w-full bg-[#1E1E1E] border ${
+                    errors.reservationEndTime
+                      ? "border-red-500"
+                      : "border-[#333333]"
+                  } text-white rounded px-3 py-2 text-sm`}
+                />
+                <p className="text-[#B8B8B8] text-xs mt-1">
+                  Time when reservations are no longer available
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -2054,7 +2980,6 @@ const AvailabilityDetails = ({ onBack, onNext, eventType }) => {
     </div>
   );
 };
-
 const SummaryDetails = ({
   eventDetails,
   ticketDetails,
@@ -2197,9 +3122,13 @@ const SummaryDetails = ({
                 <div>
                   <p className="text-[#B8B8B8] text-xs">Time</p>
                   <p className="text-white">
-                    {eventDetails?.startTime && eventDetails?.endTime
-                      ? `${eventDetails.startTime} to ${eventDetails.endTime}`
-                      : "N/A"}
+                    {eventDetails?.startTime &&
+                      `${eventDetails.startTime}${
+                        eventDetails.endTime
+                          ? ` to ${eventDetails.endTime}`
+                          : ""
+                      }`}
+                    {!eventDetails?.startTime && "N/A"}
                     {eventType === "coming_soon" && (
                       <span className="text-[#FFAB40] ml-2 text-xs">
                         (Tentative)
@@ -2236,106 +3165,211 @@ const SummaryDetails = ({
         </div>
 
         {/* Ticket Details Summary */}
-        <div>
-          <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">TICKETS</h3>
-          <div className="bg-[#1E1E1E] rounded-lg p-4">
-            {eventType === "free" && (
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                  <div className="mr-3 text-[#FFAB40]">
-                    <InfoIcon className="h-8 w-8" />
-                  </div>
-                  <div>
-                    <span className="text-white font-semibold">Free Event</span>
-                    <p className="text-gray-400 text-sm">
-                      This is a free event. All tickets are available at no
-                      cost.
-                    </p>
-                    <p className="text-gray-400 text-sm mt-1">
-                      Total tickets:{" "}
-                      {ticketDetails?.freeSeating?.numberOfTickets || 0}
-                    </p>
-                    <p className="text-gray-400 text-sm">
-                      Max per person:{" "}
-                      {ticketDetails?.freeSeating?.maxPerPerson || "N/A"}
-                    </p>
+        {(eventType === "ticketed" ||
+          eventType === "free" ||
+          (eventType === "coming_soon" && ticketDetails?.hasTierInfo)) && (
+          <div>
+            <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">
+              TICKETS
+            </h3>
+            <div className="bg-[#1E1E1E] rounded-lg p-4">
+              {eventType === "free" && (
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <div className="mr-3 text-[#FFAB40]">
+                      <InfoIcon className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <span className="text-white font-semibold">
+                        Free Event
+                      </span>
+                      <p className="text-gray-400 text-sm">
+                        This is a free event. All tickets are available at no
+                        cost.
+                      </p>
+                      <p className="text-gray-400 text-sm mt-1">
+                        Total tickets:{" "}
+                        {ticketDetails?.freeSeating?.numberOfTickets || 0}
+                      </p>
+                      <p className="text-gray-400 text-sm">
+                        Max per person:{" "}
+                        {ticketDetails?.freeSeating?.maxPerPerson || "N/A"}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Coming Soon with NO ticket info */}
-            {eventType === "coming_soon" && !ticketDetails?.hasTierInfo && (
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                  <div className="mr-3 text-[#FFAB40]">
-                    <InfoIcon className="h-8 w-8" />
+              {/* Coming Soon with NO ticket info */}
+              {eventType === "coming_soon" && !ticketDetails?.hasTierInfo && (
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <div className="mr-3 text-[#FFAB40]">
+                      <InfoIcon className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <span className="text-white font-semibold">
+                        Coming Soon
+                      </span>
+                      <p className="text-gray-400 text-sm">
+                        Ticket details will be available when this event is
+                        fully published.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-white font-semibold">
-                      Coming Soon
-                    </span>
-                    <p className="text-gray-400 text-sm">
-                      Ticket details will be available when this event is fully
+                </div>
+              )}
+
+              {/* Coming Soon WITH ticket tiers */}
+              {eventType === "coming_soon" && ticketDetails?.hasTierInfo && (
+                <div>
+                  <div className="flex items-center mb-3">
+                    <div className="mr-3 text-[#FFAB40]">
+                      <InfoIcon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold">
+                        Coming Soon - Preliminary Ticket Structure
+                      </p>
+                      <p className="text-gray-400 text-sm">
+                        These ticket details are planned but not yet available
+                        for reservations.
+                      </p>
+                    </div>
+                  </div>
+
+                  {ticketDetails.tierType === "freeSeating" ? (
+                    <div className="flex items-center mt-4 mb-3 bg-[#272727] p-3 rounded-lg">
+                      <div className="mr-3">
+                        <span className="inline-flex items-center">
+                          <svg
+                            viewBox="0 0 24 24"
+                            width="24"
+                            height="24"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="text-gray-400"
+                          >
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                          </svg>
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-white text-xl font-bold">
+                          ₱{ticketDetails.freeSeating.price}
+                        </span>
+                        <p className="text-gray-400 text-sm">
+                          1 ticket, Free Seating
+                        </p>
+                        <p className="text-gray-400 text-xs">
+                          Max per person:{" "}
+                          {ticketDetails.freeSeating.maxPerPerson}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-4 mt-4 mb-3">
+                      {ticketDetails?.ticketTiers &&
+                        Object.entries(ticketDetails.ticketTiers)
+                          .filter(([_, tierData]) => tierData.checked)
+                          .map(([tierName, tierData]) => (
+                            <div
+                              key={tierName}
+                              className="bg-[#272727] p-3 rounded-lg flex items-center"
+                            >
+                              <div className="mr-3">
+                                <span className="inline-flex items-center">
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    width="24"
+                                    height="24"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    fill="none"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="text-gray-400"
+                                  >
+                                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                  </svg>
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-white text-xl font-bold">
+                                  ₱{tierData.price}
+                                </span>
+                                <p className="text-gray-400 text-sm">
+                                  1 ticket, {tierName}
+                                </p>
+                                <p className="text-gray-400 text-xs">
+                                  Max per person: {tierData.maxPerPerson}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                    </div>
+                  )}
+
+                  <div className="mt-4 pt-3 border-t border-gray-700">
+                    <p className="text-gray-400 text-sm font-semibold">
+                      Planned capacity:{" "}
+                      <span className="text-[#FFAB40]">
+                        {getTotalTickets()} tickets
+                      </span>
+                    </p>
+                    <p className="text-gray-400 text-xs mt-1 italic">
+                      Final ticket details may change when the event is fully
                       published.
                     </p>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Coming Soon WITH ticket tiers */}
-            {eventType === "coming_soon" && ticketDetails?.hasTierInfo && (
-              <div>
-                <div className="flex items-center mb-3">
-                  <div className="mr-3 text-[#FFAB40]">
-                    <InfoIcon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold">
-                      Coming Soon - Preliminary Ticket Structure
-                    </p>
-                    <p className="text-gray-400 text-sm">
-                      These ticket details are planned but not yet available for
-                      reservations.
-                    </p>
-                  </div>
-                </div>
-
-                {ticketDetails.tierType === "freeSeating" ? (
-                  <div className="flex items-center mt-4 mb-3 bg-[#272727] p-3 rounded-lg">
-                    <div className="mr-3">
-                      <span className="inline-flex items-center">
-                        <svg
-                          viewBox="0 0 24 24"
-                          width="24"
-                          height="24"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-gray-400"
-                        >
-                          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                          <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                        </svg>
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-white text-xl font-bold">
-                        ₱{ticketDetails.freeSeating.price}
-                      </span>
-                      <p className="text-gray-400 text-sm">
-                        1 ticket, Free Seating
-                      </p>
-                      <p className="text-gray-400 text-xs">
-                        Max per person: {ticketDetails.freeSeating.maxPerPerson}
-                      </p>
+              {eventType === "ticketed" &&
+                ticketDetails?.tierType === "freeSeating" && (
+                  <div className="flex items-center mb-4">
+                    <div className="bg-[#272727] p-3 rounded-lg flex items-center">
+                      <div className="mr-3">
+                        <span className="inline-flex items-center">
+                          <svg
+                            viewBox="0 0 24 24"
+                            width="24"
+                            height="24"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="text-gray-400"
+                          >
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                          </svg>
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-white text-xl font-bold">
+                          ₱{ticketDetails.freeSeating.price}
+                        </span>
+                        <p className="text-gray-400 text-sm">
+                          1 ticket, Free Seating
+                        </p>
+                        <p className="text-gray-400 text-xs">
+                          Max per person:{" "}
+                          {ticketDetails.freeSeating.maxPerPerson}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                ) : (
-                  <div className="flex flex-wrap gap-4 mt-4 mb-3">
+                )}
+              {eventType === "ticketed" &&
+                ticketDetails?.tierType === "ticketed" && (
+                  <div className="flex flex-wrap gap-4 mb-4">
                     {ticketDetails?.ticketTiers &&
                       Object.entries(ticketDetails.ticketTiers)
                         .filter(([_, tierData]) => tierData.checked)
@@ -2378,163 +3412,335 @@ const SummaryDetails = ({
                   </div>
                 )}
 
-                <div className="mt-4 pt-3 border-t border-gray-700">
-                  <p className="text-gray-400 text-sm font-semibold">
-                    Planned capacity:{" "}
+              {(eventType === "ticketed" ||
+                eventType === "free" ||
+                (eventType === "coming_soon" &&
+                  ticketDetails?.hasTierInfo)) && (
+                <div className="mt-4 border-t border-gray-700 pt-4">
+                  <p className="uppercase text-white font-medium">
+                    TOTAL NUMBER OF TICKETS:{" "}
                     <span className="text-[#FFAB40]">
-                      {getTotalTickets()} tickets
+                      {getTotalTickets()}{" "}
+                      {eventType === "coming_soon" ? "Planned" : "Available"}{" "}
+                      Tickets
                     </span>
                   </p>
-                  <p className="text-gray-400 text-xs mt-1 italic">
-                    Final ticket details may change when the event is fully
-                    published.
-                  </p>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          </div>
+        )}
 
-            {eventType === "ticketed" &&
-              ticketDetails?.tierType === "freeSeating" && (
-                <div className="flex items-center mb-4">
-                  <div className="bg-[#272727] p-3 rounded-lg flex items-center">
-                    <div className="mr-3">
-                      <span className="inline-flex items-center">
-                        <svg
-                          viewBox="0 0 24 24"
-                          width="24"
-                          height="24"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-gray-400"
-                        >
-                          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                          <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                        </svg>
-                      </span>
-                    </div>
+        {/* Claiming Details Summary - only for ticketed events */}
+        {eventType === "ticketed" &&
+          claimingDetails &&
+          claimingDetails.claimingSummaries &&
+          claimingDetails.claimingSummaries.length > 0 && (
+            <div>
+              <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">
+                CLAIMING DETAILS
+              </h3>
+              <div className="bg-[#1E1E1E] rounded-lg p-4">
+                <table className="w-full">
+                  <thead className="bg-[#2C2C2C]">
+                    <tr>
+                      <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                        Date
+                      </th>
+                      <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                        Time
+                      </th>
+                      <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                        Venue
+                      </th>
+                      <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                        Max Reservations
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {claimingDetails.claimingSummaries.map((summary, index) => (
+                      <tr key={index} className="border-t border-[#333333]">
+                        <td className="py-2 px-3 text-sm text-white">
+                          {new Date(summary.date).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </td>
+                        <td className="py-2 px-3 text-sm text-white">
+                          {summary.startTime} to {summary.endTime}
+                        </td>
+                        <td className="py-2 px-3 text-sm text-white">
+                          {summary.venue}
+                        </td>
+                        <td className="py-2 px-3 text-sm text-white">
+                          {summary.maxReservations}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+        {/* Availability Details Summary */}
+        {availabilityDetails && (
+          <div>
+            <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">
+              AVAILABILITY PERIOD
+            </h3>
+            <div className="bg-[#1E1E1E] rounded-lg p-4">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-[#FFAB40] font-medium mb-2">
+                    Display Period:
+                  </h4>
+                  <div className="text-white space-y-1">
+                    <p>
+                      <span className="text-[#B8B8B8] text-sm">
+                        Start Date:
+                      </span>{" "}
+                      {availabilityDetails.displayPeriod?.startDate
+                        ? new Date(
+                            availabilityDetails.displayPeriod.startDate
+                          ).toLocaleDateString()
+                        : "Not set"}
+                    </p>
+                    <p>
+                      <span className="text-[#B8B8B8] text-sm">
+                        Start Time:
+                      </span>{" "}
+                      {availabilityDetails.displayPeriod?.startTime ||
+                        "Not set"}
+                    </p>
+                    <p>
+                      <span className="text-[#B8B8B8] text-sm">End Date:</span>{" "}
+                      {availabilityDetails.displayPeriod?.endDate
+                        ? new Date(
+                            availabilityDetails.displayPeriod.endDate
+                          ).toLocaleDateString()
+                        : "Not set"}
+                    </p>
+                    <p>
+                      <span className="text-[#B8B8B8] text-sm">End Time:</span>{" "}
+                      {availabilityDetails.displayPeriod?.endTime || "Not set"}
+                    </p>
+                  </div>
+                </div>
+
+                {eventType === "ticketed" &&
+                  availabilityDetails.reservationPeriod && (
                     <div>
-                      <span className="text-white text-xl font-bold">
-                        ₱{ticketDetails.freeSeating.price}
-                      </span>
-                      <p className="text-gray-400 text-sm">
-                        1 ticket, Free Seating
-                      </p>
-                      <p className="text-gray-400 text-xs">
-                        Max per person: {ticketDetails.freeSeating.maxPerPerson}
+                      <h4 className="text-[#FFAB40] font-medium mb-2">
+                        Reservation Period:
+                      </h4>
+                      <div className="text-white space-y-1">
+                        <p>
+                          <span className="text-[#B8B8B8] text-sm">
+                            Start Date:
+                          </span>{" "}
+                          {availabilityDetails.reservationPeriod?.startDate
+                            ? new Date(
+                                availabilityDetails.reservationPeriod.startDate
+                              ).toLocaleDateString()
+                            : "Not set"}
+                        </p>
+                        <p>
+                          <span className="text-[#B8B8B8] text-sm">
+                            Start Time:
+                          </span>{" "}
+                          {availabilityDetails.reservationPeriod?.startTime ||
+                            "Not set"}
+                        </p>
+                        <p>
+                          <span className="text-[#B8B8B8] text-sm">
+                            End Date:
+                          </span>{" "}
+                          {availabilityDetails.reservationPeriod?.endDate
+                            ? new Date(
+                                availabilityDetails.reservationPeriod.endDate
+                              ).toLocaleDateString()
+                            : "Not set"}
+                        </p>
+                        <p>
+                          <span className="text-[#B8B8B8] text-sm">
+                            End Time:
+                          </span>{" "}
+                          {availabilityDetails.reservationPeriod?.endTime ||
+                            "Not set"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                {eventType === "free" && (
+                  <div>
+                    <h4 className="text-[#FFAB40] font-medium mb-2">
+                      Reservation Period:
+                    </h4>
+                    <div className="text-[#B8B8B8] italic">
+                      <p>No reservation period for free events</p>
+                      <p className="mt-2 text-sm">
+                        Free events don't require users to make reservations.
                       </p>
                     </div>
                   </div>
-                </div>
-              )}
-            {eventType === "ticketed" &&
-              ticketDetails?.tierType === "ticketed" && (
-                <div className="flex flex-wrap gap-4 mb-4">
-                  {ticketDetails?.ticketTiers &&
-                    Object.entries(ticketDetails.ticketTiers)
-                      .filter(([_, tierData]) => tierData.checked)
-                      .map(([tierName, tierData]) => (
-                        <div
-                          key={tierName}
-                          className="bg-[#272727] p-3 rounded-lg flex items-center"
-                        >
-                          <div className="mr-3">
-                            <span className="inline-flex items-center">
-                              <svg
-                                viewBox="0 0 24 24"
-                                width="24"
-                                height="24"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="text-gray-400"
-                              >
-                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                                <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                              </svg>
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-white text-xl font-bold">
-                              ₱{tierData.price}
-                            </span>
-                            <p className="text-gray-400 text-sm">
-                              1 ticket, {tierName}
-                            </p>
-                            <p className="text-gray-400 text-xs">
-                              Max per person: {tierData.maxPerPerson}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                </div>
-              )}
-
-            {(eventType === "ticketed" ||
-              eventType === "free" ||
-              (eventType === "coming_soon" && ticketDetails?.hasTierInfo)) && (
-              <div className="mt-4 border-t border-gray-700 pt-4">
-                <p className="uppercase text-white font-medium">
-                  TOTAL NUMBER OF TICKETS:{" "}
-                  <span className="text-[#FFAB40]">
-                    {getTotalTickets()}{" "}
-                    {eventType === "coming_soon" ? "Planned" : "Available"}{" "}
-                    Tickets
-                  </span>
-                </p>
+                )}
               </div>
-            )}
+
+              {eventType === "coming_soon" && (
+                <div className="mt-4 pt-3 border-t border-gray-600 text-[#B8B8B8] text-sm">
+                  <p>
+                    Note: Reservation period will be set when this "Coming Soon"
+                    event is fully published.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Publishing Status */}
+        <div>
+          <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">
+            PUBLISHING STATUS
+          </h3>
+          <div className="bg-[#1E1E1E] rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="text-white">
+                {eventType === "coming_soon"
+                  ? "Ready to publish as COMING SOON"
+                  : eventType === "free"
+                  ? "Ready to publish as FREE EVENT"
+                  : "Ready to publish as TICKETED EVENT"}
+              </span>
+            </div>
+            <p className="text-[#B8B8B8] text-sm mt-2 pl-6">
+              {eventType === "coming_soon"
+                ? "This event will be published with a 'Coming Soon' status. Users can view the event but cannot make reservations yet."
+                : eventType === "free"
+                ? "This free event will be published and immediately visible to users. No payment required for tickets."
+                : "This ticketed event will be published according to the availability period you set."}
+            </p>
+            <div className="mt-4 text-sm">
+              <p className="text-white">
+                <span className="text-[#B8B8B8]">Visibility:</span> Published
+              </p>
+              <p className="text-white">
+                <span className="text-[#B8B8B8]">Status:</span>{" "}
+                {eventType === "coming_soon" || eventType === "free"
+                  ? "Closed"
+                  : "Scheduled"}
+              </p>
+            </div>
           </div>
         </div>
-
-        {/* Rest of the component with claiming details and availability details */}
-        {/* ... */}
       </div>
     </div>
   );
 };
-// Modified Admin_PublishEvent component
-// Modified Admin_PublishEvent component with Save as Draft button
+
 const Admin_PublishEvent = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [eventDetails, setEventDetails] = useState(null);
   const [ticketDetails, setTicketDetails] = useState(null);
   const [claimingDetails, setClaimingDetails] = useState(null);
   const [availabilityDetails, setAvailabilityDetails] = useState(null);
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+
+  // Get the next step based on event type
+  const getNextStep = (currentStep, eventType) => {
+    // For free events: Skip tickets and claiming steps
+    if (eventType === "free") {
+      if (currentStep === 1) return 4; // From event details to availability
+      if (currentStep === 4) return 5; // From availability to summary
+    }
+
+    // For coming soon events: Skip claiming step
+    if (eventType === "coming_soon") {
+      if (currentStep === 2) return 4; // From tickets to availability
+      if (currentStep === 4) return 5; // From availability to summary
+    }
+
+    // Default flow for ticketed events
+    return currentStep + 1;
+  };
 
   const handleEventDetailsNext = (details) => {
     setEventDetails(details);
-    setCurrentStep(2);
+    setCurrentStep(getNextStep(1, details.eventType));
   };
 
   const handleTicketDetailsNext = (details) => {
     setTicketDetails(details);
-    setCurrentStep(3);
+    setCurrentStep(
+      getNextStep(2, details.eventType || eventDetails?.eventType)
+    );
   };
 
   const handleClaimingDetailsNext = (details) => {
     setClaimingDetails(details);
-    setCurrentStep(4);
+    setCurrentStep(
+      getNextStep(3, details.eventType || eventDetails?.eventType)
+    );
   };
 
   const handleAvailabilityDetailsNext = (details) => {
     setAvailabilityDetails(details);
-    setCurrentStep(5);
+    setCurrentStep(
+      getNextStep(4, details.eventType || eventDetails?.eventType)
+    );
   };
 
+  // Modified section of handleSummaryNext method for free events
   const handleSummaryNext = () => {
-    console.log("Full Event Details:", {
-      eventDetails,
-      ticketDetails,
-      claimingDetails,
-      availabilityDetails,
-    });
+    setIsFormSubmitting(true);
 
+    // Prepare full event data based on event type
+    let fullEventData = {
+      eventDetails,
+      availabilityDetails,
+      status: "Draft", // Initial status is Draft as per rules
+      visibility: "Unpublished", // Initial visibility is Unpublished
+    };
+
+    // Add specific details based on event type
     const eventType = eventDetails?.eventType || "ticketed";
+
+    if (eventType === "free") {
+      fullEventData = {
+        ...fullEventData,
+        ticketDetails,
+        eventType: "free",
+        status: "Closed", // Free events are Closed
+        visibility: "Published", // Free events are Published
+        // No reservation period for free events
+      };
+    } else if (eventType === "coming_soon") {
+      fullEventData = {
+        ...fullEventData,
+        ticketDetails,
+        eventType: "coming_soon",
+        status: "Closed", // Coming Soon events are Closed
+        visibility: "Published", // Coming Soon events are Published
+      };
+    } else {
+      // Regular ticketed event
+      fullEventData = {
+        ...fullEventData,
+        ticketDetails,
+        claimingDetails,
+        eventType: "ticketed",
+        status: "Scheduled", // Ticketed events are Scheduled
+        visibility: "Published", // Ticketed events are Published
+      };
+    }
+
+    console.log("Publishing Event:", fullEventData);
+
     let successMessage = "";
 
     if (eventType === "ticketed") {
@@ -2545,12 +3751,15 @@ const Admin_PublishEvent = () => {
         "Coming Soon event successfully created! You can update it with full details later.";
     } else if (eventType === "free") {
       successMessage =
-        "Free event successfully created! Users can reserve tickets at no cost.";
+        "Free event successfully created! Users can view this event at no cost.";
     }
 
     alert(successMessage);
-  };
+    setIsFormSubmitting(false);
 
+    // Here you would typically send this to your API
+    // navigate('/admin/events') or similar to redirect
+  };
   const handleSaveAsDraft = () => {
     // Collect current data regardless of which step the user is on
     const draftData = {
@@ -2561,6 +3770,8 @@ const Admin_PublishEvent = () => {
       currentStep,
       savedAt: new Date().toISOString(),
       isDraft: true,
+      status: "Draft",
+      visibility: "Unpublished",
     };
 
     console.log("Saving draft:", draftData);
@@ -2569,12 +3780,56 @@ const Admin_PublishEvent = () => {
     alert("Event saved as draft. You can continue editing later.");
   };
 
+  // Handle going back to previous step
   const handleBack = () => {
-    setCurrentStep(currentStep - 1);
+    // Get the previous step based on event type
+    const eventType = eventDetails?.eventType || "ticketed";
+
+    if (eventType === "free") {
+      if (currentStep === 4)
+        setCurrentStep(1); // From availability back to details
+      else if (currentStep === 5) setCurrentStep(4); // From summary back to availability
+    } else if (eventType === "coming_soon") {
+      if (currentStep === 4)
+        setCurrentStep(2); // From availability back to tickets
+      else if (currentStep === 5)
+        setCurrentStep(4); // From summary back to availability
+      else setCurrentStep(currentStep - 1); // Normal back
+    } else {
+      // Normal back for ticketed
+      setCurrentStep(currentStep - 1);
+    }
   };
 
-  // Get the event type from current eventDetails or default to "ticketed"
+  // Get the event type from current eventDetails
   const eventType = eventDetails?.eventType || "ticketed";
+
+  // Helper function to determine button text
+  const getNextButtonText = (step) => {
+    if (step === 5) {
+      // Final publish button based on event type
+      if (eventType === "coming_soon") return "Save as Coming Soon";
+      if (eventType === "free") return "Publish Free Event";
+      return "Publish Ticketed Event";
+    }
+    return "Next";
+  };
+
+  // Helper function to determine which steps to show
+  const shouldShowStep = (step) => {
+    if (eventType === "free") {
+      // For free events: Only show steps 1 (details), 4 (availability), and 5 (summary)
+      return step === 1 || step === 4 || step === 5;
+    }
+
+    if (eventType === "coming_soon") {
+      // For coming soon: Don't show step 3 (claiming)
+      return step !== 3;
+    }
+
+    // All steps for ticketed events
+    return true;
+  };
 
   return (
     <div className="flex-col font-Poppins">
@@ -2585,29 +3840,39 @@ const Admin_PublishEvent = () => {
         <div className="bg-[#272727] flex items-center justify-center w-full p-6">
           <div className="w-full max-w-4xl">
             {currentStep === 1 && (
-              <EventDetails onNext={handleEventDetailsNext} />
+              <EventDetails
+                onNext={handleEventDetailsNext}
+                initialData={eventDetails}
+              />
             )}
-            {currentStep === 2 && (
+
+            {currentStep === 2 && shouldShowStep(2) && (
               <TicketDetails
                 eventType={eventType}
                 onBack={handleBack}
                 onNext={handleTicketDetailsNext}
+                initialData={ticketDetails}
               />
             )}
-            {currentStep === 3 && (
+
+            {currentStep === 3 && shouldShowStep(3) && (
               <ClaimingDetails
                 eventType={eventType}
                 onBack={handleBack}
                 onNext={handleClaimingDetailsNext}
+                initialData={claimingDetails}
               />
             )}
-            {currentStep === 4 && (
+
+            {currentStep === 4 && shouldShowStep(4) && (
               <AvailabilityDetails
                 eventType={eventType}
                 onBack={handleBack}
                 onNext={handleAvailabilityDetailsNext}
+                initialData={availabilityDetails}
               />
             )}
+
             {currentStep === 5 && (
               <SummaryDetails
                 eventDetails={eventDetails}
@@ -2625,7 +3890,8 @@ const Admin_PublishEvent = () => {
               {/* Left side - Save as Draft button */}
               <button
                 onClick={handleSaveAsDraft}
-                className="bg-neutral-700 text-white px-9 py-2 rounded-full text-xs font-semibold hover:bg-gray-600 transition-colors"
+                disabled={isFormSubmitting}
+                className="bg-neutral-700 text-white px-9 py-2 rounded-full text-xs font-semibold hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Save as Draft
               </button>
@@ -2635,7 +3901,8 @@ const Admin_PublishEvent = () => {
                 {currentStep > 1 && (
                   <button
                     onClick={handleBack}
-                    className="bg-neutral-900 text-white px-9 py-2 rounded-full text-xs font-semibold"
+                    disabled={isFormSubmitting}
+                    className="bg-neutral-900 text-white px-9 py-2 rounded-full text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Back
                   </button>
@@ -2646,7 +3913,8 @@ const Admin_PublishEvent = () => {
                     onClick={() => {
                       document.querySelector(".event-submit-button").click();
                     }}
-                    className="bg-white text-black px-9 py-2 rounded-full text-xs font-semibold"
+                    disabled={isFormSubmitting}
+                    className="bg-white text-black px-9 py-2 rounded-full text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
                   </button>
@@ -2657,7 +3925,8 @@ const Admin_PublishEvent = () => {
                     onClick={() => {
                       document.querySelector(".ticket-submit-button").click();
                     }}
-                    className="bg-white text-black px-9 py-2 rounded-full text-xs font-semibold"
+                    disabled={isFormSubmitting}
+                    className="bg-white text-black px-9 py-2 rounded-full text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
                   </button>
@@ -2668,7 +3937,8 @@ const Admin_PublishEvent = () => {
                     onClick={() => {
                       document.querySelector(".claiming-submit-button").click();
                     }}
-                    className="bg-white text-black px-9 py-2 rounded-full text-xs font-semibold"
+                    disabled={isFormSubmitting}
+                    className="bg-white text-black px-9 py-2 rounded-full text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
                   </button>
@@ -2681,7 +3951,8 @@ const Admin_PublishEvent = () => {
                         .querySelector(".availability-submit-button")
                         .click();
                     }}
-                    className="bg-white text-black px-9 py-2 rounded-full text-xs font-semibold"
+                    disabled={isFormSubmitting}
+                    className="bg-white text-black px-9 py-2 rounded-full text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
                   </button>
@@ -2690,13 +3961,10 @@ const Admin_PublishEvent = () => {
                 {currentStep === 5 && (
                   <button
                     onClick={handleSummaryNext}
-                    className="bg-[#FFAB40] text-black px-9 py-2 rounded-full text-xs font-semibold"
+                    disabled={isFormSubmitting}
+                    className="bg-[#FFAB40] text-black px-9 py-2 rounded-full text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {eventType === "coming_soon"
-                      ? "Save as Coming Soon"
-                      : eventType === "free"
-                      ? "Publish Free Event"
-                      : "Publish Ticketed Event"}
+                    {getNextButtonText(currentStep)}
                   </button>
                 )}
               </div>
@@ -2709,3 +3977,28 @@ const Admin_PublishEvent = () => {
 };
 
 export default Admin_PublishEvent;
+
+/**
+ * This event management system follows these rules:
+ *
+ * 1. Free/Promotional Events:
+ *    - Skip ticket details and claiming details
+ *    - Only require event details and availability settings
+ *    - Published with status: Closed, visibility: Published
+ *
+ * 2. Coming Soon Events:
+ *    - Optional ticket details (checkbox to include tier info)
+ *    - Skip claiming details
+ *    - Published with status: Closed, visibility: Published
+ *
+ * 3. Ticketed Events:
+ *    - Complete flow with event details, ticket details, claiming details, and availability
+ *    - Published with status: Scheduled, visibility: Published
+ *
+ * 4. Draft Events:
+ *    - Any event type can be saved as draft
+ *    - Draft events have status: Draft, visibility: Unpublished
+ *
+ * Flow control maintains the previously inputted details when navigating back.
+ * Each step validates the required fields before proceeding.
+ */
