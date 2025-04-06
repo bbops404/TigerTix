@@ -19,36 +19,8 @@ import eventService from "../pages/Services/eventService";
 import Header_Admin from "../components/Admin/Header_Admin";
 import Sidebar_Admin from "../components/Admin/SideBar_Admin";
 import { InfoIcon } from "lucide-react";
-const formatImageUrl = (imageUrl) => {
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002";
+import { formatImageUrl, handleImageError } from "../utils/imageUtils";
 
-  if (!imageUrl) return imageUrl;
-
-  // If the URL is already absolute (with http), return it as is
-  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-    // But fix the path if it incorrectly includes /api/uploads
-    if (imageUrl.includes("/api/uploads/")) {
-      // Replace /api/uploads with just /uploads
-      const fixedPath = imageUrl.replace("/api/uploads/", "/uploads/");
-      return fixedPath;
-    }
-    return imageUrl;
-  }
-
-  // If the URL is relative and starts with /api/uploads/, remove the /api part
-  if (imageUrl.startsWith("/api/uploads/")) {
-    imageUrl = imageUrl.replace("/api/uploads/", "/uploads/");
-  }
-
-  // If the URL is a relative path starting with /uploads
-  if (imageUrl.startsWith("/uploads/")) {
-    // Remove the trailing slash from API_URL if it exists
-    const baseUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
-    return `${baseUrl}${imageUrl}`;
-  }
-
-  return imageUrl;
-};
 const EventDetailContainer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -120,6 +92,10 @@ const EventDetailContainer = () => {
             reservation_end_date: eventResponse.data.reservation_end_date,
             reservation_start_time: eventResponse.data.reservation_start_time,
             reservation_end_time: eventResponse.data.reservation_end_time,
+
+            // Add timestamp fields correctly
+            created_at: new Date(eventResponse.data.createdAt).toLocaleString(),
+            updated_at: new Date(eventResponse.data.updatedAt).toLocaleString(),
           };
 
           setEvent(eventData);
@@ -351,18 +327,9 @@ const EventDetailContainer = () => {
 
           {/* Event Details Section */}
           <div className="space-y-6 mb-10">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-semibold text-[#FFAB40]">
-                  Event Details
-                </h1>
-                <p className="text-[13px] text-[#B8B8B8] mt-1">
-                  Complete information about this event and its reservations
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-semibold 
+            <div className="flex justify-end items-center space-x-2">
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-semibold 
                   ${
                     event.status === "open"
                       ? "bg-green-900/30 text-green-400"
@@ -372,29 +339,25 @@ const EventDetailContainer = () => {
                       ? "bg-blue-900/30 text-blue-400"
                       : "bg-gray-900/30 text-gray-400"
                   }`}
-                >
-                  {event.status.toUpperCase()}
-                </span>
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-semibold 
+              >
+                {event.status.toUpperCase()}
+              </span>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-semibold 
                   ${
                     event.visibility === "published"
                       ? "bg-green-900/30 text-green-400"
                       : "bg-gray-900/30 text-gray-400"
                   }`}
-                >
-                  {event.visibility.toUpperCase()}
-                </span>
-              </div>
+              >
+                {event.visibility.toUpperCase()}
+              </span>
             </div>
 
             <hr className="border-t border-gray-600" />
 
             {/* Event Information */}
             <div>
-              <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">
-                Event Information
-              </h3>
               <div className="bg-[#1E1E1E] rounded-lg p-4 border border-gray-800">
                 <div className="flex gap-4">
                   <div className="w-1/3">
@@ -404,21 +367,9 @@ const EventDetailContainer = () => {
                           src={event.imagePreview}
                           alt={event.eventName}
                           className="w-full aspect-video object-cover rounded-lg"
-                          onError={(e) => {
-                            console.warn(`Image failed to load:`, {
-                              path: event.imagePreview,
-                              element: e.target,
-                            });
-
-                            // Create a better error display
-                            e.target.style.display = "none";
-                            const errorDiv = document.createElement("div");
-                            errorDiv.className =
-                              "w-full aspect-video bg-[#333333] rounded-lg flex items-center justify-center";
-                            errorDiv.innerHTML =
-                              '<span class="text-gray-500 text-sm">Image Load Error</span>';
-                            e.target.parentNode.appendChild(errorDiv);
-                          }}
+                          onError={(e) =>
+                            handleImageError(e, "Image Load Error")
+                          }
                         />
                         {eventType === "coming_soon" && (
                           <div className="absolute top-2 left-2 bg-[#FFAB40] text-black px-2 py-1 rounded-md text-xs font-semibold">
@@ -449,14 +400,37 @@ const EventDetailContainer = () => {
                   </div>
 
                   <div className="w-2/3 space-y-2">
-                    <div>
-                      <p className="text-[#B8B8B8] text-xs">Event Name</p>
-                      <p className="text-white">{event.eventName || "N/A"}</p>
+                    <div className="bg-custom_yellow rounded-full p-1 pl-3 pr-3 w-fit mb-5">
+                      <p className="text-custom_black text-lg font-bold">
+                        {event.eventName || "N/A"}
+                      </p>
                     </div>
 
                     <div>
-                      <p className="text-[#B8B8B8] text-xs">Event Date</p>
-                      <p className="text-white">
+                      <p className="text-white text-sm font-semibold">
+                        EVENT DETAILS:
+                      </p>
+                      <p className="text-white text-sm font-light line-clamp-2 mb-4">
+                        {event.eventDescription || "No description provided."}
+                      </p>
+                    </div>
+                    <hr className="border-t border-gray-600" />
+
+                    <div className="flex">
+                      <p className="text-white text-sm font-semibold">Venue:</p>
+                      <p className="text-white text-sm font-light ml-2">
+                        {event.venue || "N/A"}
+                        {eventType === "coming_soon" && (
+                          <span className="text-[#FFAB40] ml-2 text-xs">
+                            (Tentative)
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="flex">
+                      <p className="text-white text-sm font-semibold">Time:</p>
+                      <p className="text-white text-sm font-light ml-2">
                         {event.eventDate
                           ? new Date(event.eventDate).toLocaleDateString(
                               "en-US",
@@ -467,31 +441,8 @@ const EventDetailContainer = () => {
                               }
                             )
                           : "N/A"}
-                        {eventType === "coming_soon" && (
-                          <span className="text-[#FFAB40] ml-2 text-xs">
-                            (Tentative)
-                          </span>
-                        )}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-[#B8B8B8] text-xs">Venue</p>
-                      <p className="text-white">
-                        {event.venue || "N/A"}
-                        {eventType === "coming_soon" && (
-                          <span className="text-[#FFAB40] ml-2 text-xs">
-                            (Tentative)
-                          </span>
-                        )}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-[#B8B8B8] text-xs">Time</p>
-                      <p className="text-white">
                         {event.startTime &&
-                          `${new Date(
+                          ` at ${new Date(
                             `1970-01-01T${event.startTime}`
                           ).toLocaleTimeString("en-US", {
                             hour: "numeric",
@@ -506,8 +457,6 @@ const EventDetailContainer = () => {
                                 })}`
                               : ""
                           }`}
-
-                        {!event.startTime && "N/A"}
                         {eventType === "coming_soon" && (
                           <span className="text-[#FFAB40] ml-2 text-xs">
                             (Tentative)
@@ -516,29 +465,26 @@ const EventDetailContainer = () => {
                       </p>
                     </div>
 
-                    <div>
-                      <p className="text-[#B8B8B8] text-xs">Category</p>
-                      <p className="text-white">
+                    <div className="flex">
+                      <p className="text-white text-sm font-semibold">
+                        Category:
+                      </p>
+                      <p className="text-white text-sm font-light ml-2">
                         {event.eventCategory || "N/A"}
                       </p>
                     </div>
 
-                    <div>
-                      <p className="text-[#B8B8B8] text-xs">Event Type</p>
-                      <p className="text-white">
+                    <div className="flex">
+                      <p className="text-white text-sm font-semibold">
+                        Event Type:
+                      </p>
+                      <p className="text-white text-sm font-light ml-2">
                         {eventType === "ticketed" && "Ticketed Event"}
                         {eventType === "coming_soon" && "Coming Soon Event"}
                         {eventType === "free" && "Free Event"}
                       </p>
                     </div>
                   </div>
-                </div>
-
-                <div className="mt-3">
-                  <p className="text-[#B8B8B8] text-xs">Description</p>
-                  <p className="text-white text-sm">
-                    {event.eventDescription || "No description provided."}
-                  </p>
                 </div>
               </div>
             </div>
@@ -548,7 +494,7 @@ const EventDetailContainer = () => {
               eventType === "free" ||
               (eventType === "coming_soon" && ticketInfo.hasTierInfo)) && (
               <div>
-                <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">
+                <h3 className="text-white text-base  font-semibold mb-2">
                   TICKETS
                 </h3>
                 <div className="bg-[#1E1E1E] rounded-lg p-4 border border-gray-800">
@@ -596,29 +542,26 @@ const EventDetailContainer = () => {
                   {/* Display ticket tiers */}
                   {ticketInfo.hasTierInfo && (
                     <div>
-                      <h4 className="text-white font-medium mb-3">
-                        Ticket Tiers
-                      </h4>
                       <div className="overflow-x-auto">
                         <table className="w-full">
-                          <thead className="bg-[#2C2C2C]">
+                          <thead className="bg-[#FFAB40] text-custom_black">
                             <tr>
-                              <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                              <th className="py-2 px-3 text-left text-sm ">
                                 Tier
                               </th>
-                              <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                              <th className="py-2 px-3 text-left text-sm ">
                                 Type
                               </th>
-                              <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                              <th className="py-2 px-3 text-left text-sm ">
                                 Price
                               </th>
-                              <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                              <th className="py-2 px-3 text-left text-sm ">
                                 Total
                               </th>
-                              <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                              <th className="py-2 px-3 text-left text-sm ">
                                 Available
                               </th>
-                              <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                              <th className="py-2 px-3 text-left text-sm ">
                                 Max Per User
                               </th>
                             </tr>
@@ -676,27 +619,27 @@ const EventDetailContainer = () => {
               claimingSlots &&
               claimingSlots.length > 0 && (
                 <div>
-                  <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">
-                    CLAIMING DETAILS
+                  <h3 className="text-white text-base font-semibold mb-2">
+                    SUMMARY OF CLAIMING DETAILS
                   </h3>
-                  <div className="bg-[#1E1E1E] rounded-lg p-4 border border-gray-800">
+                  <div className=" rounded-lg p-4 border border-gray-800">
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead className="bg-[#2C2C2C]">
+                        <thead className="bg-[#FFAB40]">
                           <tr>
-                            <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                            <th className="py-2 px-3 text-left text-sm text-custom_black">
                               Date
                             </th>
-                            <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                            <th className="py-2 px-3 text-left text-sm text-custom_black">
                               Time
                             </th>
-                            <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                            <th className="py-2 px-3 text-left text-sm text-custom_black">
                               Venue
                             </th>
-                            <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                            <th className="py-2 px-3 text-left text-sm text-custom_black">
                               Max Claimers
                             </th>
-                            <th className="py-2 px-3 text-left text-sm text-[#FFAB40]">
+                            <th className="py-2 px-3 text-left text-sm text-custom_black">
                               Current Claimers
                             </th>
                           </tr>
@@ -948,11 +891,41 @@ const EventDetailContainer = () => {
                   </p>
                   <p className="text-white">
                     <span className="text-[#B8B8B8]">Created:</span>{" "}
-                    {event.created_at || "N/A"}
+                    {event.created_at
+                      ? `${new Date(event.created_at).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )} at ${new Date(event.created_at).toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          }
+                        )}`
+                      : "N/A"}
                   </p>
                   <p className="text-white">
                     <span className="text-[#B8B8B8]">Last Updated:</span>{" "}
-                    {event.updated_at || "N/A"}
+                    {event.updated_at
+                      ? `${new Date(event.updated_at).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )} at ${new Date(event.updated_at).toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          }
+                        )}`
+                      : "N/A"}
                   </p>
                 </div>
               </div>
@@ -965,14 +938,14 @@ const EventDetailContainer = () => {
               </h3>
 
               {/* Search and Filter */}
-              <div className="flex justify-between items-center mb-4">
-                <div className="relative w-1/3">
-                  <FaSearch className="absolute left-3 top-3 text-gray-400" />
+              <div className="flex justify-between items-center mb-2">
+                <div className="relative w-1/4">
+                  <FaSearch className="absolute left-3 top-2 text-gray-400" />
                   <input
                     value={globalFilter || ""}
                     onChange={(e) => setGlobalFilter(e.target.value)}
-                    placeholder="Search reservations..."
-                    className="pl-10 pr-4 py-2 w-full rounded bg-[#2C2C2C] text-white outline-none border border-gray-700"
+                    placeholder="Search"
+                    className="pl-8 pr-2 py-1 w-full rounded-full bg-neutral-300 text-custom_black outline-none border border-gray-700"
                   />
                 </div>
                 <div>
@@ -995,14 +968,14 @@ const EventDetailContainer = () => {
               {/* Table */}
               <div className="bg-[#1E1E1E] rounded-lg p-4 border border-gray-800 overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-[#2C2C2C]">
+                  <thead className="bg-custom_yellow text-custom_black">
                     {table.getHeaderGroups().map((headerGroup) => (
                       <tr key={headerGroup.id}>
                         {headerGroup.headers.map((header) => (
                           <th
                             key={header.id}
                             colSpan={header.colSpan}
-                            className="py-3 px-4 text-left text-sm font-semibold text-[#FFAB40] border-b border-gray-700"
+                            className="py-3 px-4 text-left text-sm font-semibold border-b border-gray-700"
                           >
                             {header.isPlaceholder ? null : (
                               <div

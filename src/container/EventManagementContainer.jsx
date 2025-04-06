@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from "react";
+// In EventManagementContainer.jsx
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Admin_EventsManagement from "../pages/Admin/Admin_EventsManagement";
 import eventService from "../pages/Services/eventService";
 import io from "socket.io-client";
+import { toast } from "react-toastify";
+import { formatImageUrl } from "../utils/imageUtils";
 
 const EventsManagementContainer = () => {
+  // Initialize with an empty structure for all possible categories
   const [events, setEvents] = useState({
     OPEN: [],
     SCHEDULED: [],
@@ -17,45 +21,16 @@ const EventsManagementContainer = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [initialized, setInitialized] = useState(false);
+  const socketRef = useRef(null);
+  const autoRefreshIntervalRef = useRef(null);
+  const quickRefreshIntervalRef = useRef(null);
   const navigate = useNavigate();
 
-  // Fetch all events when component mounts
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        setLoading(true);
-
-        // Fetch different types of events
-        const publishedResponse = await eventService.events.getAll({
-          visibility: "published",
-        });
-
-        const draftsResponse = await eventService.events.getDrafts();
-
-        const comingSoonResponse = await eventService.events.getComingSoon();
-
-        // Categorize events
-        const categorizedEvents = categorizeEvents([
-          ...(publishedResponse?.data || []),
-          ...(draftsResponse?.data || []),
-          ...(comingSoonResponse?.data || []),
-        ]);
-
-        setEvents(categorizedEvents);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching events:", err);
-        setError("Failed to load events. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEvents();
-  }, []);
-
+  // Set up the API URL
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
   // Function to categorize events by their status
-  const categorizeEvents = (eventsList) => {
+  const categorizeEvents = useCallback((eventsList) => {
     const categorized = {
       OPEN: [],
       SCHEDULED: [],
@@ -66,6 +41,11 @@ const EventsManagementContainer = () => {
       CANCELLED: [],
       ARCHIVED: [],
     };
+
+    if (!Array.isArray(eventsList)) {
+      console.error("Invalid events list:", eventsList);
+      return categorized;
+    }
 
     eventsList.forEach((event) => {
       // Map the event to have frontend-friendly property names
@@ -78,10 +58,10 @@ const EventsManagementContainer = () => {
         venue: event.venue,
         eventType: event.event_type,
         eventCategory: event.category,
-        status: event.status,
-        visibility: event.visibility,
-        imagePreview: event.image,
-        // Include other properties needed by your components
+        status: event.status || "draft", // Default to draft if status is missing
+        visibility: event.visibility || "unpublished", // Default to unpublished if visibility is missing
+        imagePreview: formatImageUrl(event.image),
+        // Include other properties needed by components
         details: event.details,
         display_start_date: event.display_start_date,
         display_end_date: event.display_end_date,
@@ -94,55 +74,316 @@ const EventsManagementContainer = () => {
         // Include nested data if available
         tickets: event.tickets || [],
         claimingSlots: event.claimingSlots || [],
+        // Add timestamp for sorting
+        createdAt: event.createdAt || new Date().toISOString(),
+        updatedAt: event.updatedAt || new Date().toISOString(),
       };
 
-      // Check if this is an event with future display date
-      const isFutureDisplay = checkIfFutureDisplay(event);
+      // First categorize by event type for "COMING SOON"
+      if (event.event_type === "coming_soon") {
+        categorized["COMING SOON"].push(mappedEvent);
+        return; // Skip other categorization
+      }
 
-      // Categorize by status and visibility
+      // Then categorize by visibility and status
       if (event.visibility === "archived") {
         categorized.ARCHIVED.push(mappedEvent);
       } else if (event.status === "cancelled") {
         categorized.CANCELLED.push(mappedEvent);
       } else if (event.status === "draft") {
         categorized.DRAFT.push(mappedEvent);
-      } else if (event.status === "open") {
+      } else if (event.status === "open" && event.visibility === "published") {
         categorized.OPEN.push(mappedEvent);
       } else if (
         event.status === "scheduled" &&
         event.visibility === "published"
       ) {
         categorized.SCHEDULED.push(mappedEvent);
-      } else if (
-        event.status === "scheduled" &&
-        event.visibility === "unpublished" &&
-        isFutureDisplay
-      ) {
-        // Future display events should be in the UNPUBLISHED category
-        categorized.UNPUBLISHED.push(mappedEvent);
-      } else if (
-        event.status === "closed" &&
-        new Date(event.event_date) < new Date()
-      ) {
-        categorized.COMPLETED.push(mappedEvent);
-      } else if (
-        event.visibility === "unpublished" &&
-        event.status !== "draft"
-      ) {
-        categorized.UNPUBLISHED.push(mappedEvent);
-      }
+      } else if (event.status === "closed") {
+        const now = new Date();
+        const isEventDatePassed =
+          event.event_date && new Date(event.event_date) < now;
+        const isReservationEnded =
+          event.reservation_end_date &&
+          event.reservation_end_time &&
+          new Date(
+            `${event.reservation_end_date}T${event.reservation_end_time}`
+          ) < now;
 
-      // Categorize coming soon events
-      if (event.event_type === "coming_soon") {
-        categorized["COMING SOON"].push(mappedEvent);
+        // Check if this is a completed event (event date passed OR reservation period ended)
+        if (isEventDatePassed || isReservationEnded) {
+          categorized.COMPLETED.push(mappedEvent);
+        } else {
+          // Free events or events closed for other reasons
+          if (event.visibility === "published") {
+            categorized.SCHEDULED.push(mappedEvent);
+          } else {
+            categorized.UNPUBLISHED.push(mappedEvent);
+          }
+        }
+      } else {
+        // All other events go to UNPUBLISHED
+        categorized.UNPUBLISHED.push(mappedEvent);
       }
     });
 
+    // Sort each category by updatedAt (newest first)
+    Object.keys(categorized).forEach((category) => {
+      categorized[category].sort((a, b) => {
+        const dateA = new Date(a.updatedAt || 0);
+        const dateB = new Date(b.updatedAt || 0);
+        return dateB - dateA;
+      });
+    });
+
     return categorized;
-  };
+  }, []);
+
+  // Define fetchEvents with error handling and consistency
+  const fetchEvents = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Add a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("Fetch events timeout"));
+        }, 15000); // 15 second timeout
+      });
+
+      // Default empty array for events if fetching fails
+      let allEvents = [];
+
+      try {
+        // Race between the fetch operation and the timeout
+        await Promise.race([
+          (async () => {
+            try {
+              // Track successful fetches
+              let fetchSuccessful = false;
+
+              // Try fetching from multiple endpoints
+              try {
+                // Fetch different types of events in parallel
+                const [
+                  publishedResponse,
+                  draftsResponse,
+                  comingSoonResponse,
+                  unpublishedResponse,
+                ] = await Promise.all([
+                  eventService.events.getAll({ visibility: "published" }),
+                  eventService.events.getDrafts(),
+                  eventService.events.getComingSoon(),
+                  eventService.events.getAll({ visibility: "unpublished" }),
+                ]);
+
+                // Use a Map to deduplicate events by ID
+                const eventMap = new Map();
+
+                // Helper function to add events to the map
+                const addEventsToMap = (events) => {
+                  if (events && Array.isArray(events)) {
+                    events.forEach((event) => {
+                      eventMap.set(event.id, event);
+                    });
+                    return true;
+                  }
+                  return false;
+                };
+
+                // Add all events to the map and track if any were successful
+                fetchSuccessful =
+                  addEventsToMap(publishedResponse?.data || []) ||
+                  fetchSuccessful;
+                fetchSuccessful =
+                  addEventsToMap(draftsResponse?.data || []) || fetchSuccessful;
+                fetchSuccessful =
+                  addEventsToMap(comingSoonResponse?.data || []) ||
+                  fetchSuccessful;
+                fetchSuccessful =
+                  addEventsToMap(unpublishedResponse?.data || []) ||
+                  fetchSuccessful;
+
+                // Convert the map back to an array if we had any successful fetches
+                if (fetchSuccessful) {
+                  allEvents = Array.from(eventMap.values());
+                }
+              } catch (err) {
+                console.error(
+                  "Error fetching events from multiple endpoints:",
+                  err
+                );
+                fetchSuccessful = false;
+              }
+
+              // If parallel fetching fails, try the fallback
+              if (!fetchSuccessful) {
+                console.log("Trying fallback event fetching...");
+                const fallbackResponse = await eventService.events.getAll();
+                if (
+                  fallbackResponse?.data &&
+                  Array.isArray(fallbackResponse.data)
+                ) {
+                  allEvents = fallbackResponse.data;
+                  fetchSuccessful = true;
+                }
+              }
+            } catch (err) {
+              console.error("All event fetching methods failed:", err);
+              // We'll continue with an empty array
+            }
+          })(),
+          timeoutPromise,
+        ]);
+      } catch (err) {
+        console.error("Fetch events timed out or failed:", err);
+        // We'll continue with whatever events we have (which may be an empty array)
+      }
+
+      // Categorize events
+      const categorizedEvents = categorizeEvents(allEvents);
+
+      setEvents(categorizedEvents);
+      setInitialized(true);
+      return categorizedEvents;
+    } catch (err) {
+      console.error("Error in fetchEvents:", err);
+      setError("Failed to load events. Please try again later.");
+      // Still mark as initialized so we don't get stuck in loading state
+      setInitialized(true);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [categorizeEvents]);
+
+  // Define refreshEvents with user feedback
+  const refreshEvents = useCallback(async () => {
+    try {
+      const refreshedEvents = await fetchEvents();
+      if (refreshedEvents) {
+        toast.success("Events refreshed successfully", {
+          position: "bottom-right",
+          autoClose: 2000,
+          toastId: "events-refreshed", // Add a unique ID to prevent duplicates
+        });
+      }
+      return refreshedEvents;
+    } catch (error) {
+      console.error("Error refreshing events:", error);
+      toast.error("Failed to refresh events", {
+        position: "bottom-right",
+        autoClose: 3000,
+        toastId: "events-refresh-error", // Add a unique ID to prevent duplicates
+      });
+      return null;
+    }
+  }, [fetchEvents]);
+  const checkForStatusUpdates = useCallback(async () => {
+    try {
+      const response = await eventService.checkEventStatuses();
+
+      if (response && response.success) {
+        if (response.updated && response.updated.length > 0) {
+          // If events were updated, refresh the events list
+          console.log(
+            `${response.updated.length} events were updated:`,
+            response.updated
+          );
+
+          // Show toast notification with a unique ID
+          toast.info(
+            `${response.updated.length} event statuses were automatically updated`,
+            {
+              position: "bottom-right",
+              autoClose: 3000,
+              toastId: `status-update-${Date.now()}`, // Use timestamp to make unique
+            }
+          );
+
+          // Refresh events
+          await fetchEvents();
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Error checking event statuses:", error);
+      return false;
+    }
+  }, [fetchEvents]);
+
+  const checkUpcomingStatusChanges = useCallback(async () => {
+    try {
+      const response = await eventService.getUpcomingStatusChanges();
+
+      if (
+        response &&
+        response.success &&
+        response.data &&
+        response.data.length > 0
+      ) {
+        const upcomingChanges = response.data;
+
+        // Log upcoming changes
+        console.log("Upcoming status changes:", upcomingChanges);
+
+        // If there are upcoming changes, set up quick polling
+        if (upcomingChanges.length > 0) {
+          // Clear existing quick refresh interval if it exists
+          if (quickRefreshIntervalRef.current) {
+            clearInterval(quickRefreshIntervalRef.current);
+          }
+
+          // Set up more frequent polling for imminent changes
+          quickRefreshIntervalRef.current = setInterval(async () => {
+            await checkForStatusUpdates();
+          }, 10000); // Check every 10 seconds
+
+          // Show notification for the closest change
+          const closestChange = upcomingChanges.reduce((closest, current) => {
+            return !closest ||
+              current.minutesRemaining < closest.minutesRemaining
+              ? current
+              : closest;
+          }, null);
+
+          if (closestChange) {
+            toast.info(
+              `Event "${closestChange.name}" will ${closestChange.changeType} in ${closestChange.minutesRemaining} minutes`,
+              {
+                position: "bottom-right",
+                autoClose: 5000,
+              }
+            );
+          }
+
+          // Auto-cancel quick polling after the changes are expected to happen
+          const maxMinutesRemaining = Math.max(
+            ...upcomingChanges.map((c) => c.minutesRemaining || 0)
+          );
+          setTimeout(() => {
+            if (quickRefreshIntervalRef.current) {
+              clearInterval(quickRefreshIntervalRef.current);
+              quickRefreshIntervalRef.current = null;
+            }
+          }, maxMinutesRemaining * 60 * 1000 + 30000); // Max remaining time + 30 seconds buffer
+
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Error checking upcoming status changes:", error);
+      return false;
+    }
+  }, [checkForStatusUpdates]);
 
   // Helper function to check if an event has a future display date
-  const checkIfFutureDisplay = (event) => {
+  const checkIfFutureDisplay = useCallback((event) => {
     if (event.display_start_date && event.display_start_time) {
       const now = new Date();
       const displayStartDate = new Date(
@@ -151,6 +392,15 @@ const EventsManagementContainer = () => {
       return displayStartDate > now;
     }
     return false;
+  }, []);
+
+  // Helper function to find an event by ID
+  const findEventById = (eventId) => {
+    for (const category in events) {
+      const event = events[category].find((e) => e.id === eventId);
+      if (event) return event;
+    }
+    return null;
   };
 
   // Handler for adding a new event
@@ -162,8 +412,7 @@ const EventsManagementContainer = () => {
   const handleEditEvent = async (eventId, editType) => {
     try {
       setLoading(true);
-
-      // Get the event details if not already available
+      // Get the event details
       const event = findEventById(eventId);
       if (event) {
         // If we have the event in memory, use that data
@@ -262,7 +511,7 @@ const EventsManagementContainer = () => {
             venue: eventResponse.data.venue,
             eventType: eventResponse.data.event_type,
             eventCategory: eventResponse.data.category,
-            imagePreview: formatImageUrl(eventResponse.data.image),
+            imagePreview: eventResponse.data.image,
             status: eventResponse.data.status,
             visibility: eventResponse.data.visibility,
             display_start_date: eventResponse.data.display_start_date,
@@ -318,9 +567,9 @@ const EventsManagementContainer = () => {
         }
       }
 
-      return null;
-    } catch (err) {
-      console.error(`Error fetching event ${eventId} for editing:`, err);
+      return event;
+    } catch (error) {
+      console.error(`Error preparing edit for event ${eventId}:`, error);
       setError("Failed to load event details for editing.");
       return null;
     } finally {
@@ -503,6 +752,7 @@ const EventsManagementContainer = () => {
           console.warn(`Unknown edit type: ${editType}`);
           break;
       }
+      await eventService.refreshEventStatus(updatedEvent.id);
 
       // Refresh the events list after any edit
       await refreshEvents();
@@ -516,30 +766,7 @@ const EventsManagementContainer = () => {
       setLoading(false);
     }
   };
-  const refreshEvents = async () => {
-    try {
-      // Fetch all types of events
-      const publishedResponse = await eventService.events.getAll({
-        visibility: "published",
-      });
 
-      const draftsResponse = await eventService.events.getDrafts();
-
-      const comingSoonResponse = await eventService.events.getComingSoon();
-
-      // Categorize events
-      const categorizedEvents = categorizeEvents([
-        ...(publishedResponse?.data || []),
-        ...(draftsResponse?.data || []),
-        ...(comingSoonResponse?.data || []),
-      ]);
-
-      setEvents(categorizedEvents);
-    } catch (err) {
-      console.error("Error refreshing events:", err);
-      setError("Failed to refresh events. Please reload the page.");
-    }
-  };
   // Handler for deleting an event
   const handleDeleteEvent = async (eventId) => {
     try {
@@ -554,8 +781,7 @@ const EventsManagementContainer = () => {
       }
 
       // Refresh the events list
-      const updatedEvents = await eventService.events.getAll();
-      setEvents(categorizeEvents(updatedEvents.data || []));
+      await fetchEvents();
 
       return true;
     } catch (err) {
@@ -573,8 +799,7 @@ const EventsManagementContainer = () => {
       });
 
       // Refresh the events list
-      const updatedEvents = await eventService.events.getAll();
-      setEvents(categorizeEvents(updatedEvents.data || []));
+      await fetchEvents();
 
       return true;
     } catch (err) {
@@ -584,15 +809,7 @@ const EventsManagementContainer = () => {
     }
   };
 
-  // Helper function to find an event by ID
-  const findEventById = (eventId) => {
-    for (const category in events) {
-      const event = events[category].find((e) => e.id === eventId);
-      if (event) return event;
-    }
-    return null;
-  };
-
+  // Handler for publishing an event immediately
   const handlePublishNow = async (eventId) => {
     try {
       // Update status to published
@@ -601,16 +818,7 @@ const EventsManagementContainer = () => {
       });
 
       // Refresh the events list
-      const updatedEventsResponse = await eventService.events.getAll();
-      const unpublishedResponse = await eventService.events.getAll({
-        visibility: "unpublished",
-      });
-      const allEvents = [
-        ...(updatedEventsResponse?.data || []),
-        ...(unpublishedResponse?.data || []),
-      ];
-
-      setEvents(categorizeEvents(allEvents));
+      await fetchEvents();
 
       return true;
     } catch (err) {
@@ -620,18 +828,230 @@ const EventsManagementContainer = () => {
     }
   };
 
-  // In the return statement of EventsManagementContainer
+  const handleManualRefresh = async () => {
+    setLoading(true);
+    try {
+      // Check for status updates
+      const statusesUpdated = await checkForStatusUpdates();
+
+      // If statuses weren't updated, refresh events and show toast
+      if (!statusesUpdated) {
+        await refreshEvents();
+      }
+      // (if statuses were updated, a toast was already shown in checkForStatusUpdates)
+    } catch (error) {
+      console.error("Error during manual refresh:", error);
+      toast.error("Error refreshing events", {
+        position: "bottom-right",
+        autoClose: 3000,
+        toastId: "refresh-error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Set up initial socket connection and event listeners
+  useEffect(() => {
+    let isComponentMounted = true;
+
+    // Prevent duplicate initialization
+    if (socketRef.current) {
+      console.log("Socket already exists, skipping initialization");
+      return;
+    }
+
+    // Set up socket connection with proper error handling
+    try {
+      // Create proper base URL by removing /api suffix
+      const BASE_URL = API_URL.replace(/\/api$/, "");
+
+      console.log("Connecting to Socket.IO with base URL:", BASE_URL);
+      socketRef.current = io(BASE_URL, {
+        path: "/socket.io",
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 10000,
+        transports: ["websocket", "polling"],
+        autoConnect: true,
+        forceNew: true,
+      });
+
+      socketRef.current.on("connect", () => {
+        console.log(
+          "Connected to socket server with ID:",
+          socketRef.current.id
+        );
+      });
+
+      socketRef.current.on("connect_error", (error) => {
+        console.error("Socket connection error:", error);
+        // Handle the error but don't let it block the app
+        if (isComponentMounted) {
+          // Only fetch events if socket fails - don't get stuck
+          fetchEvents();
+        }
+      });
+
+      // Add socket event listeners for server events
+      socketRef.current.on("events-updated", (data) => {
+        console.log("Received events-updated via socket:", data);
+        if (isComponentMounted) {
+          // Just fetch the events, but DON'T show a toast
+          // The server will already send a toast via websocket notification
+          fetchEvents().catch(console.error);
+        }
+      });
+
+      socketRef.current.on("upcoming-status-changes", (data) => {
+        console.log("Received upcoming-status-changes via socket:", data);
+        // Only show a toast for upcoming status changes once
+        if (isComponentMounted && data.upcomingChanges?.length > 0) {
+          const closestChange = data.upcomingChanges.reduce(
+            (closest, current) => {
+              return !closest ||
+                current.minutesRemaining < closest.minutesRemaining
+                ? current
+                : closest;
+            },
+            null
+          );
+
+          if (closestChange) {
+            toast.info(
+              `Event "${closestChange.name}" will ${closestChange.changeType} in ${closestChange.minutesRemaining} minutes`,
+              {
+                position: "bottom-right",
+                autoClose: 5000,
+                toastId: `upcoming-change-${closestChange.id}`, // Prevent duplicates
+              }
+            );
+          }
+        }
+      });
+
+      socketRef.current.on("event-updated", (data) => {
+        console.log("Received event-updated via socket:", data);
+        if (isComponentMounted) {
+          // Refresh events but don't show another toast
+          fetchEvents().catch(console.error);
+        }
+      });
+    } catch (error) {
+      console.error("Error setting up socket connection:", error);
+      // Even if socket setup fails, we should still fetch events
+      if (isComponentMounted) {
+        fetchEvents();
+      }
+    }
+
+    // Clean up socket connection on component unmount
+    return () => {
+      isComponentMounted = false;
+      if (socketRef.current) {
+        console.log("Disconnecting socket");
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+  }, []);
+  useEffect(() => {
+    let isComponentMounted = true;
+    let loadingTimeoutId = null;
+
+    // Define an async function for the initial setup
+    const setupInitialData = async () => {
+      if (!isComponentMounted) return;
+
+      try {
+        // Initial fetch - wait for this to complete before continuing
+        await fetchEvents();
+
+        if (!isComponentMounted) return;
+
+        // Immediate status check - but don't wait for these to complete
+        // if they're taking too long
+        checkForStatusUpdates().catch((error) => {
+          console.error("Error checking status updates:", error);
+        });
+
+        if (!isComponentMounted) return;
+
+        // Check for upcoming changes
+        checkUpcomingStatusChanges().catch((error) => {
+          console.error("Error checking upcoming changes:", error);
+        });
+      } catch (error) {
+        console.error("Error during initial data setup:", error);
+        // Don't set error state if component unmounted
+        if (isComponentMounted) {
+          setError("Error loading initial data. Try refreshing the page.");
+          // If there's an error, we should still set initialized to true
+          // so the app doesn't get stuck loading
+          setInitialized(true);
+          setLoading(false);
+        }
+      }
+    };
+
+    // Run the setup
+    setupInitialData();
+
+    // Safety timeout - if loading takes too long, set initialized to true anyway
+    // This prevents getting stuck in a loading state
+    loadingTimeoutId = setTimeout(() => {
+      if (isComponentMounted && !initialized) {
+        console.warn("Loading timeout reached, forcing initialization");
+        setInitialized(true);
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
+
+    // Set up automatic regular status checking (every 60 seconds)
+    autoRefreshIntervalRef.current = setInterval(async () => {
+      if (isComponentMounted) {
+        await checkForStatusUpdates();
+        await checkUpcomingStatusChanges();
+      }
+    }, 60000);
+
+    // Clean up intervals on component unmount
+    return () => {
+      isComponentMounted = false;
+
+      if (loadingTimeoutId) {
+        clearTimeout(loadingTimeoutId);
+      }
+
+      if (autoRefreshIntervalRef.current) {
+        clearInterval(autoRefreshIntervalRef.current);
+        autoRefreshIntervalRef.current = null;
+      }
+
+      if (quickRefreshIntervalRef.current) {
+        clearInterval(quickRefreshIntervalRef.current);
+        quickRefreshIntervalRef.current = null;
+      }
+    };
+  }, [
+    fetchEvents,
+    checkForStatusUpdates,
+    checkUpcomingStatusChanges,
+    initialized,
+  ]);
   return (
     <Admin_EventsManagement
       events={events}
       loading={loading}
+      initialized={initialized}
       error={error}
       onAddEvent={handleAddEvent}
       onEditEvent={handleEditEvent}
       onSaveEvent={handleSaveEvent}
       onDeleteEvent={handleDeleteEvent}
       onUnpublishEvent={handleUnpublishEvent}
-      onPublishNow={handlePublishNow} // Add the new handler
+      onPublishNow={handlePublishNow}
+      onRefreshEvents={handleManualRefresh}
       findEventById={findEventById}
     />
   );

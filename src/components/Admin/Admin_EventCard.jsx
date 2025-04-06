@@ -10,27 +10,7 @@ import {
   FaTicketAlt,
   FaClock,
 } from "react-icons/fa";
-
-const formatImageUrl = (imageUrl) => {
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002";
-
-  if (!imageUrl) return imageUrl;
-  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-    if (imageUrl.includes("/api/uploads/")) {
-      const fixedPath = imageUrl.replace("/api/uploads/", "/uploads/");
-      return fixedPath;
-    }
-    return imageUrl;
-  }
-  if (imageUrl.startsWith("/api/uploads/")) {
-    imageUrl = imageUrl.replace("/api/uploads/", "/uploads/");
-  }
-  if (imageUrl.startsWith("/uploads/")) {
-    const baseUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
-    return `${baseUrl}${imageUrl}`;
-  }
-  return imageUrl;
-};
+import { formatImageUrl, handleImageError } from "../../utils/imageUtils";
 
 const Admin_EventCard = ({
   event,
@@ -78,13 +58,12 @@ const Admin_EventCard = ({
     setImageError(false);
   };
 
-  const handleImageError = () => {
-    console.warn(`Image failed to load for event: ${event.eventName}`, {
-      eventImage: event.imagePreview,
-      formattedUrl: formattedImageUrl,
-    });
+  const handleLocalImageError = (e) => {
     setImageError(true);
     setImageLoaded(false);
+
+    // Use the shared error handler
+    handleImageError(e, "Image Error");
   };
 
   // Helper function to check if this is a future scheduled event
@@ -449,11 +428,13 @@ const Admin_EventCard = ({
             alt={event.eventName || "Event Image"}
             className="w-full h-full object-cover"
             onLoad={handleImageLoad}
-            onError={handleImageError}
+            onError={handleLocalImageError}
           />
         ) : (
           <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white">
-            {imageError ? "Image Error" : "No Image"}
+            <span className="text-center">
+              {imageError ? "Image Error" : "No Image"}
+            </span>
           </div>
         )}
       </div>
