@@ -1,9 +1,7 @@
-import React from "react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaSearch, FaArchive } from "react-icons/fa";
 import Admin_EventManagementFilter from "./Admin_EventsManagementFilter";
-
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import EventCard from "../../components/Admin/Admin_EventCard";
@@ -15,20 +13,68 @@ import EditClaimingDetailsPopup from "../../components/Admin/Popups/EditClaiming
 import EditAvailabilityDetailsPopup from "../../components/Admin/Popups/EditAvailabilityDetailsPopup";
 import DeleteConfirmationPopup from "../../components/Admin/Popups/DeleteConfirmationPopup";
 import UnpublishConfirmationPopup from "../../components/Admin/Popups/UnpublishConfirmationPopup";
+import { FaClock } from "react-icons/fa";
 
-const AddEventButton = () => {
-  const navigate = useNavigate();
+// Function to check if an event has a future display date
+const isFutureScheduledEvent = (event) => {
+  if (
+    event.status === "scheduled" &&
+    event.visibility === "unpublished" &&
+    event.display_start_date &&
+    event.display_start_time
+  ) {
+    const now = new Date();
+    const displayStartDate = new Date(
+      `${event.display_start_date}T${event.display_start_time}`
+    );
+    return displayStartDate > now;
+  }
+  return false;
+};
 
-  const handleClick = () => {
-    navigate("/events/publish");
-  };
+// Function to format the display date in a readable way
+const formatDisplayDate = (event) => {
+  if (event.display_start_date && event.display_start_time) {
+    const displayStartDate = new Date(
+      `${event.display_start_date}T${event.display_start_time}`
+    );
+    return displayStartDate.toLocaleString();
+  }
+  return "Unknown";
+};
 
+// Function to calculate time remaining until display
+const calculateTimeUntilDisplay = (event) => {
+  if (event.display_start_date && event.display_start_time) {
+    const displayStartDate = new Date(
+      `${event.display_start_date}T${event.display_start_time}`
+    );
+    const now = new Date();
+    const diffMs = displayStartDate - now;
+
+    if (diffMs <= 0) return "Now";
+
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(
+      (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    );
+
+    if (diffDays > 0) {
+      return `${diffDays}d ${diffHours}h`;
+    } else {
+      return `${diffHours}h`;
+    }
+  }
+  return "Unknown";
+};
+
+const AddEventButton = ({ onAddEvent }) => {
   return (
     <div className="mb-10">
       <h3 className="text-lg font-bold mb-4">ADD EVENT</h3>
       <div>
         <button
-          onClick={handleClick}
+          onClick={onAddEvent}
           className="w-[173px] h-[205px] flex flex-col items-center justify-center bg-[#FFA500] text-black rounded-lg shadow-md hover:bg-[#F59E00] transition-colors"
         >
           <span className="text-4xl text-white">+</span>
@@ -64,11 +110,22 @@ const EventTabs = ({ activeTab, setActiveTab }) => {
   );
 };
 
-const Admin_EventsManagement = () => {
+const Admin_EventsManagement = ({
+  events,
+  loading,
+  error,
+  onAddEvent,
+  onEditEvent,
+  onSaveEvent,
+  onDeleteEvent,
+  onUnpublishEvent,
+  onPublishNow, // New prop
+  findEventById,
+}) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("published");
-
   const [showFilter, setShowFilter] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // State to control which popup is visible
   const [activePopup, setActivePopup] = useState(null);
@@ -79,189 +136,87 @@ const Admin_EventsManagement = () => {
   // State to store the selected event data
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // Sample data - in a real app, this would come from an API or state management
-  const sampleEvents = {
-    // Active Events
-    OPEN: [
-      {
-        id: 1,
-        eventName: "UAAP Season 88 Opening",
-        eventDate: "2023-09-30",
-        startTime: "14:00",
-        endTime: "17:00",
-        venue: "MOA Arena",
-        eventType: "ticketed",
-        eventCategory: "UAAP",
-        status: "open",
-        imagePreview: null,
-      },
-    ],
-    SCHEDULED: [
-      {
-        id: 2,
-        eventName: "University Fair 2023",
-        eventDate: "2023-10-15",
-        startTime: "09:00",
-        endTime: "16:00",
-        venue: "UST Quadricentennial Pavilion",
-        eventType: "free",
-        eventCategory: "UST IPEA",
-        status: "scheduled",
-        imagePreview: null,
-      },
-    ],
-    // Upcoming Events
-    DRAFT: [
-      {
-        id: 3,
-        eventName: "Christmas Concert",
-        eventDate: "2023-12-15",
-        startTime: "18:00",
-        endTime: "21:00",
-        venue: "UST Field",
-        eventType: "coming_soon",
-        eventCategory: "UST IPEA",
-        status: "draft",
-        imagePreview: null,
-      },
-    ],
-    UNPUBLISHED: [
-      {
-        id: 5,
-        eventName: "Engineering Week",
-        eventDate: "2023-11-20",
-        startTime: "08:00",
-        endTime: "18:00",
-        venue: "Engineering Building",
-        eventType: "ticketed",
-        eventCategory: "UST IPEA",
-        status: "scheduled",
-        imagePreview: null,
-      },
-    ],
-    "COMING SOON": [
-      {
-        id: 6,
-        eventName: "New Year Concert",
-        eventDate: "2024-01-05",
-        startTime: "19:00",
-        endTime: "22:00",
-        venue: "UST Open Field",
-        eventType: "coming_soon",
-        eventCategory: "UST IPEA",
-        status: "scheduled",
-        imagePreview: null,
-      },
-    ],
-    // Past Events
-    COMPLETED: [
-      {
-        id: 4,
-        eventName: "Alumni Homecoming 2023",
-        eventDate: "2023-08-05",
-        startTime: "17:00",
-        endTime: "22:00",
-        venue: "UST Plaza Mayor",
-        eventType: "ticketed",
-        eventCategory: "UST IPEA",
-        status: "completed",
-        imagePreview: null,
-      },
-    ],
-    CANCELLED: [
-      {
-        id: 7,
-        eventName: "Sports Fest 2023",
-        eventDate: "2023-07-10",
-        startTime: "08:00",
-        endTime: "17:00",
-        venue: "UST Gym",
-        eventType: "ticketed",
-        eventCategory: "UST IPEA",
-        status: "cancelled",
-        imagePreview: null,
-      },
-    ],
-    ARCHIVED: [
-      {
-        id: 8,
-        eventName: "Summer Festival 2023",
-        eventDate: "2023-05-20",
-        startTime: "13:00",
-        endTime: "20:00",
-        venue: "Benavides Garden",
-        eventType: "free",
-        eventCategory: "UST IPEA",
-        status: "completed",
-        imagePreview: null,
-      },
-      {
-        id: 8,
-        eventName: "Summer Festival 2023",
-        eventDate: "2023-05-20",
-        startTime: "13:00",
-        endTime: "20:00",
-        venue: "Benavides Garden",
-        eventType: "free",
-        eventCategory: "UST IPEA",
-        status: "completed",
-        imagePreview: null,
-      },
-    ],
+  const handlePublishNow = async (eventId) => {
+    console.log(`Publishing event ${eventId} immediately`);
+    const success = await onPublishNow(eventId);
+    if (success) {
+      // Optional: Show success message or notification
+      alert("Event has been published successfully!");
+    }
   };
+  // Function to get events based on active tab
 
-  // Function to get events based on active tab
-  // Function to get events based on active tab
-  // Function to get events based on active tab
   const getEventsByTab = () => {
     switch (activeTab) {
       case "published":
         return {
-          "OPEN FOR RESERVATION": sampleEvents.OPEN || [],
+          "OPEN FOR RESERVATION": events.OPEN || [],
           SCHEDULED:
-            sampleEvents.SCHEDULED.filter(
+            events.SCHEDULED.filter(
               (event) => event.visibility === "published"
             ) || [],
-          "COMING SOON": sampleEvents["COMING SOON"] || [],
+          "COMING SOON": events["COMING SOON"] || [],
           COMPLETED:
-            sampleEvents.COMPLETED.filter(
+            events.COMPLETED.filter(
               (event) => event.visibility === "published"
             ) || [],
         };
       case "unpublished":
         return {
-          DRAFT: sampleEvents.DRAFT || [],
-          UNPUBLISHED: sampleEvents.UNPUBLISHED || [],
-          COMPLETED: sampleEvents.COMPLETED || [],
+          DRAFT: events.DRAFT || [],
+          UNPUBLISHED: events.UNPUBLISHED || [],
+          COMPLETED:
+            events.COMPLETED.filter(
+              (event) => event.visibility === "unpublished"
+            ) || [],
         };
       case "archived":
         return {
-          ARCHIVED: sampleEvents.ARCHIVED || [],
-          CANCELLED: sampleEvents.CANCELLED || [],
+          ARCHIVED: events.ARCHIVED || [],
+          CANCELLED: events.CANCELLED || [],
         };
       default:
-        return sampleEvents;
+        return events;
     }
   };
 
-  // Function to find event by ID across all categories
-  const findEventById = (eventId) => {
-    for (const category in sampleEvents) {
-      const event = sampleEvents[category].find((e) => e.id === eventId);
-      if (event) return event;
-    }
-    return null;
+  // Filter events by search term
+  const filterEventsBySearchTerm = (eventsObject) => {
+    if (!searchTerm) return eventsObject;
+
+    const result = {};
+
+    Object.keys(eventsObject).forEach((category) => {
+      result[category] = eventsObject[category].filter(
+        (event) =>
+          event.eventName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (event.venue &&
+            event.venue.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (event.eventCategory &&
+            event.eventCategory
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()))
+      );
+    });
+
+    return result;
   };
 
   // Handler for edit actions
-  const handleEditEvent = (eventId, type) => {
+  const handleEditEvent = async (eventId, type) => {
     console.log(`Edit event ${eventId} with type ${type}`);
-    const event = findEventById(eventId);
-    if (event) {
-      setSelectedEventId(eventId);
-      setSelectedEvent(event);
-      setEditType(type);
-      setActivePopup("edit");
+    try {
+      const event =
+        findEventById(eventId) || (await onEditEvent(eventId, type));
+
+      if (event) {
+        setSelectedEventId(eventId);
+        setSelectedEvent(event);
+        setEditType(type);
+        setActivePopup("edit");
+      }
+    } catch (error) {
+      console.error("Error preparing edit:", error);
     }
   };
 
@@ -300,48 +255,74 @@ const Admin_EventsManagement = () => {
   };
 
   // Save handlers for each edit type
-  const handleSaveEventChanges = (updatedEvent) => {
+  const handleSaveEventChanges = async (updatedEvent) => {
     console.log("Saving event changes:", updatedEvent);
-    // Implement your save logic here
-    handleClosePopup();
+    const success = await onSaveEvent(updatedEvent, "event");
+    if (success) {
+      handleClosePopup();
+    }
   };
 
-  const handleSaveTicketChanges = (updatedTicket) => {
+  const handleSaveTicketChanges = async (updatedTicket) => {
     console.log("Saving ticket changes:", updatedTicket);
-    // Implement your save logic here
-    handleClosePopup();
+    const success = await onSaveEvent(updatedTicket, "ticket");
+    if (success) {
+      handleClosePopup();
+    }
   };
 
-  const handleSaveClaimingChanges = (updatedClaiming) => {
+  const handleSaveClaimingChanges = async (updatedClaiming) => {
     console.log("Saving claiming changes:", updatedClaiming);
-    // Implement your save logic here
-    handleClosePopup();
+    const success = await onSaveEvent(updatedClaiming, "claiming");
+    if (success) {
+      handleClosePopup();
+    }
   };
 
-  const handleSaveAvailabilityChanges = (updatedAvailability) => {
+  const handleSaveAvailabilityChanges = async (updatedAvailability) => {
     console.log("Saving availability changes:", updatedAvailability);
-    // Implement your save logic here
-    handleClosePopup();
+    const success = await onSaveEvent(updatedAvailability, "availability");
+    if (success) {
+      handleClosePopup();
+    }
   };
 
-  const handleConfirmDelete = (eventId) => {
+  const handleConfirmDelete = async (eventId) => {
     console.log(`Deleting event with ID: ${eventId}`);
-    // Implement your delete logic here
-    // Example: remove the event from your state or call an API
-    handleClosePopup();
+    const success = await onDeleteEvent(eventId);
+    if (success) {
+      handleClosePopup();
+    }
   };
 
-  const handleConfirmUnpublish = (eventId) => {
+  const handleConfirmUnpublish = async (eventId) => {
     console.log(`Unpublishing event with ID: ${eventId}`);
-    // Implement your unpublish logic here
-    // Example: update the event status in your state or call an API
-    handleClosePopup();
+    const success = await onUnpublishEvent(eventId);
+    if (success) {
+      handleClosePopup();
+    }
   };
+  const handleCancelEvent = async (eventId) => {
+    console.log(`Cancel event ${eventId}`);
+    try {
+      const event = findEventById(eventId);
+      if (event) {
+        // You'll need to implement a proper cancel event function in your container component
+        // For now, we'll just alert since the handler isn't fully implemented
+        alert("Event cancellation feature is not fully implemented yet.");
 
+        // If you have a cancel function in your props, you could use it like this:
+        // const success = await onCancelEvent(eventId);
+        // if (success) {
+        //   // Handle successful cancellation
+        // }
+      }
+    } catch (error) {
+      console.error("Error cancelling event:", error);
+    }
+  };
   // Render the appropriate popup based on active state
   const renderPopup = () => {
-    console.log("Rendering popup:", { activePopup, editType, selectedEvent });
-
     if (!activePopup) return null;
 
     if (activePopup === "edit" && selectedEvent) {
@@ -415,6 +396,37 @@ const Admin_EventsManagement = () => {
     return ["published", "unpublished"].includes(activeTab);
   };
 
+  // Handle search term change
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // Reset filters
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    // Reset any other filters here
+  };
+
+  // Get and filter events for display
+  const filteredEvents = filterEventsBySearchTerm(getEventsByTab());
+
+  if (loading) {
+    return (
+      <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
+        <Header_Admin />
+        <div className="flex">
+          <Sidebar_Admin />
+          <div className="flex-1 px-10 py-10 flex justify-center items-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FFAB40] mx-auto mb-4"></div>
+              <p className="text-lg">Loading events...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
       {/* Header */}
@@ -428,34 +440,34 @@ const Admin_EventsManagement = () => {
         {/* Main Content Wrapper */}
         <div className="flex-1 px-10 py-10">
           {/* Tab Navigation */}
-          <EventTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
+              <p className="text-red-400">{error}</p>
+            </div>
+          )}
 
           {/* Search and Filters */}
           <div className="flex items-center justify-between mb-6 gap-4">
             {/* Search Dropdown with Arrow Fix */}
             <div className="relative flex-grow">
               <FaSearch className="absolute left-3 top-3 text-black" />
-              <select
-                className="pl-10 pr-12 py-2 w-full rounded-full bg-white text-black outline-none cursor-pointer appearance-none"
-                style={{
-                  backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="black"><path d="M5 7l5 5 5-5H5z"/></svg>')`,
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right 10px center",
-                  backgroundSize: "14px",
-                }}
-              >
-                <option value="" disabled selected>
-                  Search events
-                </option>
-                <option value="event1">Event 1</option>
-                <option value="event2">Event 2</option>
-                <option value="event3">Event 3</option>
-              </select>
+              <input
+                type="text"
+                placeholder="Search events"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="pl-10 pr-12 py-2 w-full rounded-full bg-white text-black outline-none"
+              />
             </div>
 
             {/* Buttons */}
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
+              <button
+                className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                onClick={handleResetFilters}
+              >
                 Reset
               </button>
               <button
@@ -464,38 +476,57 @@ const Admin_EventsManagement = () => {
               >
                 Sort/Filter by
               </button>
-              <button
-                className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
-                onClick={() => navigate("/archive")}
-              >
-                <FaArchive />
-              </button>
             </div>
           </div>
+          <EventTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
-          {shouldShowAddEvent() && <AddEventButton />}
+          {shouldShowAddEvent() && <AddEventButton onAddEvent={onAddEvent} />}
 
           {/* Event Sections for the active tab */}
-          {Object.keys(getEventsByTab()).map((category) => (
+          {Object.keys(filteredEvents).map((category) => (
             <div key={category} className="mb-10">
               <h3 className="text-lg font-bold border-b border-gray-600 pb-2 mb-4">
                 {category}
+                {category === "UNPUBLISHED" &&
+                  filteredEvents[category].some(isFutureScheduledEvent) && (
+                    <span className="ml-2 text-xs font-normal text-gray-400">
+                      (Contains events scheduled for future display)
+                    </span>
+                  )}
               </h3>
 
-              {getEventsByTab()[category].length > 0 ? (
+              {filteredEvents[category].length > 0 ? (
                 <div className="flex gap-4 overflow-x-auto pb-4">
-                  {" "}
-                  {/* Added pb-4 for scrollbar spacing */}
-                  {getEventsByTab()[category].map((event) => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      cardStyle={event.status.toLowerCase()}
-                      onEdit={handleEditEvent}
-                      onDelete={handleDeleteEvent}
-                      onUnpublish={handleUnpublishEvent}
-                      onViewDetails={handleViewEventDetails}
-                    />
+                  {filteredEvents[category].map((event) => (
+                    <div key={event.id}>
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        cardStyle={event.status.toLowerCase()}
+                        onEdit={handleEditEvent}
+                        onDelete={handleDeleteEvent}
+                        onUnpublish={handleUnpublishEvent}
+                        onPublishNow={handlePublishNow} // Pass the handler
+                        onViewDetails={handleViewEventDetails}
+                        onCancel={handleCancelEvent}
+                      />
+
+                      {/* Add display time indicator for future scheduled events */}
+                      {isFutureScheduledEvent(event) && (
+                        <div className="mt-2 bg-yellow-900/30 border border-yellow-600 rounded-md p-2 text-xs">
+                          <div className="flex items-center text-yellow-400">
+                            <FaClock className="mr-1" />
+                            <span>
+                              Display scheduled in:{" "}
+                              {calculateTimeUntilDisplay(event)}
+                            </span>
+                          </div>
+                          <div className="text-gray-300 mt-1">
+                            Will display on: {formatDisplayDate(event)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               ) : (

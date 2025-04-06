@@ -44,12 +44,20 @@ const eventController = {
   // Get all events (with filtering options)
   getAllEvents: async (req, res) => {
     try {
-      const { status, visibility, type, page = 1, limit = 10 } = req.query;
+      const {
+        status,
+        visibility,
+        type,
+        category,
+        page = 1,
+        limit = 10,
+      } = req.query;
 
       const whereClause = {};
       if (status) whereClause.status = status;
       if (visibility) whereClause.visibility = visibility;
       if (type) whereClause.event_type = type;
+      if (category) whereClause.category = category;
 
       const offset = (page - 1) * limit;
 
@@ -124,6 +132,7 @@ const eventController = {
         details,
         event_date,
         event_time,
+        event_end_time,
         venue,
         category,
         event_type,
@@ -132,8 +141,12 @@ const eventController = {
         visibility,
         display_start_date,
         display_end_date,
-        reservation_start,
-        reservation_end,
+        display_start_time,
+        display_end_time,
+        reservation_start_date,
+        reservation_start_time,
+        reservation_end_date,
+        reservation_end_time,
       } = req.body;
 
       // Validate required fields
@@ -173,6 +186,7 @@ const eventController = {
           details,
           event_date,
           event_time,
+          event_end_time,
           venue,
           image,
           category,
@@ -181,8 +195,12 @@ const eventController = {
           visibility: visibility || defaultVisibility,
           display_start_date,
           display_end_date,
-          reservation_start,
-          reservation_end,
+          display_start_time,
+          display_end_time,
+          reservation_start_date,
+          reservation_start_time,
+          reservation_end_date,
+          reservation_end_time,
         },
         { transaction }
       );
@@ -216,6 +234,7 @@ const eventController = {
         details,
         event_date,
         event_time,
+        event_end_time,
         venue,
         category,
         event_type,
@@ -236,6 +255,7 @@ const eventController = {
         details,
         event_date,
         event_time,
+        event_end_time,
         venue,
         image,
         category,
@@ -271,6 +291,7 @@ const eventController = {
         details,
         event_date,
         event_time,
+        event_end_time,
         venue,
         category,
         event_type,
@@ -279,8 +300,12 @@ const eventController = {
         image,
         display_start_date,
         display_end_date,
-        reservation_start,
-        reservation_end,
+        display_start_time,
+        display_end_time,
+        reservation_start_date,
+        reservation_end_date,
+        reservation_start_time,
+        reservation_end_time,
       } = req.body;
 
       const event = await Event.findByPk(id);
@@ -295,10 +320,21 @@ const eventController = {
       // Determine if we need to update status based on reservation period
       let updatedStatus = status;
 
-      if (event_type === "ticketed" && reservation_start && reservation_end) {
+      if (
+        event_type === "ticketed" &&
+        req.body.reservation_start_date &&
+        req.body.reservation_end_date &&
+        req.body.reservation_start_time &&
+        req.body.reservation_end_time
+      ) {
         const now = new Date();
-        const resStart = new Date(reservation_start);
-        const resEnd = new Date(reservation_end);
+
+        // Combine date and time fields
+        const resStartStr = `${req.body.reservation_start_date}T${req.body.reservation_start_time}`;
+        const resEndStr = `${req.body.reservation_end_date}T${req.body.reservation_end_time}`;
+
+        const resStart = new Date(resStartStr);
+        const resEnd = new Date(resEndStr);
 
         if (now < resStart) {
           updatedStatus = "scheduled";
@@ -314,6 +350,7 @@ const eventController = {
         details: details !== undefined ? details : event.details,
         event_date: event_date || event.event_date,
         event_time: event_time || event.event_time,
+        event_end_time: event_end_time || event.event_end_time,
         venue: venue || event.venue,
         image: image || event.image,
         category: category || event.category,
@@ -322,8 +359,16 @@ const eventController = {
         visibility: visibility || event.visibility,
         display_start_date: display_start_date || event.display_start_date,
         display_end_date: display_end_date || event.display_end_date,
-        reservation_start: reservation_start || event.reservation_start,
-        reservation_end: reservation_end || event.reservation_end,
+        display_start_time: display_start_time || event.display_start_time,
+        display_end_time: display_end_time || event.display_end_time,
+        reservation_start_date:
+          reservation_start_date || event.reservation_start_date,
+        reservation_start_time:
+          reservation_start_time || event.reservation_start_time,
+        reservation_end_date:
+          reservation_end_date || event.reservation_end_date,
+        reservation_end_time:
+          reservation_end_time || event.reservation_end_time,
       });
 
       return res.status(200).json({
@@ -333,6 +378,125 @@ const eventController = {
       });
     } catch (error) {
       console.error("Error updating event:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+
+  // Update event status (draft to published, coming soon to ticketed, etc.)
+  updateEventStatus: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, visibility, event_type } = req.body;
+
+      const event = await Event.findByPk(id);
+
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: "Event not found",
+        });
+      }
+
+      // Validate status and event type combinations
+      if (
+        (status === "open" && event_type === "coming_soon") ||
+        (status === "open" && event_type === "free")
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: `${event_type} events cannot have an 'open' status`,
+        });
+      }
+
+      // Update the event
+      await event.update({
+        status: status || event.status,
+        visibility: visibility || event.visibility,
+        event_type: event_type || event.event_type,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Event status updated successfully",
+        data: event,
+      });
+    } catch (error) {
+      console.error("Error updating event status:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+
+  // Convert an event (e.g., coming soon to ticketed)
+  convertEvent: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { event_type, status, visibility } = req.body;
+
+      const event = await Event.findByPk(id);
+
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: "Event not found",
+        });
+      }
+
+      // Check for valid conversions
+      const validConversions = {
+        coming_soon: ["ticketed", "free"],
+        free: ["ticketed"],
+        ticketed: ["free"],
+      };
+
+      if (!validConversions[event.event_type].includes(event_type)) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot convert from ${event.event_type} to ${event_type}`,
+        });
+      }
+
+      // Update the event type and appropriate status/visibility
+      let updatedStatus, updatedVisibility;
+
+      switch (event_type) {
+        case "ticketed":
+          updatedStatus = status || "scheduled";
+          updatedVisibility = visibility || "published";
+          break;
+        case "free":
+          updatedStatus = status || "closed";
+          updatedVisibility = visibility || "published";
+          break;
+        case "coming_soon":
+          updatedStatus = status || "scheduled";
+          updatedVisibility = visibility || "published";
+          break;
+        default:
+          updatedStatus = event.status;
+          updatedVisibility = event.visibility;
+      }
+
+      await event.update({
+        event_type,
+        status: updatedStatus,
+        visibility: updatedVisibility,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: `Event converted from ${event.event_type} to ${event_type}`,
+        data: event,
+      });
+    } catch (error) {
+      console.error("Error converting event:", error);
       return res.status(500).json({
         success: false,
         message: "Internal server error",
@@ -483,57 +647,236 @@ const eventController = {
       return res.status(200).json({
         success: true,
         message: "Image uploaded successfully",
-        imageUrl: imageUrl,
+        imageUrl: `/uploads/events/${req.file.filename}`, // Notice the leading slas
       });
     });
   },
 
   // Auto update event statuses based on dates
+  // Auto update event statuses and visibility
   updateEventStatuses: async () => {
     try {
       const now = new Date();
 
-      // Find ticketed events that should be open (reservation period started)
-      await Event.update(
-        { status: "open" },
-        {
-          where: {
-            event_type: "ticketed",
-            status: "scheduled",
-            visibility: "published",
-            reservation_start: { [Op.lte]: now },
-            reservation_end: { [Op.gt]: now },
-          },
-        }
-      );
+      // Convert today to YYYY-MM-DD format for date comparison
+      const todayDate = now.toISOString().split("T")[0];
+      const currentTime = now.toISOString().split("T")[1].substring(0, 8); // HH:MM:SS
 
-      // Find ticketed events that should be closed (reservation period ended)
-      await Event.update(
-        { status: "closed" },
-        {
-          where: {
-            event_type: "ticketed",
-            status: "open",
-            visibility: "published",
-            reservation_end: { [Op.lte]: now },
-          },
-        }
-      );
+      // Find events to update visibility
+      const eventsToUpdateVisibility = await Event.findAll({
+        where: {
+          visibility: "published",
+          // Check display period
+          [Op.or]: [
+            // Display period has ended
+            {
+              display_end_date: { [Op.lt]: todayDate },
+            },
+            // Display period hasn't started yet or has already ended
+            {
+              [Op.and]: [
+                { display_start_date: { [Op.lte]: todayDate } },
+                { display_end_date: { [Op.lt]: todayDate } },
+              ],
+            },
+            // Specific time-based checks when end date is today
+            {
+              display_end_date: todayDate,
+              display_end_time: { [Op.lte]: currentTime },
+            },
+          ],
+        },
+      });
 
-      // Find events with display period ended
-      await Event.update(
-        { visibility: "unpublished" },
-        {
-          where: {
-            visibility: "published",
-            display_end_date: { [Op.lt]: now },
-          },
-        }
-      );
+      // Update visibility for events that should no longer be visible
+      if (eventsToUpdateVisibility.length > 0) {
+        await Event.update(
+          { visibility: "unpublished" },
+          {
+            where: {
+              id: eventsToUpdateVisibility.map((e) => e.id),
+            },
+          }
+        );
+      }
 
-      console.log("Event statuses updated successfully");
+      // Find ticketed events to update reservation status
+      const ticketedEventsToOpen = await Event.findAll({
+        where: {
+          event_type: "ticketed",
+          status: "scheduled",
+          visibility: "published",
+          [Op.or]: [
+            // Reservation start date is in the past
+            {
+              reservation_start_date: { [Op.lt]: todayDate },
+            },
+            // Reservation start date is today and time has passed
+            {
+              reservation_start_date: todayDate,
+              reservation_start_time: { [Op.lte]: currentTime },
+            },
+          ],
+          // Ensure reservation end hasn't passed
+          [Op.and]: [
+            {
+              [Op.or]: [
+                { reservation_end_date: { [Op.gt]: todayDate } },
+                {
+                  reservation_end_date: todayDate,
+                  reservation_end_time: { [Op.gt]: currentTime },
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      // Open reservation for eligible events
+      if (ticketedEventsToOpen.length > 0) {
+        await Event.update(
+          { status: "open" },
+          {
+            where: {
+              id: ticketedEventsToOpen.map((e) => e.id),
+            },
+          }
+        );
+      }
+
+      // Find ticketed events to close reservations
+      const ticketedEventsToClose = await Event.findAll({
+        where: {
+          event_type: "ticketed",
+          status: "open",
+          visibility: "published",
+          [Op.or]: [
+            // Reservation end date is in the past
+            {
+              reservation_end_date: { [Op.lt]: todayDate },
+            },
+            // Reservation end date is today and time has passed
+            {
+              reservation_end_date: todayDate,
+              reservation_end_time: { [Op.lte]: currentTime },
+            },
+          ],
+        },
+      });
+
+      // Close reservations for events that have passed
+      if (ticketedEventsToClose.length > 0) {
+        await Event.update(
+          { status: "closed" },
+          {
+            where: {
+              id: ticketedEventsToClose.map((e) => e.id),
+            },
+          }
+        );
+      }
+
+      // Update status for completed events
+      const completedEvents = await Event.findAll({
+        where: {
+          event_type: "ticketed",
+          [Op.or]: [
+            // Event date is in the past
+            {
+              event_date: { [Op.lt]: todayDate },
+            },
+            // Event date is today and end time has passed
+            {
+              event_date: todayDate,
+              event_end_time: { [Op.lte]: currentTime },
+            },
+          ],
+          // Ensure not already marked as cancelled or closed
+          status: { [Op.notIn]: ["cancelled", "closed"] },
+        },
+      });
+
+      // Mark completed events
+      if (completedEvents.length > 0) {
+        await Event.update(
+          { status: "closed" },
+          {
+            where: {
+              id: completedEvents.map((e) => e.id),
+            },
+          }
+        );
+      }
+
+      console.log("Event statuses and visibility updated successfully");
     } catch (error) {
       console.error("Error updating event statuses:", error);
+    }
+  },
+
+  // Get draft events
+  getDraftEvents: async (req, res) => {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+      const offset = (page - 1) * limit;
+
+      const events = await Event.findAndCountAll({
+        where: {
+          status: "draft",
+          visibility: "unpublished",
+        },
+        limit: parseInt(limit),
+        offset: offset,
+        order: [["updatedAt", "DESC"]],
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: events.rows,
+        total: events.count,
+        totalPages: Math.ceil(events.count / limit),
+        currentPage: parseInt(page),
+      });
+    } catch (error) {
+      console.error("Error fetching draft events:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+
+  // Get coming soon events
+  getComingSoonEvents: async (req, res) => {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+      const offset = (page - 1) * limit;
+
+      const events = await Event.findAndCountAll({
+        where: {
+          event_type: "coming_soon",
+          visibility: "published",
+        },
+        limit: parseInt(limit),
+        offset: offset,
+        order: [["display_start_date", "ASC"]],
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: events.rows,
+        total: events.count,
+        totalPages: Math.ceil(events.count / limit),
+        currentPage: parseInt(page),
+      });
+    } catch (error) {
+      console.error("Error fetching coming soon events:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
     }
   },
 };

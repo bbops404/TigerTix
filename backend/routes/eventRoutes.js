@@ -7,10 +7,14 @@ const claimingSlotController = require("../controllers/claimingSlotController");
 
 // Event routes
 router.get("/events", eventController.getAllEvents);
+router.get("/events/drafts", eventController.getDraftEvents);
+router.get("/events/coming-soon", eventController.getComingSoonEvents);
 router.get("/events/:id", eventController.getEventById);
 router.post("/events", eventController.createEvent);
 router.post("/events/draft", eventController.createDraftEvent);
 router.put("/events/:id", eventController.updateEvent);
+router.put("/events/:id/status", eventController.updateEventStatus);
+router.post("/events/:id/convert", eventController.convertEvent);
 router.post("/events/cancel/:id", eventController.cancelEvent);
 router.post("/events/archive/:id", eventController.archiveEvent);
 router.delete("/events/:id", eventController.permanentlyDeleteEvent);
@@ -25,11 +29,19 @@ router.post(
 );
 router.put("/tickets/:ticket_id", ticketController.updateTicket);
 router.delete("/tickets/:ticket_id", ticketController.deleteTicket);
+router.post(
+  "/events/:source_event_id/tickets/transfer/:target_event_id",
+  ticketController.transferTickets
+);
 
 // Claiming slot routes
 router.get(
   "/events/:event_id/claiming-slots",
   claimingSlotController.getEventClaimingSlots
+);
+router.get(
+  "/events/:event_id/claiming-slots/available",
+  claimingSlotController.getAvailableClaimingSlots
 );
 router.post(
   "/events/:event_id/claiming-slots",
@@ -38,6 +50,10 @@ router.post(
 router.post(
   "/events/:event_id/claiming-slots/bulk",
   claimingSlotController.createClaimingSlotsBulk
+);
+router.delete(
+  "/events/:event_id/claiming-slots",
+  claimingSlotController.clearEventClaimingSlots
 );
 router.put(
   "/claiming-slots/:slot_id",
