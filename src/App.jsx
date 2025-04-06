@@ -42,6 +42,8 @@ import PublishEventContainer from "./container/PublishEventContainer";
 import EventsManagementContainer from "./container/EventManagementContainer";
 // ========================== SUPPORT STAFF PAGES ==========================
 // (Add support staff routes here when available)
+import AdminPublishEvent from "./pages/Admin/Admin_PublishEvent";
+import AdminScheduleEvent from "./pages/Admin/Admin_ScheduleEvent";
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -77,11 +79,7 @@ function App() {
           <Route path="/forget-password" element={<ForgetPassword />} />
           <Route path="/change-password" element={<UpdatePassword />} />
           {/* ========================== ENDUSER PAGES ========================== */}
-          <Route
-            element={
-              <ProtectedRoutes role={["student", "employee", "alumni"]} />
-            }
-          >
+          <Route element={<ProtectedRoutes role={["student", "employee", "alumni"]} />}>
             <Route path="/home" element={<Home />} />
             <Route
               path="/event-ticketed-enduser"

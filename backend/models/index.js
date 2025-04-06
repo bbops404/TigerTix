@@ -7,6 +7,7 @@ const User = require("./Users");
 const Event = require("./Event");
 const Ticket = require("./Ticket");
 const ClaimingSlot = require("./ClaimingSlot");
+const Reservation = require("./reservation");
 
 // Initialize db object
 const db = {};
@@ -17,6 +18,7 @@ db.User = User;
 db.Event = Event;
 db.Ticket = Ticket;
 db.ClaimingSlot = ClaimingSlot;
+db.Reservation = Reservation;
 
 // Initialize associations between models
 // This ensures that all models are loaded before associations are created

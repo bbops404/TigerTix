@@ -19,4 +19,6 @@ router.delete("/users/delete", authenticate, authorizeAdmin, adminController.del
 // ✅ Protected route: Add a new user (only for admin)
 router.post("/users/add", authenticate, authorizeAdmin, adminController.addUser);
 
+
+
 module.exports = router;
