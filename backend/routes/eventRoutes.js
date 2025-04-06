@@ -10,6 +10,14 @@ const adminController = require("../controllers/adminController"); // Admin cont
 
 
 // Event routes
+
+
+//mga nadagdag (nilagayan ko lang siya ng authenticate kasi wala siya sa side ko) (chrisitian)
+router.get("/events/coming-soon",authenticate, authorizeAdmin, eventController.getComingSoonEvents);
+router.put("/events/:id/status",authenticate, authorizeAdmin, eventController.updateEventStatus);
+router.post("/events/:id/convert",authenticate, authorizeAdmin, eventController.convertEvent);
+
+
 router.get("/events", authenticate, authorizeAdmin, eventController.getAllEvents);
 router.get("/events/:id", authenticate, authorizeAdmin, eventController.getEventById);
 router.post("/events", authenticate, authorizeAdmin, eventController.createEvent);
@@ -20,6 +28,7 @@ router.post("/events/archive/:id", authenticate, authorizeAdmin, eventController
 router.delete("/events/:id", authenticate, authorizeAdmin, eventController.permanentlyDeleteEvent);
 router.post("/events/upload-image", authenticate, authorizeAdmin, eventController.uploadEventImage);
 
+
 // Ticket routes
 router.get("/events/:event_id/tickets", authenticate, authorizeAdmin, ticketController.getEventTickets);
 router.post("/events/:event_id/tickets", authenticate, authorizeAdmin, ticketController.createTicket);
@@ -29,8 +38,17 @@ router.post(
   authorizeAdmin,
   ticketController.createTicketsBulk
 );
+
+router.put("/tickets/:ticket_id",authenticate, authorizeAdmin, ticketController.updateTicket);
+router.delete("/tickets/:ticket_id",authenticate, authorizeAdmin, ticketController.deleteTicket);
+router.post(
+  "/events/:source_event_id/tickets/transfer/:target_event_id",
+  authenticate, authorizeAdmin, ticketController.transferTickets
+);
+
 router.put("/tickets/:ticket_id", authenticate, authorizeAdmin, ticketController.updateTicket);
 router.delete("/tickets/:ticket_id", authenticate, authorizeAdmin, ticketController.deleteTicket);
+
 
 // Claiming slot routes
 router.get(
@@ -38,6 +56,10 @@ router.get(
   authenticate,
   authorizeAdmin,
   claimingSlotController.getEventClaimingSlots
+);
+router.get(
+  "/events/:event_id/claiming-slots/available",
+  claimingSlotController.getAvailableClaimingSlots
 );
 router.post(
   "/events/:event_id/claiming-slots",
@@ -50,6 +72,10 @@ router.post(
   authenticate,
   authorizeAdmin,
   claimingSlotController.createClaimingSlotsBulk
+);
+router.delete(
+  "/events/:event_id/claiming-slots",
+  claimingSlotController.clearEventClaimingSlots
 );
 router.put(
   "/claiming-slots/:slot_id",

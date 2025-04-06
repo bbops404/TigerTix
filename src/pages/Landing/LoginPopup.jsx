@@ -12,8 +12,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
 
   const [selectedUser, setSelectedUser] = useState(null);
 
-const [user, setUser] = useState(null);
-
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -29,58 +28,56 @@ const [user, setUser] = useState(null);
 
   const handleLogin = async () => {
     const trimmedInput = email.trim(); // This can be either email or username
-  
+
     try {
-      const response = await fetch("http://localhost:5002/auth/login", { 
+      const response = await fetch("http://localhost:5002/auth/login", {
         method: "POST",
-        credentials: "include",  // ✅ Ensures cookies are sent
+        credentials: "include", // ✅ Ensures cookies are sent
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: trimmedInput.includes("@") ? trimmedInput : null,  // If input contains '@', treat it as email
+          email: trimmedInput.includes("@") ? trimmedInput : null, // If input contains '@', treat it as email
           username: trimmedInput.includes("@") ? null : trimmedInput, // Otherwise, treat it as username
           password: password,
         }),
-
       });
-  
+
       const data = await response.json();
-  
+
       if (response.ok) {
         alert(`Successfully logged in as ${data.user.role.toUpperCase()}!`);
-        
-          // Store token securely in sessionStorage (only for active session)
-      sessionStorage.setItem("authToken", data.token);
-      sessionStorage.setItem("userRole", data.user.role); // Store role for ProtectedRoutes
-      console.log("Token (Frontend) :",  data.token);
-      console.log("User role (Frontend):",  data.user.role);
 
-      // Store user details in state/context instead of localStorage
-      setUser({
-        email: data.user.email,
-        username: data.user.username,
-        role: data.user.role,
-      });
+        // Store token securely in sessionStorage (only for active session)
+        sessionStorage.setItem("authToken", data.token);
+        sessionStorage.setItem("userRole", data.user.role); // Store role for ProtectedRoutes
+        console.log("Token (Frontend) :", data.token);
+        console.log("User role (Frontend):", data.user.role);
+
+        // Store user details in state/context instead of localStorage
+        setUser({
+          email: data.user.email,
+          username: data.user.username,
+          role: data.user.role,
+        });
 
         toggleLoginPopup();
-  
-     // ✅ Redirect based on user role
-     if (data.user.role === "admin") {
-      navigate("/admin-dashboard", { replace: true });
-    } else if (["student", "employee", "alumni"].includes(data.user.role)) {
-      navigate("/home", { replace: true });
-  } 
 
-      // Debugging cookies
-      console.log("Stored Cookies (frontend):", document.cookie);
-      
-    }} catch (error) {
+        // ✅ Redirect based on user role
+        if (data.user.role === "admin") {
+          navigate("/admin-dashboard", { replace: true });
+        } else if (["student", "employee", "alumni"].includes(data.user.role)) {
+          navigate("/home", { replace: true });
+        }
+
+        // Debugging cookies
+        console.log("Stored Cookies (frontend):", document.cookie);
+      }
+    } catch (error) {
       console.error("Login error:", error);
       alert("Failed to log in. Please  again later.");
     }
   };
-  
 
   const selectPredefinedUser = (user) => {
     setEmail(user.email);
@@ -175,14 +172,14 @@ const [user, setUser] = useState(null);
             <div className="flex text-xs text-white pt-2">
               <p className="mr-1 font-light">Don't have an account?</p>
               <button
-  onClick={() => {
-    toggleLoginPopup(); // Isara muna yung pop-up
-    navigate("/verify"); // Tapos saka mag-navigate
-  }}
-  className="font-bold hover:underline focus:outline-none"
->
-  Sign Up!
-</button>
+                onClick={() => {
+                  toggleLoginPopup(); // Isara muna yung pop-up
+                  navigate("/verify"); // Tapos saka mag-navigate
+                }}
+                className="font-bold hover:underline focus:outline-none"
+              >
+                Sign Up!
+              </button>
             </div>
           </div>
         </div>

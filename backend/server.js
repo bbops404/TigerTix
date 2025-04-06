@@ -10,41 +10,56 @@ const Redis = require("ioredis");
 
 const db = require("./models");
 const eventController = require("./controllers/eventController");
-const pool = require('./config/db');
+const pool = require("./config/db");
 
 const app = express();
 const port = process.env.PORT || 5002;
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, "uploads");
-const eventsUploadsDir = path.join(__dirname, "uploads/events");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log("Uploads directory created successfully! 📁");
-}
-if (!fs.existsSync(eventsUploadsDir)) {
-  fs.mkdirSync(eventsUploadsDir, { recursive: true });
-  console.log("Events uploads directory created successfully! 📁");
-}
-
 // Redis setup
 const redisClient = new Redis();
-redisClient.on("connect", () => console.log("Connected to Redis successfully! 🔥"));
+redisClient.on("connect", () =>
+  console.log("Connected to Redis successfully! 🔥")
+);
 redisClient.on("error", (err) => console.error("Redis connection error:", err));
 
 // Middleware
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
-  methods: "GET,POST,PUT,DELETE",
-  allowedHeaders: "Content-Type,Authorization",
-}));
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+    methods: "GET,POST,PUT,DELETE",
+    allowedHeaders: "Content-Type,Authorization",
+  })
+);
 app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-/*// Debug incoming cookies
+
+// Update the JSON and URL-encoded middleware with increased limits
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, res, buf) => {
+      if (buf.length > 10 * 1024 * 1024) {
+        throw new Error("Request payload too large");
+      }
+    },
+  })
+);
+
+app.use(
+  express.urlencoded({
+    limit: "10mb",
+    extended: true,
+    verify: (req, res, buf) => {
+      if (buf.length > 10 * 1024 * 1024) {
+        throw new Error("Request payload too large");
+      }
+    },
+  })
+);
+
+// Debug incoming cookies
 app.use((req, res, next) => {
   console.log("🔍 Incoming Cookies:", req.cookies);
   next();
@@ -79,24 +94,42 @@ app.get("/api/health", (req, res) => {
 });
 
 // Cron job to update event statuses every hour
-cron.schedule("0 * * * *", () => {
+cron.schedule("* * * * *", () => {
   console.log("Running scheduled task: updating event statuses");
   eventController.updateEventStatuses();
 });
 
-// Error handling middleware
+// Enhanced error handling middleware
 app.use((err, req, res, next) => {
+  console.error("Detailed error:", {
+    name: err.name,
+    message: err.message,
+    stack: err.stack,
+  });
+
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({
+      success: false,
+      message: "Request payload too large. Maximum file size is 10MB.",
+      error: "Payload Too Large",
+    });
+  }
+
   if (err.name === "MulterError") {
     return res.status(400).json({
       success: false,
       message: `Upload error: ${err.message}`,
+      error: err.name,
     });
   }
-  console.error("Server error:", err);
+
   res.status(500).json({
     success: false,
     message: "Internal server error",
-    error: process.env.NODE_ENV === "development" ? err.message : undefined,
+    error:
+      process.env.NODE_ENV === "development"
+        ? err.message
+        : "Unexpected error occurred",
   });
 });
 
@@ -112,7 +145,7 @@ app.use((req, res) => {
 const startServer = async () => {
   try {
     await db.sequelize.authenticate();
-    console.log('Sequelize connected successfully! 🎉');
+    console.log("Sequelize connected successfully! 🎉");
 
     await db.sync({ force: false });
     console.log("Database tables synchronized successfully! 📊");

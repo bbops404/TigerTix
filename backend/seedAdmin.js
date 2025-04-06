@@ -1,19 +1,19 @@
-const bcrypt = require('bcryptjs');
+const bcrypt = require("bcryptjs");
 const User = require("./models/Users");
 
 async function createAdmin() {
   try {
-    const existingAdmin = await User.findOne({ where: { role: 'admin' } });
+    const existingAdmin = await User.findOne({ where: { role: "admin" } });
     if (existingAdmin) {
-      console.log('Admin already exists.');
+      console.log("Admin already exists.");
       return;
     }
 
     // Generate hashed password
-    const plainPassword = 'admin123';
+    const plainPassword = "admin123";
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
-    console.log('Hashed Password:', hashedPassword); // Check if it's hashed properly
+    console.log("Hashed Password:", hashedPassword); // Check if it's hashed properly
 
     // Create admin user
     await User.create({
@@ -26,9 +26,9 @@ async function createAdmin() {
       status: "active",
     });
 
-    console.log('✅ Admin user created successfully.');
+    console.log("✅ Admin user created successfully.");
   } catch (error) {
-    console.error('❌ Error creating admin:', error);
+    console.error("❌ Error creating admin:", error);
   }
 }
 

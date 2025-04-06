@@ -1,3 +1,4 @@
+// models/Event.js
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 
@@ -17,15 +18,20 @@ const Event = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    event_start: {
-      type: DataTypes.DATE,
+    event_date: {
+      type: DataTypes.DATEONLY,
       allowNull: true,
-      comment: "Start date and time of the event",
+      comment: "Date of the event",
     },
-    event_end: {
-      type: DataTypes.DATE,
+    event_time: {
+      type: DataTypes.TIME,
       allowNull: true,
-      comment: "End date and time of the event",
+      comment: "Start time of the event",
+    },
+    event_end_time: {
+      type: DataTypes.TIME,
+      allowNull: true,
+      comment: "End time of the event (optional)",
     },
     venue: {
       type: DataTypes.STRING,
@@ -59,12 +65,28 @@ const Event = sequelize.define(
       type: DataTypes.DATEONLY,
       allowNull: true,
     },
-    reservation_start: {
-      type: DataTypes.DATE,
+    display_start_time: {
+      type: DataTypes.TIME,
       allowNull: true,
     },
-    reservation_end: {
-      type: DataTypes.DATE,
+    display_end_time: {
+      type: DataTypes.TIME,
+      allowNull: true,
+    },
+    reservation_start_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    reservation_start_time: {
+      type: DataTypes.TIME,
+      allowNull: true,
+    },
+    reservation_end_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    reservation_end_time: {
+      type: DataTypes.TIME,
       allowNull: true,
     },
   },
