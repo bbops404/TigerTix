@@ -1,20 +1,23 @@
 import React from "react";
 
-const AdminUserGenerateReport = ({ isOpen, onClose }) => {
+const Admin_EventReportGenerateSummary = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
   
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white p-6 rounded-2xl shadow-lg w-80 text-center">
-        <h2 className="text-lg text-[25px] font-bold text-gray-800 mb-4">GENERATE REPORT</h2>
+        <h2 className="text-lg text-[25px] font-bold text-gray-800 mb-4">GENERATE EVENT RESERVATIONS SUMMARY</h2>
         <div className="text-left space-y-2">
           {[
-            "Username",
-            "Full Name",
-            "Role",
-            "Email",
-            "Account Status",
-            "Violation Count",
+            "Event Name",
+            "Date",
+            "Venue",
+            "Event Category",
+            "Type",
+            "Availability",
+            "Reservation Count",
+            "Revenue",
+            "Remaining Tickets"
           ].map((label, index) => (
             <label key={index} className="flex items-center space-x-2 text-orange-500">
               <input type="checkbox" className="accent-orange-500" />
@@ -36,4 +39,4 @@ const AdminUserGenerateReport = ({ isOpen, onClose }) => {
   );
 };
 
-export default AdminUserGenerateReport;
+export default Admin_EventReportGenerateSummary;

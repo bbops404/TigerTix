@@ -8,6 +8,9 @@ import {
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import eventPlaceholder from "../../assets/event_placeholder.jpg";
+import Admin_EventReportGenerateReport from "./Admin_EventReportGenerateReport";
+import Admin_EventReportsFilter from "./Admin_EventReportsFilter";
+import Admin_EventReportGenerateSummary from "./Admin_EventReportGenerateSummaryPopUp";
 
 const eventData = [
   { id: 1, image: eventPlaceholder, name: "UAAP CDC" },
@@ -21,6 +24,16 @@ const eventData = [
 ];
 
 const Admin_EventReports = () => {
+  const [showGenerateSummaryPopup, setShowGenerateSummaryPopup] = useState(false);
+  const openGenerateSummaryPopup = () => setShowGenerateSummaryPopup(true);
+  const closeGenerateSummaryPopup = () => setShowGenerateSummaryPopup(false);
+
+  const [showGenerateReport, setShowGenerateReport] = useState(false);
+  const openGenerateReport = () => setShowGenerateReport(true);
+  const closeGenerateReport = () => setShowGenerateReport(false);
+
+  const [showFilter, setShowFilter] = useState(false);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const visibleEvents = 5;
 
@@ -46,23 +59,28 @@ const Admin_EventReports = () => {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Events List</h2>
             <div className="flex gap-2">
-              <div className="relative">
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <div className="relative flex-grow mr-4">
+                <FaSearch className="absolute left-4 top-3 text-white" />
                 <input
                   type="text"
                   placeholder="Search events..."
-                  className="pl-10 pr-4 py-2 rounded-md bg-gray-800 text-white border border-gray-600 focus:outline-none focus:border-[#FFAB40]"
+                  className="w-full pl-12 pr-4 py-2 rounded-full bg-gray-500 text-white outline-none"
                 />
               </div>
-              <button className="px-4 py-2 bg-white text-black rounded-md">
-                Reset
-              </button>
-              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2">
+
+              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">Reset</button>
+              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+              onClick={() => setShowFilter(!showFilter)}>
+
                 <FaFilter /> Sort/Filter by
               </button>
             </div>
           </div>
 
+          {/* Filter Component */}
+          {showFilter && <Admin_EventReportsFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
+
+          {/* Events */}
           <div className="relative flex items-center justify-center mb-10">
             <button
               onClick={prevSlide}
@@ -73,26 +91,24 @@ const Admin_EventReports = () => {
             </button>
 
             <div className="w-full flex justify-center overflow-hidden space-x-2">
-              {eventData
-                .slice(currentIndex, currentIndex + visibleEvents)
-                .map((event) => (
-                  <div
-                    key={event.id}
-                    className="transition-opacity duration-1000 opacity-100 transform hover:scale-105"
-                  >
-                    <div className="p-2 rounded-lg">
-                      <img
-                        src={event.image}
-                        alt={event.name}
-                        className="w-[200px] h-[250px] object-cover rounded-lg mx-auto"
-                      />
-                      <p className="text-center mt-2 font-semibold">
-                        {event.name}
-                      </p>
-                      <button className="mt-2 w-full px-4 py-2 text-white font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105">
-                        Generate Report
-                      </button>
-                    </div>
+
+              {eventData.slice(currentIndex, currentIndex + visibleEvents).map((event) => (
+                <div
+                  key={event.id}
+                  className="transition-opacity duration-1000 opacity-100 transform hover:scale-105"
+                >
+                  <div className="p-2 rounded-lg">
+                    <img
+                      src={event.image}
+                      alt={event.name}
+                      className="w-[200px] h-[250px] object-cover rounded-lg mx-auto"
+                    />
+                    <p className="text-center mt-2 font-semibold">{event.name}</p>
+                    <button className="mt-2 w-full px-4 py-2 text-white font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105"
+                    onClick={openGenerateReport}>
+                      Generate Report
+                    </button>
+
                   </div>
                 ))}
             </div>
@@ -108,57 +124,103 @@ const Admin_EventReports = () => {
 
           {/* Event Summary */}
           <div className="mt-10 bg-[#333333] p-6 rounded-md">
-            <div className="flex justify-between items-center mb-4 sticky top-0 bg-[#333333] z-10">
+            <div className="flex justify-between items-center mb-4 top-0 bg-[#333333] z-10">
               <h2 className="text-lg font-bold">Event Summary</h2>
               <div className="flex gap-2">
-                <button className="px-4 py-2 bg-white text-black rounded-md">
-                  Reset
-                </button>
-                <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2">
+
+                <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">Reset</button>
+                <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                onClick={() => setShowFilter(!showFilter)}>
+
                   <FaFilter /> Sort/Filter by
                 </button>
               </div>
             </div>
             <div className="max-h-96 overflow-y-auto scrollbar-hide">
               <table className="w-full text-black bg-white rounded-md">
-                <thead className="sticky top-0 bg-[#F09C32] text-[#333333] text-center">
+                <thead className="sticky text-[14px] top-0 bg-[#F09C32] text-[#333333] text-center">
                   <tr>
-                    {[
-                      "Event Name",
-                      "Date",
-                      "Venue",
-                      "Event Category",
-                      "Type",
-                      "Availability",
-                      "Reservation Count",
-                      "Revenue",
-                      "Remaining Tickets",
-                    ].map((header, index) => (
-                      <th
-                        key={index}
-                        className="px-4 py-2 border border-gray-300"
-                      >
+
+                    {["Event Name", "Date", "Venue", "Event Category", "Type", "Availability", "Reservation Count", "Revenue", "Remaining Tickets"].map((header, index) => (
+                      <th key={index} className="px-4 py-2 border border-gray-300">
+
                         {header}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="scrollbar-hide">
-                  {Array.from({ length: 15 }, (_, i) => ({
-                    name: `Event ${i + 1}`,
-                    date: "Dec 20, 2024",
-                    venue: "UST Gym",
-                    category: "Sports",
-                    type: "Game",
-                    availability: "Available",
-                    count: 100 + i * 10,
-                    revenue: 20000 + i * 5000,
-                    remaining: 30 - i * 2,
-                  })).map((event, index) => (
-                    <tr
-                      key={index}
-                      className="border border-gray-300 text-center"
-                    >
+
+                  {[
+                    {
+                      name: "UAAP CDC",
+                      date: "Oct 15, 2024",
+                      venue: "MOA Arena",
+                      category: "Cheerdance",
+                      type: "Competition",
+                      availability: "Available",
+                      count: 250,
+                      revenue: 500000,
+                      remaining: 50,
+                    },
+                    {
+                      name: "UST Homecoming",
+                      date: "Nov 10, 2024",
+                      venue: "UST Quadricentennial Pavilion",
+                      category: "Reunion",
+                      type: "Social Event",
+                      availability: "Limited",
+                      count: 150,
+                      revenue: 300000,
+                      remaining: 20,
+                    },
+                    {
+                      name: "Tigers Championship",
+                      date: "Dec 05, 2024",
+                      venue: "Smart Araneta Coliseum",
+                      category: "Sports",
+                      type: "Game",
+                      availability: "Sold Out",
+                      count: 500,
+                      revenue: 1000000,
+                      remaining: 0,
+                    },
+                    {
+                      name: "UST Men's Volleyball",
+                      date: "Jan 20, 2025",
+                      venue: "UST Gym",
+                      category: "Sports",
+                      type: "Game",
+                      availability: "Available",
+                      count: 200,
+                      revenue: 400000,
+                      remaining: 75,
+                    },
+                    {
+                      name: "Tigers Championship",
+                      date: "Dec 05, 2024",
+                      venue: "Smart Araneta Coliseum",
+                      category: "Sports",
+                      type: "Game",
+                      availability: "Sold Out",
+                      count: 500,
+                      revenue: 1000000,
+                      remaining: 0,
+                    },
+                    {
+                      name: "UST Women's Volleyball",
+                      date: "Jan 20, 2025",
+                      venue: "UST Gym",
+                      category: "Sports",
+                      type: "Game",
+                      availability: "Available",
+                      count: 200,
+                      revenue: 400000,
+                      remaining: 75,
+                    },
+                  ].map((event, index) => (
+                    <tr key={index} className="border border-gray-300 text-center">
+
                       {Object.values(event).map((value, i) => (
                         <td
                           key={i}
@@ -172,7 +234,14 @@ const Admin_EventReports = () => {
                 </tbody>
               </table>
             </div>
+            <div className="flex justify-end">
+              <button className="w-[220px] h-[40px] mt-4 font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105" onClick={openGenerateSummaryPopup}>
+                Generate Event Summary
+              </button>
+            </div>
           </div>
+          {showGenerateReport && <Admin_EventReportGenerateReport isOpen={showGenerateReport} onClose={closeGenerateReport} />}
+          {showGenerateSummaryPopup && <Admin_EventReportGenerateSummary isOpen={showGenerateSummaryPopup} onClose={closeGenerateSummaryPopup} />}
         </div>
       </div>
     </div>

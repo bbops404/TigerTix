@@ -67,13 +67,13 @@ const Admin_ProfilePage = () => {
               {/* Buttons */}
               <div className="flex justify-end mt-6 space-x-4">
                 <button
-                  className="px-6 py-2 bg-[#333333] text-[#FFD7A5] rounded-full shadow-md hover:bg-[#FFD7A5] hover:text-[#333333] transition duration-300"
+                  className="px-6 py-2 bg-[#333333] text-[#FFD7A5] rounded-full shadow-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
                   onClick={toggleEditDetailsPopup}
                 >
                   Edit Details
                 </button>
                 <button
-                  className="px-6 py-2 bg-[#333333] text-[#FFD7A5] rounded-full shadow-md hover:bg-[#FFD7A5] hover:text-[#333333] transition duration-300"
+                  className="px-6 py-2 bg-[#333333] text-[#FFD7A5] rounded-full shadow-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
                   onClick={toggleChangePasswordPopup}
                 >
                   Change Password
