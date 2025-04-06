@@ -18,6 +18,31 @@ const reservationController = {
         });
       }
 
+      // Fetch the event to validate the reservation period
+      const event = await db.Event.findByPk(event_id, {
+        attributes: ["reservation_end_date", "reservation_end_time"],
+      });
+
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: "Event not found",
+        });
+      }
+
+      // Check if the current date and time are within the reservation period
+      const currentDate = new Date();
+      const reservationEndDateTime = new Date(
+        `${event.reservation_end_date}T${event.reservation_end_time}`
+      );
+
+      if (currentDate > reservationEndDateTime) {
+        return res.status(400).json({
+          success: false,
+          message: "Reservations for this event are no longer allowed.",
+        });
+      }
+
       // Determine if it's a single or multiple reservation
       let usersToReserveFor = [];
 
@@ -47,8 +72,6 @@ const reservationController = {
           message: "Ticket not found",
         });
       }
-
-      
 
       const totalQuantity = usersToReserveFor.length; // Total tickets needed (1 per user)
       if (ticket.remaining_quantity < totalQuantity) {
@@ -102,25 +125,24 @@ const reservationController = {
       }
 
       // Update the ClaimingSlot's current_claimers
-const claimingSlot = await db.ClaimingSlot.findByPk(claiming_id);
-if (!claimingSlot) {
-  return res.status(404).json({
-    success: false,
-    message: "Claiming slot not found",
-  });
-}
+      const claimingSlot = await db.ClaimingSlot.findByPk(claiming_id);
+      if (!claimingSlot) {
+        return res.status(404).json({
+          success: false,
+          message: "Claiming slot not found",
+        });
+      }
 
-// Check if the ClaimingSlot has reached its maximum claimers
-if (claimingSlot.current_claimers >= claimingSlot.max_claimers) {
-    return res.status(400).json({
-      success: false,
-      message: "This claiming slot is already full.",
-    });
-  }
-  
+      // Check if the ClaimingSlot has reached its maximum claimers
+      if (claimingSlot.current_claimers >= claimingSlot.max_claimers) {
+        return res.status(400).json({
+          success: false,
+          message: "This claiming slot is already full.",
+        });
+      }
 
-claimingSlot.current_claimers += totalQuantity; // Increment by the number of reservations
-await claimingSlot.save({ transaction });
+      claimingSlot.current_claimers += totalQuantity; // Increment by the number of reservations
+      await claimingSlot.save({ transaction });
 
       // Update the remaining quantity of the ticket
       ticket.remaining_quantity -= totalQuantity;

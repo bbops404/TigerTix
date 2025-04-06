@@ -100,13 +100,13 @@ const Event = sequelize.define(
 Event.associate = (models) => {
   Event.hasMany(models.Ticket, {
     foreignKey: "event_id",
-    as: "tickets",
+    as: "Tickets",
     onDelete: "CASCADE",
   });
 
   Event.hasMany(models.ClaimingSlot, {
     foreignKey: "event_id",
-    as: "claimingSlots",
+    as: "ClaimingSlots",
     onDelete: "CASCADE",
   });
 };

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Admin_EventsManagement from "../pages/Admin/Admin_EventsManagement";
 import eventService from "../pages/Services/eventService";
-import io from "socket.io-client";
 
 const EventsManagementContainer = () => {
   const [events, setEvents] = useState({

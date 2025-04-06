@@ -879,6 +879,73 @@ const eventController = {
       });
     }
   },
+
+  // Get free events
+  getFreeEvents: async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const events = await Event.findAndCountAll({
+      where: {
+        event_type: "free",
+        visibility: "published",
+      },
+      limit: parseInt(limit),
+      offset: offset,
+      order: [["display_start_date", "ASC"]],
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: events.rows,
+      total: events.count,
+      totalPages: Math.ceil(events.count / limit),
+      currentPage: parseInt(page),
+    });
+  } catch (error) {
+    console.error("Error fetching free events:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+},
+
+// Get ticketed events
+getTicketedEvents: async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const events = await Event.findAndCountAll({
+      where: {
+        event_type: "ticketed",
+        visibility: "published",
+      },
+      limit: parseInt(limit),
+      offset: offset,
+      order: [["display_start_date", "ASC"]],
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: events.rows,
+      total: events.count,
+      totalPages: Math.ceil(events.count / limit),
+      currentPage: parseInt(page),
+    });
+  } catch (error) {
+    console.error("Error fetching ticketed events:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+},
+
 };
 
 module.exports = eventController;

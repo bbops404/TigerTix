@@ -12,8 +12,12 @@ const adminController = require("../controllers/adminController"); // Admin cont
 // Event routes
 
 
-//mga nadagdag (nilagayan ko lang siya ng authenticate kasi wala siya sa side ko) (chrisitian)
+// Getting events for landing page
+router.get("/events/ticketed",authenticate, authorizeAdmin, eventController.getTicketedEvents);
 router.get("/events/coming-soon",authenticate, authorizeAdmin, eventController.getComingSoonEvents);
+router.get("events/free-events",authenticate, authorizeAdmin, eventController.getFreeEvents);
+
+
 router.put("/events/:id/status",authenticate, authorizeAdmin, eventController.updateEventStatus);
 router.post("/events/:id/convert",authenticate, authorizeAdmin, eventController.convertEvent);
 
@@ -27,7 +31,6 @@ router.post("/events/cancel/:id", authenticate, authorizeAdmin, eventController.
 router.post("/events/archive/:id", authenticate, authorizeAdmin, eventController.archiveEvent);
 router.delete("/events/:id", authenticate, authorizeAdmin, eventController.permanentlyDeleteEvent);
 router.post("/events/upload-image", authenticate, authorizeAdmin, eventController.uploadEventImage);
-
 
 // Ticket routes
 router.get("/events/:event_id/tickets", authenticate, authorizeAdmin, ticketController.getEventTickets);
