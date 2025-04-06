@@ -47,7 +47,7 @@ const Event = sequelize.define(
     },
     event_type: {
       type: DataTypes.ENUM("ticketed", "coming_soon", "free"),
-      defaultValue: "ticketed",
+      allowNull: true,
     },
     visibility: {
       type: DataTypes.ENUM("published", "unpublished", "archived"),

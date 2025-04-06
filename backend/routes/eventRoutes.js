@@ -4,39 +4,57 @@ const router = express.Router();
 const eventController = require("../controllers/eventController");
 const ticketController = require("../controllers/ticketController");
 const claimingSlotController = require("../controllers/claimingSlotController");
+const authorizeAdmin = require("../middleware/authorizeAdmin.js"); // Middleware for admin access
+const authenticate = require("../middleware/authenticate.js"); // Middleware for admin access
+const adminController = require("../controllers/adminController"); // Admin controller
+
 
 // Event routes
-router.get("/events", eventController.getAllEvents);
-router.get("/events/drafts", eventController.getDraftEvents);
-router.get("/events/coming-soon", eventController.getComingSoonEvents);
-router.get("/events/:id", eventController.getEventById);
-router.post("/events", eventController.createEvent);
-router.post("/events/draft", eventController.createDraftEvent);
-router.put("/events/:id", eventController.updateEvent);
-router.put("/events/:id/status", eventController.updateEventStatus);
-router.post("/events/:id/convert", eventController.convertEvent);
-router.post("/events/cancel/:id", eventController.cancelEvent);
-router.post("/events/archive/:id", eventController.archiveEvent);
-router.delete("/events/:id", eventController.permanentlyDeleteEvent);
-router.post("/events/upload-image", eventController.uploadEventImage);
+
+
+//mga nadagdag (nilagayan ko lang siya ng authenticate kasi wala siya sa side ko) (chrisitian)
+router.get("/events/coming-soon",authenticate, authorizeAdmin, eventController.getComingSoonEvents);
+router.put("/events/:id/status",authenticate, authorizeAdmin, eventController.updateEventStatus);
+router.post("/events/:id/convert",authenticate, authorizeAdmin, eventController.convertEvent);
+
+
+router.get("/events", authenticate, authorizeAdmin, eventController.getAllEvents);
+router.get("/events/:id", authenticate, authorizeAdmin, eventController.getEventById);
+router.post("/events", authenticate, authorizeAdmin, eventController.createEvent);
+router.post("/events/draft", authenticate, authorizeAdmin, eventController.createDraftEvent);
+router.put("/events/:id", authenticate, authorizeAdmin, eventController.updateEvent);
+router.post("/events/cancel/:id", authenticate, authorizeAdmin, eventController.cancelEvent);
+router.post("/events/archive/:id", authenticate, authorizeAdmin, eventController.archiveEvent);
+router.delete("/events/:id", authenticate, authorizeAdmin, eventController.permanentlyDeleteEvent);
+router.post("/events/upload-image", authenticate, authorizeAdmin, eventController.uploadEventImage);
+
 
 // Ticket routes
-router.get("/events/:event_id/tickets", ticketController.getEventTickets);
-router.post("/events/:event_id/tickets", ticketController.createTicket);
+router.get("/events/:event_id/tickets", authenticate, authorizeAdmin, ticketController.getEventTickets);
+router.post("/events/:event_id/tickets", authenticate, authorizeAdmin, ticketController.createTicket);
 router.post(
   "/events/:event_id/tickets/bulk",
+  authenticate,
+  authorizeAdmin,
   ticketController.createTicketsBulk
 );
-router.put("/tickets/:ticket_id", ticketController.updateTicket);
-router.delete("/tickets/:ticket_id", ticketController.deleteTicket);
+
+router.put("/tickets/:ticket_id",authenticate, authorizeAdmin, ticketController.updateTicket);
+router.delete("/tickets/:ticket_id",authenticate, authorizeAdmin, ticketController.deleteTicket);
 router.post(
   "/events/:source_event_id/tickets/transfer/:target_event_id",
-  ticketController.transferTickets
+  authenticate, authorizeAdmin, ticketController.transferTickets
 );
+
+router.put("/tickets/:ticket_id", authenticate, authorizeAdmin, ticketController.updateTicket);
+router.delete("/tickets/:ticket_id", authenticate, authorizeAdmin, ticketController.deleteTicket);
+
 
 // Claiming slot routes
 router.get(
   "/events/:event_id/claiming-slots",
+  authenticate,
+  authorizeAdmin,
   claimingSlotController.getEventClaimingSlots
 );
 router.get(
@@ -45,10 +63,14 @@ router.get(
 );
 router.post(
   "/events/:event_id/claiming-slots",
+  authenticate,
+  authorizeAdmin,
   claimingSlotController.createClaimingSlot
 );
 router.post(
   "/events/:event_id/claiming-slots/bulk",
+  authenticate,
+  authorizeAdmin,
   claimingSlotController.createClaimingSlotsBulk
 );
 router.delete(
@@ -57,10 +79,14 @@ router.delete(
 );
 router.put(
   "/claiming-slots/:slot_id",
+  authenticate,
+  authorizeAdmin,
   claimingSlotController.updateClaimingSlot
 );
 router.delete(
   "/claiming-slots/:slot_id",
+  authenticate,
+  authorizeAdmin,
   claimingSlotController.deleteClaimingSlot
 );
 

@@ -34,6 +34,7 @@ app.use(
 app.use(cookieParser());
 app.use(morgan("dev"));
 
+
 // Update the JSON and URL-encoded middleware with increased limits
 app.use(
   express.json({
@@ -62,8 +63,7 @@ app.use(
 app.use((req, res, next) => {
   console.log("🔍 Incoming Cookies:", req.cookies);
   next();
-});
-
+});*/
 // Make Redis available in req
 app.use((req, res, next) => {
   req.redisClient = redisClient;
