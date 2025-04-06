@@ -63,7 +63,7 @@ app.use(
 app.use((req, res, next) => {
   console.log("🔍 Incoming Cookies:", req.cookies);
   next();
-});*/
+});
 // Make Redis available in req
 app.use((req, res, next) => {
   req.redisClient = redisClient;
