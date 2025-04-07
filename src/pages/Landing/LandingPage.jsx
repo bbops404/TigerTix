@@ -227,12 +227,9 @@ function LandingPage() {
         const data = response.data;
 
         setTicketedEvents(
-          data.filter((event) => event.event_type === "Ticketed")
-        );
+          data.filter((event) => event.event_type === "Ticketed"));
         setFreeEvents(data.filter((event) => event.event_type === "Free"));
-        setComingSoonEvents(
-          data.filter((event) => event.event_type === "Coming Soon")
-        );
+        setComingSoonEvents(data.filter((event) => event.event_type === "Coming Soon"));
       } catch (error) {
         console.error("Error fetching events:", error);
       }

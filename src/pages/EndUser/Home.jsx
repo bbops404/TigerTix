@@ -257,7 +257,9 @@ function Home() {
         events={ticketedEvents.map((event) => ({
           image: event.image,
           name: event.name,
+          details: event.details,
           location: event.venue,
+          category: event.category,
           date: event.event_date,
           time: event.event_time,
           buttonText: "Reserve Now",
@@ -270,7 +272,9 @@ function Home() {
         events={freeEvents.map((event) => ({
           image: event.image,
           name: event.name,
+          details: event.details,
           location: event.venue,
+          category: event.category,
           date: event.event_date,
           time: event.event_time,
           buttonText: "View Details",
@@ -284,7 +288,9 @@ function Home() {
         events={comingSoonEvents.map((event) => ({
           image: event.image,
           name: event.name,
+          details: event.details,
           location: event.venue,
+          category: event.category,
           date: event.event_date,
           time: event.event_time,
           buttonText: "View Details",

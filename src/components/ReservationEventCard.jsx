@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useLocation } from "react-router-dom"; // Import useLocation
 import { PiTagBold } from "react-icons/pi"; // Make sure to import the icon you're using
 
 const ReservationEventCard = ({
@@ -15,6 +16,10 @@ const ReservationEventCard = ({
   userEmail, // User email prop
   validationError, // Added validation error prop
 }) => {
+
+  const location = useLocation();
+  const event = location.state?.event || {}; // Fetch event data from location state
+
   // Ensure first email is always the user's email
   useEffect(() => {
     const newEmails = [...emails];
@@ -25,20 +30,25 @@ const ReservationEventCard = ({
 
   return (
     <div className="flex">
-      {/* Left Column 1 - IMAGE PLACEHOLDER*/}
+      {/* Left Column 1 - IMAGE PLACEHOLDER */}
       <div className="w-1/4 p-4">
-        <div className="bg-gray-300 w-full h-[450px] rounded-lg"></div>
+        <div className="bg-gray-300 w-full h-[450px] rounded-lg">
+          {event.image && (
+            <img
+              src={event.image}
+              alt={event.name}
+              className="w-full h-full object-cover rounded-lg"
+            />
+          )}
+        </div>
       </div>
 
-      {/* Left Column 2 - EVENT DETAILS*/}
+      {/* Left Column 2 - EVENT DETAILS */}
       <div className="w-1/4 pl-2">
         <h2 className="text-l font-bold mt-4">ABOUT</h2>
         <p className="text-justify text-xs text-gray-300 mb-4">
-          Get ready to ignite the pride as we mark the beginning of another
-          electrifying season of the University Athletic Association of the
-          Philippines! UAAP Season 87 Kickoff is here to celebrate the spirit of
-          sportsmanship, excellence, and camaraderie among the finest
-          student-athletes from across the league.
+          {event.details ||
+            "Get ready to ignite the pride as we mark the beginning of another electrifying season of the University Athletic Association of the Philippines! UAAP Season 87 Kickoff is here to celebrate the spirit of sportsmanship, excellence, and camaraderie among the finest student-athletes from across the league."}
         </p>
 
         <h1 className="text-2xl font-bold">Tickets</h1>
@@ -59,16 +69,16 @@ const ReservationEventCard = ({
 
         <div className="mt-4">
           <p className="text-sm mb-2">
-            <strong>Venue:</strong> Mall of Asia Arena
+            <strong>Venue:</strong> {event.venue || "Not Available"}
           </p>
           <p className="text-sm mb-2">
-            <strong>Time:</strong> 6:00 PM
+            <strong>Time:</strong> {event.time || "Not Available"}
           </p>
           <p className="text-sm mb-2">
-            <strong>Event Category:</strong> UAAP Game
+            <strong>Event Category:</strong> {event.category || "Not Available"}
           </p>
           <p className="text-sm mb-2">
-            <strong>Ticket Claiming Venue:</strong> UST IPEA
+            <strong>Ticket Claiming Venue:</strong> {event.claimingVenue || "UST IPEA"}
           </p>
         </div>
       </div>

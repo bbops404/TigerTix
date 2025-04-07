@@ -1,16 +1,23 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // For back navigation
-import { IoNotifications } from "react-icons/io5";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom"; // Added missing import
 import Header_User from "../../components/Header_User";
+import { IoNotifications } from "react-icons/io5";
 import { IoChevronBackOutline } from "react-icons/io5";
 
 const Event_Free = () => {
-  const [loginPopup, setLoginPopup] = useState(false);
   const navigate = useNavigate(); // Hook for navigation
-
-  const toggleLoginPopup = () => {
-    setLoginPopup(!loginPopup);
-  };
+  const location = useLocation();
+  const [event, setEvent] = useState(location.state?.event || {});
+  
+    useEffect(() => {
+      if (!event) {
+        setEvent(location.state?.event);
+      }
+    }, [event, location.state]);
+  
+    if (!event) {
+      return <p className="text-white">Event data is not available.</p>;
+    }
 
   return (
     <div className="bg-[#121212] text-white min-h-screen">
@@ -27,40 +34,33 @@ const Event_Free = () => {
       <div className="flex justify-center items-center p-4 mt-16">
         <div className="text-white p-6 flex max-w-7xl w-full rounded-lg">
           {/* Left Image Placeholder */}
-          <div className="bg-gray-300 min-w-[300px] max-w-[300px] min-h-[450px] max-h-[450px] rounded-lg ml-[50px]"></div>
+          <div className="bg-gray-300 min-w-[300px] max-w-[300px] min-h-[450px] max-h-[450px] rounded-lg ml-[50px]">
+            <img src={event?.image} alt={event?.name} className="w-full h-full object-cover rounded-lg" />
+          </div>
 
           {/* Right Content */}
           <div className="w-2/3 pl-6">
             <div className="bg-[#F09C32] text-black font-Poppins font-bold px-4 py-2 rounded-full inline-block mb-4">
-              UAAP SEASON 87 MEN’S BASKETBALL
+              {event?.name || "Event Name"}
             </div>
 
             <h2 className="font-bold font-Poppins text-lg mb-2">
               EVENT DETAILS:
             </h2>
             <p className="font-Poppins text-justify text-sm text-gray-300 mb-4">
-              Get ready to roar, UST community! The UAAP Season 87 Men's
-              Basketball tournament kicks off with a clash of champions, and the
-              UST Growling Tigers are set to take center stage at the iconic
-              Mall of Asia Arena. Witness the fast-paced action, gravity-defying
-              plays, and unyielding determination that make UAAP basketball the
-              most thrilling collegiate league in the country. Whether you're
-              cheering courtside or from the stands, wear your gold and white
-              loud and proud! Together, let's rally behind our team as they
-              fight for victory and represent the Thomasian spirit with heart
-              and passion.
+              {event?.details || "Event description goes here."}
             </p>
 
             <hr></hr>
 
             <p className="text-sm mt-4 mb-2 font-Poppins">
-              <strong>Location:</strong> Mall of Asia Arena
+              <strong>Location:</strong> {event?.location || "N/A"}
             </p>
             <p className="text-sm mb-2 font-Poppins">
-              <strong>Time:</strong> 6:00 PM
+              <strong>Time:</strong> {event?.time || "N/A"}
             </p>
             <p className="text-sm mb-2 font-Poppins">
-              <strong>Event Category:</strong> UAAP Game
+              <strong>Event Category:</strong> {event?.category || "N/A"}
             </p>
 
             <hr className="mt-4"></hr>
