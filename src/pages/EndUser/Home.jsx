@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import Header_User from "../../components/Header_User";
 import { IoNotifications } from "react-icons/io5";
 import EventCard from "../../components/EventCardEndUser";
+import axios from "axios"; 
 
+//connect to Mock database
 const images = [
   {
     src: "src/assets/c1.jpg",
@@ -27,6 +29,7 @@ const images = [
   },
 ];
 
+//main carousel banner for the home page
 function Carousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const navigate = useNavigate();
@@ -120,23 +123,18 @@ function Carousel() {
   );
 }
 
+//2nd carousel for event section in function Home
 function EventSection({ title, description, events }) {
   const navigate = useNavigate();
   const scrollContainerRef = useRef(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(events.length > 3);
 
-  // Custom navigation function to prevent scrollbar jumps
-  const handleNavigation = (path, e) => {
+  const handleNavigation = (path, eventData, e) => {
     if (e) e.preventDefault();
-
-    // Use a slight delay to ensure smooth transition
-    setTimeout(() => {
-      navigate(path);
-    }, 100);
+    navigate(path, { state: { event: eventData } });
   };
 
-  // Scroll handlers for the navigation buttons
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({ left: -300, behavior: "smooth" });
@@ -149,7 +147,6 @@ function EventSection({ title, description, events }) {
     }
   };
 
-  // Monitor scroll position to show/hide navigation arrows
   const handleScroll = () => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } =
@@ -163,13 +160,11 @@ function EventSection({ title, description, events }) {
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer) {
       scrollContainer.addEventListener("scroll", handleScroll);
-      // Initialize arrow visibility
       handleScroll();
       return () => scrollContainer.removeEventListener("scroll", handleScroll);
     }
   }, [events]);
 
-  // Determine if content needs to be centered (1-2 events)
   const centerContent = events.length <= 2;
 
   return (
@@ -183,7 +178,6 @@ function EventSection({ title, description, events }) {
         </h3>
 
         <div className="relative py-5">
-          {/* Left navigation button - only show when not at the beginning and when there are more than 2 events */}
           {!centerContent && showLeftArrow && (
             <button
               onClick={scrollLeft}
@@ -194,7 +188,6 @@ function EventSection({ title, description, events }) {
             </button>
           )}
 
-          {/* Event cards container with proper overflow and centering when needed */}
           <div
             ref={scrollContainerRef}
             className={`flex gap-5 overflow-x-auto scrollbar-none py-2 px-10 ${
@@ -211,12 +204,11 @@ function EventSection({ title, description, events }) {
                 date={event.date}
                 time={event.time}
                 buttonText={event.buttonText}
-                onClick={(e) => handleNavigation(event.link, e)}
+                onClick={(e) => handleNavigation(event.link, event, e)} // Use event.link for navigation
               />
             ))}
           </div>
 
-          {/* Right navigation button - only show when not at the end and when there are more than 2 events */}
           {!centerContent && showRightArrow && (
             <button
               onClick={scrollRight}
@@ -233,6 +225,28 @@ function EventSection({ title, description, events }) {
 }
 
 function Home() {
+  const [ticketedEvents, setTicketedEvents] = useState([]);
+  const [freeEvents, setFreeEvents] = useState([]);
+  const [comingSoonEvents, setComingSoonEvents] = useState([]);
+  
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await axios.get("http://localhost:5003/events");
+        const data = response.data;
+
+        setTicketedEvents(data.filter((event) => event.event_type === "Ticketed"));
+        setFreeEvents(data.filter((event) => event.event_type === "Free"));
+        setComingSoonEvents(data.filter((event) => event.event_type === "Coming Soon"));
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
   return (
     <div className="bg-[#121212] text-white">
       <Header_User />
@@ -240,65 +254,41 @@ function Home() {
       <EventSection
         title="TICKETED EVENTS"
         description="Events where tickets must be reserved in advance. Ensure your spot by booking a ticket."
-        events={[
-          {
-            image: "src/assets/event1.jpg",
-            name: "UAAP Season 87 Men's Basketball",
-            location: "SM Mall of Asia Arena",
-            date: "September 4, 2024",
-            time: "2:00 PM",
-            buttonText: "Reserve Now",
-            link: "/event-ticketed-enduser",
-          },
-          {
-            image: "src/assets/event2.jpg",
-            name: "UAAP Season 87 Women's Basketball",
-            location: "Araneta Coliseum",
-            date: "September 15, 2024",
-            time: "11:30 AM",
-            buttonText: "Reserve Now",
-            link: "/event-ticketed-enduser",
-          },
-        ]}
+        events={ticketedEvents.map((event) => ({
+          image: event.image,
+          name: event.name,
+          location: event.venue,
+          date: event.event_date,
+          time: event.event_time,
+          buttonText: "Reserve Now",
+          link: "/event-ticketed-enduser",
+        }))}
       />
       <EventSection
         title="FREE EVENTS"
         description="UAAP or other IPEA Events that are open to all without the need for a reservation or ticket. Simply show up!"
-        events={[
-          {
-            image: "src/assets/event3.jpg",
-            name: "UAAP Season 87 Men's Basketball",
-            location: "SM Mall of Asia Arena",
-            date: "September 4, 2024",
-            time: "2:00 PM",
-            buttonText: "View Details",
-            link: "/event-free",
-          },
-        ]}
+        events={freeEvents.map((event) => ({
+          image: event.image,
+          name: event.name,
+          location: event.venue,
+          date: event.event_date,
+          time: event.event_time,
+          buttonText: "View Details",
+          link: "/event-free-enduser",
+        }))}
       />
       <EventSection
         title="EVENTS COMING SOON"
         description="Upcoming events that will require a reservation. Ticket and reservation details are not yet available."
-        events={[
-          {
-            image: "src/assets/event4.jpg",
-            name: "UAAP Season 87 Men's Basketball",
-            location: "SM Mall of Asia Arena",
-            date: "September 4, 2024",
-            time: "2:00 PM",
-            buttonText: "View Details",
-            link: "/event-coming-soon",
-          },
-          {
-            image: "src/assets/event5.jpg",
-            name: "UAAP Season 87 Women's Basketball",
-            location: "Araneta Coliseum",
-            date: "September 15, 2024",
-            time: "11:30 AM",
-            buttonText: "View Details",
-            link: "/event-coming-soon",
-          },
-        ]}
+        events={comingSoonEvents.map((event) => ({
+          image: event.image,
+          name: event.name,
+          location: event.venue,
+          date: event.event_date,
+          time: event.event_time,
+          buttonText: "View Details",
+          link: "/event-coming-soon-enduser",
+        }))}
       />
     </div>
   );

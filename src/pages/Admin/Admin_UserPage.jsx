@@ -92,7 +92,7 @@ const Admin_UserPage = () => {
     // Fetching user data from the API
     const fetchUsers = async () => {
       try {
-        const response = await axios.get("http://localhost:5003/users"); //5002 yung sa 
+        const response = await axios.get("http://localhost:5003/users"); //5002 yung sa backend na mismo
         setUsers(response.data);
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -102,7 +102,7 @@ const Admin_UserPage = () => {
   }, []); 
 
   return (
-    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
+    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
       {/* Header */}
       <Header_Admin />
 
@@ -172,11 +172,11 @@ const Admin_UserPage = () => {
                     <span>{user.username}</span>
                   </div>
                 </td>
-                      <td className="px-4 py-2 border border-[#D6D3D3]">{user.fullName}</td>
+                      <td className="px-4 py-2 border border-[#D6D3D3]">{user.first_name} {user.last_name}</td>
                       <td className="px-4 py-2 border border-[#D6D3D3]">{user.role}</td>
                       <td className="px-4 py-2 border border-[#D6D3D3]">{user.email}</td>
                       <td className="px-4 py-2 border border-[#D6D3D3]">{user.status}</td>
-                      <td className="px-4 py-2 border border-[#D6D3D3]">{user.violations}</td>
+                      <td className="px-4 py-2 border border-[#D6D3D3]">{user.violation_count}</td>
                     </tr>
                   ))}
               </tbody>

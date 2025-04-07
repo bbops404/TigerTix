@@ -2,10 +2,32 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaBell, FaSignOutAlt, FaChevronDown } from "react-icons/fa";
 import { useState } from "react";
 import tigertix_logo from "../assets/tigertix_logo.png";
+import axios from "axios";
 
 const Header_User = () => {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [firstName, setFirstName] = useState("");
+
+
+  // useEffect(() => {
+  //   // Fetching user data from the API
+  //   const fetchFirstName = async () => {
+  //     try {
+  //       const response = await axios.get("http://localhost:5003/users");
+  //       const users = response.data;
+
+  //       // Assuming you want the first name of the first user in the list
+  //       if (users.length > 0) {
+  //         setFirstName(users[0].first_name);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching user data:", error);
+  //     }
+  //   };
+
+  //   fetchFirstName();
+  // }, []);
 
     const handleLogout = async () => {
       try {
@@ -71,7 +93,7 @@ return (
 
     {/* Right-side content */}
     <div className="flex items-center gap-4">
-      <span className="text-gray-800 font-medium">Hi, Name!</span>
+      <span className="text-gray-800 font-medium">Hi, {/*firstName*/} Name!</span>
 
       {/* Profile Icon - Routes to My Profile */}
       <Link to="/my-profile">

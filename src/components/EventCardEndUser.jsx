@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { IoNotifications } from "react-icons/io5";
 
 function EventCardEndUser({
@@ -9,21 +8,14 @@ function EventCardEndUser({
   date,
   time,
   buttonText,
-  link,
+  onClick, // Accept onClick as a prop
 }) {
-  const navigate = useNavigate();
   const [notification, setNotification] = useState(true);
-
-  const handleButtonClick = () => {
-    if (link) {
-      navigate(link);
-    }
-  };
 
   return (
     <div className="text-white font-Poppins flex flex-col items-center text-center relative">
       <div
-        className="w-[400px] h-[500px] bg-gray-300 bg-cover bg-center rounded-lg shadow-md"
+        className="w-[400px] h-[500px] bg-[#F09C32] bg-cover bg-center rounded-lg shadow-md"
         style={{ backgroundImage: `url(${image})` }}
       ></div>
       <p className="text-lg font-bold pt-2 pb-0 mb-0">{name}</p>
@@ -46,8 +38,8 @@ function EventCardEndUser({
       </div>
 
       <button
-        className="bg-[#F09C32] text-black text-sm mt-1 font-bold py-2 px-5 rounded-2xl min-w-[300px] uppercase transition-transform duration-200 hover:bg-[#d58527] hover:scale-105"
-        onClick={handleButtonClick}
+        className="bg-[#F09C32] text-black text-sm mt-1 font-bold py-2 px-5 rounded-2xl min-w-[300px] uppercase transition-transform duration-200 hover:bg-[#d58527] hover:scale-105 hover:text-white"
+        onClick={onClick} // Use the onClick prop here
       >
         {buttonText}
       </button>

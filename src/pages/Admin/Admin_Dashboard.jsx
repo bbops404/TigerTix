@@ -10,7 +10,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="bg-[#272727] main-content">
+    <div className="bg-[#272727] main-content font-Poppins">
       {/* Header */}
       <Header_Admin />
 

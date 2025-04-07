@@ -31,7 +31,7 @@ const Admin_ProfilePage = () => {
   };
 
   return (
-    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
+    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
       {/* Header */}
       <Header_Admin />
 

@@ -14,6 +14,8 @@ const Admin_Reservations = () => {
   const [showFilter, setShowFilter] = useState(false);
 
   const [reservations, setReservations] = useState([]);
+  const [users, setUsers] = useState([]);
+  
 
   useEffect(() => {
     // Fetching reservations data from the API
@@ -26,10 +28,11 @@ const Admin_Reservations = () => {
       }
     };
     fetchReservations();
+    
   }, []); //
 
   return (
-    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
+    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
       {/* Header */}
       <Header_Admin />
 

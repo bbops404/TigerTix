@@ -17,7 +17,7 @@ const Sidebar = () => {
   return (
     <aside className="w-[100px] bg-gradient-to-t from-black to-[#494949] text-white p-5 min-h-screen flex flex-col items-center font-poppins text-[10px] top-0 left-0">
       <nav>
-        <ul className="flex flex-col items-center w-full">
+        <ul className="flex flex-col items-center w-full font-poppins">
           <li
             className={`group flex flex-col items-center w-[100px] cursor-pointer transition-colors text-center p-3 
               ${
@@ -128,7 +128,7 @@ const Sidebar = () => {
             <div
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors
                 ${
-                  location.pathname.startsWith("/adminprofile")
+                  location.pathname.startsWith("/admin-profile")
                     ? "bg-[#FFAB40]"
                     : "bg-[#7D7D7D]"
                 } 

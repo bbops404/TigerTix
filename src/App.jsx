@@ -26,8 +26,8 @@ import MyReservations from "./pages/EndUser/MyReservations";
 import MyProfile from "./pages/EndUser/MyProfile";
 import EventTicketedEndUser from "./pages/EndUser/Event_Ticketed_EndUser";
 import Reservation from "./pages/EndUser/Reservation";
-import EventFree_Enduser from "./pages/EndUser/Event_Free";
-import EventComingSoon_Enduser from "./pages/EndUser/Event_ComingSoon";
+import EventFree_Enduser from "./pages/EndUser/Event_Free_EndUser";
+import EventComingSoon_Enduser from "./pages/EndUser/Event_ComingSoon_EndUser";
 import ReservationReceipt from "./pages/EndUser/ReservationReceipt";
 
 // ========================== ADMIN PAGES ==========================
