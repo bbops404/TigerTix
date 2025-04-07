@@ -17,6 +17,19 @@ const Event = require("../models/Event");
 router.get("/events/ticketed",eventController.getTicketedEvents);
 router.get("/events/coming-soon",eventController.getComingSoonEvents);
 router.get("/events/free-events",eventController.getFreeEvents);
+router.get("/events/published-ticketed", eventController.getPublishedTicketedEvents); // Carousel
+router.get("/events/published", eventController.getPublishedEvents); // Dropdown
+
+// Event-specific endpoints per event type in the landing page
+router.get("/events/ticketed/:id",eventController.getTicketedEventsById)
+router.get("/events/coming-soon/:id",eventController.getComingSoonEventsbyId);
+router.get("/events/free-events/:id",eventController.getFreeEventsbyId);
+
+// Event-specific endpoints per event type for the end user
+// End-user routes
+router.get("/user/events/ticketed/:id", authenticate, eventController.getTicketedEventsByIdForUser);
+router.get("/user/events/coming-soon/:id", authenticate, eventController.getComingSoonEventsByIdForUser);
+router.get("/user/events/free-events/:id", authenticate, eventController.getFreeEventsByIdForUser);
 
 // NON-PARAMETERIZED ROUTES FIRST
 // Event routes without parameters
