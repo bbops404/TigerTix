@@ -34,11 +34,9 @@ const ProtectedRoutes = ({ role }) => {
     // ✅ If the user's role is in the allowed list, redirect to /home
     if (allowedRoles.includes(userRole)) {
         console.warn(`User role "${userRole}" authorized. Redirecting to /home.`);
-        return <Navigate to="/home" replace />;
-        console.warn(`Unauthorized access. User role: "${userRole}". Redirecting to admin-dashboard.`);
-        return <Navigate to="/admin-dashboard" replace />;
-    }
-
+            return <Navigate to="/home" replace />;
+        }
+       
 
     return <Outlet />; // ✅ If authorized, render the requested page
 };

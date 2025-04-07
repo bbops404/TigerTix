@@ -247,7 +247,7 @@ const reservationController = {
           },
           {
             model: db.Ticket,
-            as: "Ticket", // Use the alias defined in the association
+            as: "Tickets", // Use the alias defined in the association
             attributes: ["ticket_type"], // Fetch ticket type from Ticket
           },
           {
@@ -411,7 +411,7 @@ const reservationController = {
         include: [
           {
             model: db.Ticket,
-            as: "Ticket", // Use the alias defined in the association
+            as: "Tickets", // Use the alias defined in the association
             attributes: ["ticket_type"],
           },
           {
@@ -478,7 +478,7 @@ const reservationController = {
         include: [
           {
             model: db.Ticket,
-            as: "Ticket", // Use the alias defined in the association
+            as: "Tickets", // Use the alias defined in the association
             attributes: ["ticket_type", "price"], // Include ticket type and price
           },
           {
@@ -652,7 +652,7 @@ const reservationController = {
             include: [
               {
                 model: db.Ticket,
-                as: "Ticket", // Use the alias defined in the association
+                as: "Tickets", // Use the alias defined in the association
                 attributes: ["id", "remaining_quantity"],
               },
               {

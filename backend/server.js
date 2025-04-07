@@ -180,8 +180,7 @@ app.use("/admin", adminRoutes);
 const reservationRoutes = require("./routes/reservationRoutes");
 app.use("/api", reservationRoutes);
 
-const adminRoutes = require("./routes/admin");
-app.use("/admin", adminRoutes);
+
 
 // Root route
 app.get("/", (req, res) => {
@@ -252,7 +251,6 @@ const startServer = async () => {
 
 
     await db.sequelize.sync({ alter: true }); // Automatically updates the database schema
-)
     await db.sync({ force: false });
 
     console.log("Database tables synchronized successfully! 📊");

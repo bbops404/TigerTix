@@ -68,7 +68,7 @@ Reservation.associate = (models) => {
   
     Reservation.belongsTo(models.Ticket, {
       foreignKey: "ticket_id",
-      as: "Ticket",
+      as: "Tickets",
       onDelete: "CASCADE",
     });
   };

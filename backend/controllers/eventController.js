@@ -66,8 +66,8 @@ const eventController = {
         offset: offset,
         order: [["createdAt", "DESC"]],
         include: [
-          { model: Ticket, as: "tickets" },
-          { model: ClaimingSlot, as: "claimingSlots" },
+          { model: Ticket, as: "Tickets" },
+          { model: ClaimingSlot, as: "ClaimingSlots" },
         ],
       });
 
@@ -95,8 +95,8 @@ const eventController = {
 
       const event = await Event.findByPk(id, {
         include: [
-          { model: Ticket, as: "tickets" },
-          { model: ClaimingSlot, as: "claimingSlots" },
+          { model: Ticket, as: "Tickets" },
+          { model: ClaimingSlot, as: "ClaimingSlots" },
         ],
       });
 
