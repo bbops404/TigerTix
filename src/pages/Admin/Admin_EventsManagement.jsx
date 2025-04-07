@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSearch, FaArchive } from "react-icons/fa";
+import { FaSearch, FaArchive, FaClock, FaSyncAlt } from "react-icons/fa";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Admin_EventManagementFilter from "./Admin_EventsManagementFilter";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
@@ -13,8 +15,91 @@ import EditClaimingDetailsPopup from "../../components/Admin/Popups/EditClaiming
 import EditAvailabilityDetailsPopup from "../../components/Admin/Popups/EditAvailabilityDetailsPopup";
 import DeleteConfirmationPopup from "../../components/Admin/Popups/DeleteConfirmationPopup";
 import UnpublishConfirmationPopup from "../../components/Admin/Popups/UnpublishConfirmationPopup";
-import { FaClock } from "react-icons/fa";
 
+const LoadingStateDisplay = () => {
+  return (
+    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
+      <Header_Admin />
+      <div className="flex">
+        <Sidebar_Admin />
+        <div className="flex-1 px-10 py-10">
+          {/* Loading indicator */}
+          <div className="flex justify-between items-center mb-6 gap-4">
+            {/* Placeholder for search box */}
+            <div className="relative flex-grow h-10 bg-gray-800 animate-pulse rounded-full"></div>
+
+            {/* Placeholder for buttons */}
+            <div className="flex gap-2">
+              <div className="w-24 h-10 bg-gray-800 animate-pulse rounded-md"></div>
+              <div className="w-24 h-10 bg-gray-800 animate-pulse rounded-md"></div>
+              <div className="w-28 h-10 bg-gray-800 animate-pulse rounded-md"></div>
+            </div>
+          </div>
+
+          {/* Placeholder for tabs */}
+          <div className="flex border-b border-gray-600 mb-6 gap-4">
+            <div className="w-32 h-10 bg-gray-800 animate-pulse rounded-md"></div>
+            <div className="w-32 h-10 bg-gray-800 animate-pulse rounded-md"></div>
+            <div className="w-32 h-10 bg-gray-800 animate-pulse rounded-md"></div>
+          </div>
+
+          {/* Placeholder for add event button */}
+          <div className="mb-10">
+            <div className="h-6 w-32 bg-gray-800 animate-pulse rounded mb-4"></div>
+            <div className="w-[173px] h-[205px] bg-gray-800 animate-pulse rounded-lg"></div>
+          </div>
+
+          {/* Placeholder for event sections */}
+          {[1, 2, 3].map((section) => (
+            <div key={section} className="mb-10">
+              <div className="h-6 w-48 bg-gray-800 animate-pulse rounded mb-4"></div>
+              <div className="flex gap-4 overflow-x-auto pb-4">
+                {[1, 2, 3, 4].map((card) => (
+                  <div
+                    key={card}
+                    className="w-[173px] h-[205px] bg-gray-800 animate-pulse rounded-lg"
+                  ></div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const isRecentlyUpdated = (event) => {
+  if (!event.statusUpdatedAt) return false;
+
+  const updatedAt = new Date(event.statusUpdatedAt);
+  const now = new Date();
+  const diffMs = now - updatedAt;
+  const diffMinutes = diffMs / (1000 * 60);
+
+  return diffMinutes <= 30; // Within last 30 minutes
+};
+
+// Format a time as "X minutes/hours ago"
+const formatTimeAgo = (timestamp) => {
+  const now = new Date();
+  const date = new Date(timestamp);
+  const diffMs = now - date;
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) {
+    return "just now";
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes !== 1 ? "s" : ""} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
+  } else {
+    return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+  }
+};
 // Function to check if an event has a future display date
 const isFutureScheduledEvent = (event) => {
   if (
@@ -113,13 +198,17 @@ const EventTabs = ({ activeTab, setActiveTab }) => {
 const Admin_EventsManagement = ({
   events,
   loading,
+  initialized,
   error,
   onAddEvent,
   onEditEvent,
   onSaveEvent,
   onDeleteEvent,
   onUnpublishEvent,
-  onPublishNow, // New prop
+  onPublishNow,
+  onOpenReservation,
+  onCloseReservation,
+  onRefreshEvents,
   findEventById,
 }) => {
   const navigate = useNavigate();
@@ -250,10 +339,6 @@ const Admin_EventsManagement = ({
     setSelectedEvent(null);
   };
 
-  const handleViewEventDetails = (eventId) => {
-    navigate(`/events/detail/${eventId}`);
-  };
-
   // Save handlers for each edit type
   const handleSaveEventChanges = async (updatedEvent) => {
     console.log("Saving event changes:", updatedEvent);
@@ -295,6 +380,22 @@ const Admin_EventsManagement = ({
     }
   };
 
+  const handleOpenReservation = async (eventId) => {
+    console.log(`Open reservation for event ${eventId}`);
+    // Call the actual handler from the container
+    return await onOpenReservation(eventId);
+  };
+
+  // Handler for closing reservations
+  const handleCloseReservation = async (eventId) => {
+    console.log(`Close reservation for event ${eventId}`);
+    // Call the actual handler from the container
+    return await onCloseReservation(eventId);
+  };
+
+  const handleViewEventDetails = (eventId) => {
+    navigate(`/events/detail/${eventId}`);
+  };
   const handleConfirmUnpublish = async (eventId) => {
     console.log(`Unpublishing event with ID: ${eventId}`);
     const success = await onUnpublishEvent(eventId);
@@ -302,25 +403,7 @@ const Admin_EventsManagement = ({
       handleClosePopup();
     }
   };
-  const handleCancelEvent = async (eventId) => {
-    console.log(`Cancel event ${eventId}`);
-    try {
-      const event = findEventById(eventId);
-      if (event) {
-        // You'll need to implement a proper cancel event function in your container component
-        // For now, we'll just alert since the handler isn't fully implemented
-        alert("Event cancellation feature is not fully implemented yet.");
 
-        // If you have a cancel function in your props, you could use it like this:
-        // const success = await onCancelEvent(eventId);
-        // if (success) {
-        //   // Handle successful cancellation
-        // }
-      }
-    } catch (error) {
-      console.error("Error cancelling event:", error);
-    }
-  };
   // Render the appropriate popup based on active state
   const renderPopup = () => {
     if (!activePopup) return null;
@@ -410,21 +493,8 @@ const Admin_EventsManagement = ({
   // Get and filter events for display
   const filteredEvents = filterEventsBySearchTerm(getEventsByTab());
 
-  if (loading) {
-    return (
-      <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
-        <Header_Admin />
-        <div className="flex">
-          <Sidebar_Admin />
-          <div className="flex-1 px-10 py-10 flex justify-center items-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FFAB40] mx-auto mb-4"></div>
-              <p className="text-lg">Loading events...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  if (loading && !initialized) {
+    return <LoadingStateDisplay />;
   }
 
   return (
@@ -450,7 +520,7 @@ const Admin_EventsManagement = ({
 
           {/* Search and Filters */}
           <div className="flex items-center justify-between mb-6 gap-4">
-            {/* Search Dropdown with Arrow Fix */}
+            {/* Search Box */}
             <div className="relative flex-grow">
               <FaSearch className="absolute left-3 top-3 text-black" />
               <input
@@ -464,6 +534,18 @@ const Admin_EventsManagement = ({
 
             {/* Buttons */}
             <div className="flex gap-2">
+              {/* Add manual refresh button */}
+              <button
+                className="px-4 py-2 bg-[#FFAB40] text-black rounded-md hover:bg-[#FFC661] transition duration-300 flex items-center"
+                onClick={onRefreshEvents}
+                title="Refresh event statuses"
+                disabled={loading}
+              >
+                <FaSyncAlt
+                  className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </button>
               <button
                 className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
                 onClick={handleResetFilters}
@@ -478,6 +560,7 @@ const Admin_EventsManagement = ({
               </button>
             </div>
           </div>
+
           <EventTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
           {shouldShowAddEvent() && <AddEventButton onAddEvent={onAddEvent} />}
@@ -498,7 +581,7 @@ const Admin_EventsManagement = ({
               {filteredEvents[category].length > 0 ? (
                 <div className="flex gap-4 overflow-x-auto pb-4">
                   {filteredEvents[category].map((event) => (
-                    <div key={event.id}>
+                    <div key={event.id} className="flex flex-col">
                       <EventCard
                         key={event.id}
                         event={event}
@@ -506,15 +589,14 @@ const Admin_EventsManagement = ({
                         onEdit={handleEditEvent}
                         onDelete={handleDeleteEvent}
                         onUnpublish={handleUnpublishEvent}
-                        onPublishNow={handlePublishNow} // Pass the handler
+                        onPublishNow={handlePublishNow}
+                        onOpenReservation={handleOpenReservation}
+                        onCloseReservation={handleCloseReservation}
                         onViewDetails={handleViewEventDetails}
-                        onCancel={handleCancelEvent}
                       />
-
-                      {/* Add display time indicator for future scheduled events */}
                       {isFutureScheduledEvent(event) && (
                         <div className="mt-2 bg-yellow-900/30 border border-yellow-600 rounded-md p-2 text-xs">
-                          <div className="flex items-center text-yellow-400">
+                          <div className="flex items-center text-custom_black">
                             <FaClock className="mr-1" />
                             <span>
                               Display scheduled in:{" "}
@@ -523,6 +605,19 @@ const Admin_EventsManagement = ({
                           </div>
                           <div className="text-gray-300 mt-1">
                             Will display on: {formatDisplayDate(event)}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Add status indicator for recently updated events */}
+                      {event.statusUpdatedAt && isRecentlyUpdated(event) && (
+                        <div className="mt-2 bg-blue-900/30 border border-blue-600 rounded-md p-2 text-xs">
+                          <div className="flex items-center text-blue-400">
+                            <FaSyncAlt className="mr-1" />
+                            <span>
+                              Status updated:{" "}
+                              {formatTimeAgo(event.statusUpdatedAt)}
+                            </span>
                           </div>
                         </div>
                       )}
@@ -537,10 +632,30 @@ const Admin_EventsManagement = ({
             </div>
           ))}
 
-          {/* Render Popups */}
+          {/* Add overlay loading indicator for refreshes after initialization */}
+          {loading && initialized && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-[#2C2C2C] p-6 rounded-lg shadow-lg flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FFAB40] mb-4"></div>
+                <p className="text-white">Refreshing events...</p>
+              </div>
+            </div>
+          )}
           {renderPopup()}
         </div>
       </div>
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
     </div>
   );
 };

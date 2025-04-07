@@ -1,4 +1,3 @@
-// controllers/eventController.js
 const { Op } = require("sequelize");
 const db = require("../models");
 const Event = db.Event;
@@ -387,53 +386,177 @@ const eventController = {
   },
 
   // Update event status (draft to published, coming soon to ticketed, etc.)
-  updateEventStatus: async (req, res) => {
+  updateEventStatuses: async () => {
     try {
-      const { id } = req.params;
-      const { status, visibility, event_type } = req.body;
+      const now = new Date();
 
-      const event = await Event.findByPk(id);
+      // Convert today to YYYY-MM-DD format for date comparison
+      const todayDate = now.toISOString().split("T")[0];
+      const currentTime = now.toISOString().split("T")[1].substring(0, 8); // HH:MM:SS
 
-      if (!event) {
-        return res.status(404).json({
-          success: false,
-          message: "Event not found",
-        });
-      }
-
-      // Validate status and event type combinations
-      if (
-        (status === "open" && event_type === "coming_soon") ||
-        (status === "open" && event_type === "free")
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: `${event_type} events cannot have an 'open' status`,
-        });
-      }
-
-      // Update the event
-      await event.update({
-        status: status || event.status,
-        visibility: visibility || event.visibility,
-        event_type: event_type || event.event_type,
+      // Find events to update visibility that have ended their display period
+      const eventsToUpdateVisibility = await Event.findAll({
+        where: {
+          visibility: "published",
+          // Only select events where both display end date AND time are specified
+          display_end_date: { [Op.not]: null },
+          display_end_time: { [Op.not]: null },
+          // Check if display period has actually ended
+          [Op.or]: [
+            // Display end date is before today
+            {
+              display_end_date: { [Op.lt]: todayDate },
+            },
+            // Display end date is today and time has passed
+            {
+              display_end_date: todayDate,
+              display_end_time: { [Op.lte]: currentTime },
+            },
+          ],
+        },
       });
 
-      return res.status(200).json({
-        success: true,
-        message: "Event status updated successfully",
-        data: event,
+      // Update visibility for events that should no longer be visible
+      if (eventsToUpdateVisibility.length > 0) {
+        await Event.update(
+          { visibility: "unpublished" },
+          {
+            where: {
+              id: eventsToUpdateVisibility.map((e) => e.id),
+            },
+          }
+        );
+
+        console.log(
+          `Updated visibility to 'unpublished' for ${eventsToUpdateVisibility.length} events`
+        );
+      }
+
+      // Find scheduled events to open
+      const ticketedEventsToOpen = await Event.findAll({
+        where: {
+          event_type: "ticketed",
+          status: "scheduled",
+          visibility: "published",
+          [Op.or]: [
+            // Reservation start date is in the past
+            {
+              reservation_start_date: { [Op.lt]: todayDate },
+            },
+            // Reservation start date is today and time has passed
+            {
+              reservation_start_date: todayDate,
+              reservation_start_time: { [Op.lte]: currentTime },
+            },
+          ],
+          // Ensure reservation end hasn't passed
+          [Op.and]: [
+            {
+              [Op.or]: [
+                { reservation_end_date: { [Op.gt]: todayDate } },
+                {
+                  reservation_end_date: todayDate,
+                  reservation_end_time: { [Op.gt]: currentTime },
+                },
+              ],
+            },
+          ],
+        },
       });
+
+      // Open reservation for eligible events
+      if (ticketedEventsToOpen.length > 0) {
+        await Event.update(
+          { status: "open" },
+          {
+            where: {
+              id: ticketedEventsToOpen.map((e) => e.id),
+            },
+          }
+        );
+
+        console.log(
+          `Updated status to 'open' for ${ticketedEventsToOpen.length} events`
+        );
+      }
+
+      // Find ticketed events to close reservations
+      const ticketedEventsToClose = await Event.findAll({
+        where: {
+          event_type: "ticketed",
+          status: "open",
+          visibility: "published",
+          [Op.or]: [
+            // Reservation end date is in the past
+            {
+              reservation_end_date: { [Op.lt]: todayDate },
+            },
+            // Reservation end date is today and time has passed
+            {
+              reservation_end_date: todayDate,
+              reservation_end_time: { [Op.lte]: currentTime },
+            },
+          ],
+        },
+      });
+
+      // Close reservations for events that have passed
+      if (ticketedEventsToClose.length > 0) {
+        await Event.update(
+          { status: "closed" },
+          {
+            where: {
+              id: ticketedEventsToClose.map((e) => e.id),
+            },
+          }
+        );
+
+        console.log(
+          `Updated status to 'closed' for ${ticketedEventsToClose.length} events`
+        );
+      }
+
+      // Update status for completed events
+      const completedEvents = await Event.findAll({
+        where: {
+          event_type: "ticketed",
+          [Op.or]: [
+            // Event date is in the past
+            {
+              event_date: { [Op.lt]: todayDate },
+            },
+            // Event date is today and end time has passed
+            {
+              event_date: todayDate,
+              event_end_time: { [Op.lte]: currentTime },
+            },
+          ],
+          // Ensure not already marked as cancelled or closed
+          status: { [Op.notIn]: ["cancelled", "closed"] },
+        },
+      });
+
+      // Mark completed events
+      if (completedEvents.length > 0) {
+        await Event.update(
+          { status: "closed" },
+          {
+            where: {
+              id: completedEvents.map((e) => e.id),
+            },
+          }
+        );
+
+        console.log(
+          `Updated status to 'closed' for ${completedEvents.length} completed events`
+        );
+      }
+
+      console.log("Event statuses and visibility updated successfully");
     } catch (error) {
-      console.error("Error updating event status:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+      console.error("Error updating event statuses:", error);
     }
   },
-
   // Convert an event (e.g., coming soon to ticketed)
   convertEvent: async (req, res) => {
     try {
@@ -585,7 +708,68 @@ const eventController = {
       });
     }
   },
+  // Add this method to the eventController
+  updateEventStatus: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, visibility } = req.body;
 
+      const event = await Event.findByPk(id);
+
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: "Event not found",
+        });
+      }
+
+      // Validate status and visibility
+      const validStatuses = [
+        "draft",
+        "scheduled",
+        "open",
+        "closed",
+        "cancelled",
+      ];
+      const validVisibilities = ["published", "unpublished", "archived"];
+
+      if (status && !validStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid status",
+          validStatuses: validStatuses,
+        });
+      }
+
+      if (visibility && !validVisibilities.includes(visibility)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid visibility",
+          validVisibilities: validVisibilities,
+        });
+      }
+
+      // Update event status and/or visibility
+      const updateData = {};
+      if (status) updateData.status = status;
+      if (visibility) updateData.visibility = visibility;
+
+      await event.update(updateData);
+
+      return res.status(200).json({
+        success: true,
+        message: "Event status updated successfully",
+        data: event,
+      });
+    } catch (error) {
+      console.error("Error updating event status:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
   // Permanently delete an event (only from archive)
   permanentlyDeleteEvent: async (req, res) => {
     try {

@@ -6,30 +6,30 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
 const formatImageUrl = (imageUrl) => {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002";
 
-  if (!imageUrl) return imageUrl;
+  if (!imageUrl) return null;
 
   // If the URL is already absolute (with http), return it as is
   if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-    // But fix the path if it incorrectly includes /api/uploads
-    if (imageUrl.includes("/api/uploads/")) {
-      const fixedPath = imageUrl.replace("/api/uploads/", "/uploads/");
-      return fixedPath;
-    }
     return imageUrl;
   }
 
-  // If the URL is relative and starts with /api/uploads/, remove the /api part
-  if (imageUrl.startsWith("/api/uploads/")) {
-    imageUrl = imageUrl.replace("/api/uploads/", "/uploads/");
+  // Handle both /api/uploads and /uploads paths consistently
+  let formattedUrl = imageUrl;
+
+  // If path includes /api/uploads, remove the /api prefix
+  if (formattedUrl.startsWith("/api/uploads/")) {
+    formattedUrl = formattedUrl.replace("/api/uploads/", "/uploads/");
   }
 
-  // If the URL is a relative path starting with /uploads
-  if (imageUrl.startsWith("/uploads/")) {
-    const baseUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
-    return `${baseUrl}${imageUrl}`;
+  // If path doesn't start with /, add it
+  if (!formattedUrl.startsWith("/")) {
+    formattedUrl = `/${formattedUrl}`;
   }
 
-  return imageUrl;
+  // Remove trailing slash from API_URL if it exists
+  const baseUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
+
+  return `${baseUrl}${formattedUrl}`;
 };
 
 // Create axios instance with default config
@@ -199,6 +199,39 @@ const eventService = {
     update: (slotId, slotData) =>
       eventService.put(`/claiming-slots/${slotId}`, slotData),
     delete: (slotId) => eventService.delete(`/claiming-slots/${slotId}`),
+  },
+  checkEventStatuses: async () => {
+    try {
+      const response = await apiClient.get("/events/check-status");
+      return response.data;
+    } catch (error) {
+      console.error("Error checking event statuses:", error);
+      throw error;
+    }
+  },
+
+  // Add a method to trigger an immediate status refresh for a specific event
+  refreshEventStatus: async (eventId) => {
+    try {
+      const response = await apiClient.post(
+        `/events/${eventId}/refresh-status`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error refreshing status for event ${eventId}:`, error);
+      throw error;
+    }
+  },
+
+  // Add method to get events that need status updates soon
+  getUpcomingStatusChanges: async () => {
+    try {
+      const response = await apiClient.get("/events/upcoming-status-changes");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching upcoming status changes:", error);
+      throw error;
+    }
   },
 
   // Existing complex methods from previous implementation

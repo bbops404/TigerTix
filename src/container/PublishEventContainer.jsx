@@ -6,32 +6,30 @@ import eventService from "../pages/Services/eventService";
 const formatImageUrl = (imageUrl) => {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002";
 
-  if (!imageUrl) return imageUrl;
+  if (!imageUrl) return null;
 
   // If the URL is already absolute (with http), return it as is
   if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-    // But fix the path if it incorrectly includes /api/uploads
-    if (imageUrl.includes("/api/uploads/")) {
-      // Replace /api/uploads with just /uploads
-      const fixedPath = imageUrl.replace("/api/uploads/", "/uploads/");
-      return fixedPath;
-    }
     return imageUrl;
   }
 
-  // If the URL is relative and starts with /api/uploads/, remove the /api part
-  if (imageUrl.startsWith("/api/uploads/")) {
-    imageUrl = imageUrl.replace("/api/uploads/", "/uploads/");
+  // Handle both /api/uploads and /uploads paths consistently
+  let formattedUrl = imageUrl;
+
+  // If path includes /api/uploads, remove the /api prefix
+  if (formattedUrl.startsWith("/api/uploads/")) {
+    formattedUrl = formattedUrl.replace("/api/uploads/", "/uploads/");
   }
 
-  // If the URL is a relative path starting with /uploads
-  if (imageUrl.startsWith("/uploads/")) {
-    // Remove the trailing slash from API_URL if it exists
-    const baseUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
-    return `${baseUrl}${imageUrl}`;
+  // If path doesn't start with /, add it
+  if (!formattedUrl.startsWith("/")) {
+    formattedUrl = `/${formattedUrl}`;
   }
 
-  return imageUrl;
+  // Remove trailing slash from API_URL if it exists
+  const baseUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
+
+  return `${baseUrl}${formattedUrl}`;
 };
 
 const PublishEventContainer = () => {
@@ -44,7 +42,7 @@ const PublishEventContainer = () => {
     try {
       setIsSubmitting(true);
 
-      // Process image if it exists
+      // Process image if it exists (only if present)
       if (eventData.eventDetails.eventImage) {
         console.log(
           "Uploading event image:",
@@ -70,19 +68,20 @@ const PublishEventContainer = () => {
       // Determine the correct status and visibility based on event type and display date
       let eventStatus, eventVisibility;
 
+      // When creating a free event, check the display date
       if (isDisplayInFuture) {
         // Future display date means scheduled status and unpublished visibility
         eventStatus = "scheduled";
         eventVisibility = "unpublished";
       } else {
         // Current or past display date
-        switch (eventData.eventDetails.eventType) {
+        switch (eventDetails.eventType) {
           case "coming_soon":
             eventStatus = "closed";
             eventVisibility = "published";
             break;
           case "free":
-            eventStatus = "closed";
+            eventStatus = "open";
             eventVisibility = "published";
             break;
           case "ticketed":
@@ -94,7 +93,6 @@ const PublishEventContainer = () => {
             eventVisibility = "unpublished";
         }
       }
-
       // Transform data to match backend expectations
       const eventPayload = {
         name: eventData.eventDetails.eventName,
@@ -108,7 +106,10 @@ const PublishEventContainer = () => {
         venue: eventData.eventDetails.venue,
         category: eventData.eventDetails.eventCategory,
         event_type: eventData.eventDetails.eventType,
-        image: eventData.eventDetails.imageUrl, // Send the original path from backend
+        // Only include image if imageUrl exists
+        ...(eventData.eventDetails.imageUrl
+          ? { image: eventData.eventDetails.imageUrl }
+          : {}),
         status: eventStatus,
         visibility: eventVisibility,
         display_start_date:
@@ -248,7 +249,9 @@ const PublishEventContainer = () => {
           ...draftData,
           eventDetails: {
             ...draftData.eventDetails,
-            image: draftData.eventDetails.imageUrl, // Ensure image is set correctly
+            ...(draftData.eventDetails?.imageUrl
+              ? { image: draftData.eventDetails.imageUrl }
+              : {}),
           },
         };
 

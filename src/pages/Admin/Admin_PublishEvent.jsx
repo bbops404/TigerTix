@@ -13,22 +13,30 @@ import {
 const formatImageUrl = (imageUrl) => {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002";
 
-  // If the URL is already absolute, return it as is
-  if (
-    imageUrl &&
-    (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))
-  ) {
+  if (!imageUrl) return null;
+
+  // If the URL is already absolute (with http), return it as is
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
     return imageUrl;
   }
 
-  // If the URL is relative, prefix it with the API base URL
-  if (imageUrl && imageUrl.startsWith("/uploads")) {
-    // Remove the trailing slash from API_URL if it exists
-    const baseUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
-    return `${baseUrl}${imageUrl}`;
+  // Handle both /api/uploads and /uploads paths consistently
+  let formattedUrl = imageUrl;
+
+  // If path includes /api/uploads, remove the /api prefix
+  if (formattedUrl.startsWith("/api/uploads/")) {
+    formattedUrl = formattedUrl.replace("/api/uploads/", "/uploads/");
   }
 
-  return imageUrl;
+  // If path doesn't start with /, add it
+  if (!formattedUrl.startsWith("/")) {
+    formattedUrl = `/${formattedUrl}`;
+  }
+
+  // Remove trailing slash from API_URL if it exists
+  const baseUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
+
+  return `${baseUrl}${formattedUrl}`;
 };
 
 // Modified EventDetails component with updated event types and validation
@@ -99,10 +107,10 @@ const EventDetails = ({ onNext, initialData }) => {
     if (!eventCategory) newErrors.eventCategory = "Category is required";
     // End time is optional, so no validation needed
 
-    // Image is recommended but not required
-    if (!imagePreview && !eventImage) {
-      newErrors.image = "Event image is recommended";
-    }
+    // Remove the image warning/error - make it completely optional
+    // if (!imagePreview && !eventImage) {
+    //   newErrors.image = "Event image is recommended";
+    // }
 
     // Validate time if both start and end time are provided
     if (startTime && endTime && startTime >= endTime) {
@@ -929,9 +937,6 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
                     />
                   </div>
                 </div>
-                <p className="text-[#B8B8B8] text-xs mt-3">
-                  For maximum tickets per person, set between 1-10.
-                </p>
               </div>
             )}
 
