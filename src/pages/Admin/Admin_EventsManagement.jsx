@@ -206,6 +206,8 @@ const Admin_EventsManagement = ({
   onDeleteEvent,
   onUnpublishEvent,
   onPublishNow,
+  onOpenReservation,
+  onCloseReservation,
   onRefreshEvents,
   findEventById,
 }) => {
@@ -337,10 +339,6 @@ const Admin_EventsManagement = ({
     setSelectedEvent(null);
   };
 
-  const handleViewEventDetails = (eventId) => {
-    navigate(`/events/detail/${eventId}`);
-  };
-
   // Save handlers for each edit type
   const handleSaveEventChanges = async (updatedEvent) => {
     console.log("Saving event changes:", updatedEvent);
@@ -382,6 +380,22 @@ const Admin_EventsManagement = ({
     }
   };
 
+  const handleOpenReservation = async (eventId) => {
+    console.log(`Open reservation for event ${eventId}`);
+    // Call the actual handler from the container
+    return await onOpenReservation(eventId);
+  };
+
+  // Handler for closing reservations
+  const handleCloseReservation = async (eventId) => {
+    console.log(`Close reservation for event ${eventId}`);
+    // Call the actual handler from the container
+    return await onCloseReservation(eventId);
+  };
+
+  const handleViewEventDetails = (eventId) => {
+    navigate(`/events/detail/${eventId}`);
+  };
   const handleConfirmUnpublish = async (eventId) => {
     console.log(`Unpublishing event with ID: ${eventId}`);
     const success = await onUnpublishEvent(eventId);
@@ -389,25 +403,7 @@ const Admin_EventsManagement = ({
       handleClosePopup();
     }
   };
-  const handleCancelEvent = async (eventId) => {
-    console.log(`Cancel event ${eventId}`);
-    try {
-      const event = findEventById(eventId);
-      if (event) {
-        // You'll need to implement a proper cancel event function in your container component
-        // For now, we'll just alert since the handler isn't fully implemented
-        alert("Event cancellation feature is not fully implemented yet.");
 
-        // If you have a cancel function in your props, you could use it like this:
-        // const success = await onCancelEvent(eventId);
-        // if (success) {
-        //   // Handle successful cancellation
-        // }
-      }
-    } catch (error) {
-      console.error("Error cancelling event:", error);
-    }
-  };
   // Render the appropriate popup based on active state
   const renderPopup = () => {
     if (!activePopup) return null;
@@ -594,13 +590,13 @@ const Admin_EventsManagement = ({
                         onDelete={handleDeleteEvent}
                         onUnpublish={handleUnpublishEvent}
                         onPublishNow={handlePublishNow}
+                        onOpenReservation={handleOpenReservation}
+                        onCloseReservation={handleCloseReservation}
                         onViewDetails={handleViewEventDetails}
-                        onCancel={handleCancelEvent}
                       />
-
                       {isFutureScheduledEvent(event) && (
                         <div className="mt-2 bg-yellow-900/30 border border-yellow-600 rounded-md p-2 text-xs">
-                          <div className="flex items-center text-yellow-400">
+                          <div className="flex items-center text-custom_black">
                             <FaClock className="mr-1" />
                             <span>
                               Display scheduled in:{" "}
@@ -645,6 +641,7 @@ const Admin_EventsManagement = ({
               </div>
             </div>
           )}
+          {renderPopup()}
         </div>
       </div>
       <ToastContainer

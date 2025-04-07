@@ -794,37 +794,414 @@ const EventsManagementContainer = () => {
   // Handler for unpublishing an event
   const handleUnpublishEvent = async (eventId) => {
     try {
-      await eventService.events.updateStatus(eventId, {
-        visibility: "unpublished",
-      });
+      setLoading(true);
+
+      // Get the event to check its current state
+      const event = findEventById(eventId);
+
+      if (!event) {
+        console.error(`Event with ID ${eventId} not found`);
+        return false;
+      }
+
+      // Check if there's an active reservation period
+      const now = new Date();
+      const nowISODate = now.toISOString().split("T")[0];
+      const nowISOTime = now.toISOString().split("T")[1].substring(0, 8);
+
+      const hasActiveReservation =
+        event.eventType === "ticketed" &&
+        event.reservation_start_date &&
+        event.reservation_end_date &&
+        new Date(
+          `${event.reservation_end_date}T${
+            event.reservation_end_time || "23:59:59"
+          }`
+        ) > now;
+
+      // If there's an active reservation, ask for confirmation
+      if (hasActiveReservation && event.status === "open") {
+        const confirmEnd = window.confirm(
+          `"${event.eventName}" has an active reservation period. Unpublishing will end the reservation period immediately. Do you want to continue?`
+        );
+
+        if (!confirmEnd) {
+          setLoading(false);
+          return false;
+        }
+
+        // Update both visibility and reservation end date/time
+        await eventService.events.update(eventId, {
+          visibility: "unpublished",
+          display_end_date: nowISODate,
+          display_end_time: nowISOTime,
+          reservation_end_date: nowISODate,
+          reservation_end_time: nowISOTime,
+          status: "closed", // Also change status to closed since reservation is ending
+        });
+
+        toast.info(
+          `Reservation period for "${event.eventName}" has been ended`,
+          {
+            position: "bottom-right",
+            autoClose: 4000,
+          }
+        );
+      } else {
+        // Just update visibility and display end date/time
+        await eventService.events.update(eventId, {
+          visibility: "unpublished",
+          display_end_date: nowISODate,
+          display_end_time: nowISOTime,
+        });
+      }
+
+      // Refresh the event's status (backend will handle any status changes if needed)
+      await eventService.refreshEventStatus(eventId);
 
       // Refresh the events list
       await fetchEvents();
 
+      // Show success toast
+      toast.success(`Event "${event.eventName}" unpublished successfully`, {
+        position: "bottom-right",
+        autoClose: 3000,
+        toastId: `unpublish-success-${eventId}`,
+      });
+
       return true;
     } catch (err) {
-      console.error("Error unpublishing event:", err);
-      setError("Failed to unpublish event. Please try again.");
+      console.error("Error unpublishing event immediately:", err);
+
+      // Show error toast
+      toast.error("Failed to unpublish event. Please try again.", {
+        position: "bottom-right",
+        autoClose: 3000,
+        toastId: `unpublish-error-${eventId}`,
+      });
+
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 
   // Handler for publishing an event immediately
   const handlePublishNow = async (eventId) => {
     try {
-      // Update status to published
-      await eventService.events.updateStatus(eventId, {
+      setLoading(true);
+
+      // Get the event to check its current state
+      const event = findEventById(eventId);
+
+      if (!event) {
+        console.error(`Event with ID ${eventId} not found`);
+        return false;
+      }
+
+      // Get current date and time
+      const now = new Date();
+      const nowISODate = now.toISOString().split("T")[0];
+      const nowISOTime = now.toISOString().split("T")[1].substring(0, 8);
+
+      // Check if there's a future display period that needs adjustment
+      const displayStartDate = event.display_start_date
+        ? new Date(
+            `${event.display_start_date}T${
+              event.display_start_time || "00:00:00"
+            }`
+          )
+        : null;
+
+      // Check if reservation period needs adjustment
+      const reservationStartDate =
+        event.eventType === "ticketed" && event.reservation_start_date
+          ? new Date(
+              `${event.reservation_start_date}T${
+                event.reservation_start_time || "00:00:00"
+              }`
+            )
+          : null;
+
+      let reservationNeedsAdjustment = false;
+      if (reservationStartDate && reservationStartDate > now) {
+        reservationNeedsAdjustment = true;
+      }
+
+      const updateData = {
         visibility: "published",
-      });
+        display_start_date: nowISODate,
+        display_start_time: nowISOTime,
+      };
+
+      // Adjust reservation period if needed
+      if (event.eventType === "ticketed" && reservationStartDate) {
+        if (reservationStartDate < now) {
+          // Reservation should have already started - ask if user wants to open it now
+          const confirmOpen = window.confirm(
+            `The reservation period for "${event.eventName}" was scheduled to start in the past (${event.reservation_start_date}). Would you like to open reservations now?`
+          );
+
+          if (confirmOpen) {
+            updateData.reservation_start_date = nowISODate;
+            updateData.reservation_start_time = nowISOTime;
+            updateData.status = "open";
+
+            toast.info(
+              `Reservation period for "${event.eventName}" is now open`,
+              {
+                position: "bottom-right",
+                autoClose: 4000,
+              }
+            );
+          }
+        } else if (reservationStartDate > now) {
+          // Reservation is scheduled for the future - no problem
+          toast.info(
+            `Event is published, but reservation opens on ${event.reservation_start_date} at ${event.reservation_start_time}`,
+            {
+              position: "bottom-right",
+              autoClose: 4000,
+            }
+          );
+        }
+      }
+
+      // Update the event with all needed changes
+      await eventService.events.update(eventId, updateData);
+
+      // Refresh the event's status (backend will handle any status changes if needed)
+      await eventService.refreshEventStatus(eventId);
 
       // Refresh the events list
       await fetchEvents();
 
+      // Show success toast
+      toast.success(`Event "${event.eventName}" published successfully`, {
+        position: "bottom-right",
+        autoClose: 3000,
+        toastId: `publish-success-${eventId}`,
+      });
+
       return true;
     } catch (err) {
       console.error("Error publishing event immediately:", err);
-      setError("Failed to publish event. Please try again.");
+
+      // Show error toast
+      toast.error("Failed to publish event. Please try again.", {
+        position: "bottom-right",
+        autoClose: 3000,
+        toastId: `publish-error-${eventId}`,
+      });
+
       return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+  // Handler for opening reservations
+  const handleOpenReservation = async (eventId) => {
+    try {
+      setLoading(true);
+
+      // Get the event to check its current state
+      const event = findEventById(eventId);
+
+      if (!event) {
+        console.error(`Event with ID ${eventId} not found`);
+        return false;
+      }
+
+      // Check if the event is published - must be published to open reservations
+      if (event.visibility !== "published") {
+        const publishFirst = window.confirm(
+          `"${event.eventName}" is not published. You need to publish it first before opening reservations. Would you like to publish it now?`
+        );
+
+        if (publishFirst) {
+          // Publish the event first
+          const publishSuccess = await handlePublishNow(eventId);
+          if (!publishSuccess) {
+            return false;
+          }
+        } else {
+          setLoading(false);
+          return false;
+        }
+      }
+
+      // Get current date and time
+      const now = new Date();
+      const nowISODate = now.toISOString().split("T")[0];
+      const nowISOTime = now.toISOString().split("T")[1].substring(0, 8);
+
+      // Check if we need to update reservation dates
+      const updateData = {
+        status: "open",
+      };
+
+      // If reservation period hasn't been set or is in the future, adjust it
+      if (
+        !event.reservation_start_date ||
+        new Date(
+          `${event.reservation_start_date}T${
+            event.reservation_start_time || "00:00:00"
+          }`
+        ) > now
+      ) {
+        updateData.reservation_start_date = nowISODate;
+        updateData.reservation_start_time = nowISOTime;
+
+        // If reservation end date is not set, set a default (30 days from now)
+        if (!event.reservation_end_date) {
+          const endDate = new Date(now);
+          endDate.setDate(endDate.getDate() + 30);
+
+          updateData.reservation_end_date = endDate.toISOString().split("T")[0];
+          updateData.reservation_end_time = "23:59:59";
+
+          toast.info(
+            `Reservation end date set to ${updateData.reservation_end_date}`,
+            {
+              position: "bottom-right",
+              autoClose: 4000,
+            }
+          );
+        }
+      }
+
+      await eventService.events.update(eventId, updateData);
+
+      // Refresh the event's status
+      await eventService.refreshEventStatus(eventId);
+
+      // Refresh the events list
+      await fetchEvents();
+
+      // Show success toast
+      toast.success(
+        `Reservation of "${event.eventName}" has opened successfully`,
+        {
+          position: "bottom-right",
+          autoClose: 3000,
+          toastId: `open-success-${eventId}`,
+        }
+      );
+
+      return true;
+    } catch (err) {
+      console.error("Error opening reservation immediately:", err);
+
+      // Show error toast
+      toast.error("Failed to open reservation. Please try again.", {
+        position: "bottom-right",
+        autoClose: 3000,
+        toastId: `open-error-${eventId}`,
+      });
+
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+  // Handler for closing reservations
+  const handleCloseReservation = async (eventId) => {
+    try {
+      setLoading(true);
+
+      // Get the event to check its current state
+      const event = findEventById(eventId);
+
+      if (!event) {
+        console.error(`Event with ID ${eventId} not found`);
+        return false;
+      }
+
+      // Only confirm if the event is in 'open' status
+      if (event.status === "open") {
+        const confirmClose = window.confirm(
+          `Are you sure you want to close reservations for "${event.eventName}"? Users will no longer be able to make new reservations.`
+        );
+
+        if (!confirmClose) {
+          setLoading(false);
+          return false;
+        }
+      } else if (event.status !== "scheduled") {
+        // If the event is not in open or scheduled status, show error
+        toast.error(
+          `Cannot close reservations for event "${event.eventName}" because it's not currently open or scheduled.`,
+          {
+            position: "bottom-right",
+            autoClose: 4000,
+            toastId: `close-invalid-${eventId}`,
+          }
+        );
+        setLoading(false);
+        return false;
+      }
+
+      // Get current date and time
+      const now = new Date();
+      const nowISODate = now.toISOString().split("T")[0];
+      const nowISOTime = now.toISOString().split("T")[1].substring(0, 8);
+
+      // Set reservation end date to now if it's in the future
+      if (
+        event.reservation_end_date &&
+        new Date(
+          `${event.reservation_end_date}T${
+            event.reservation_end_time || "23:59:59"
+          }`
+        ) > now
+      ) {
+        await eventService.events.update(eventId, {
+          status: "closed",
+          reservation_end_date: nowISODate,
+          reservation_end_time: nowISOTime,
+        });
+
+        toast.info(`Reservation end date updated to current time`, {
+          position: "bottom-right",
+          autoClose: 3000,
+        });
+      } else {
+        // Just update the status
+        await eventService.events.updateStatus(eventId, {
+          status: "closed",
+        });
+      }
+
+      // Refresh the event's status
+      await eventService.refreshEventStatus(eventId);
+
+      // Refresh the events list
+      await fetchEvents();
+
+      // Show success toast
+      toast.success(
+        `Reservation of "${event.eventName}" has closed successfully`,
+        {
+          position: "bottom-right",
+          autoClose: 3000,
+          toastId: `close-success-${eventId}`,
+        }
+      );
+
+      return true;
+    } catch (err) {
+      console.error("Error closing reservation immediately:", err);
+
+      // Show error toast
+      toast.error("Failed to close reservation. Please try again.", {
+        position: "bottom-right",
+        autoClose: 3000,
+        toastId: `close-error-${eventId}`,
+      });
+
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1051,6 +1428,8 @@ const EventsManagementContainer = () => {
       onDeleteEvent={handleDeleteEvent}
       onUnpublishEvent={handleUnpublishEvent}
       onPublishNow={handlePublishNow}
+      onOpenReservation={handleOpenReservation}
+      onCloseReservation={handleCloseReservation}
       onRefreshEvents={handleManualRefresh}
       findEventById={findEventById}
     />

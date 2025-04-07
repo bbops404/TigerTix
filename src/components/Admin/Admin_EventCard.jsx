@@ -18,7 +18,8 @@ const Admin_EventCard = ({
   onDelete,
   onViewDetails,
   onUnpublish,
-  onCancel,
+  onOpenReservation,
+  onCloseReservation,
   onPublishNow,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -84,324 +85,146 @@ const Admin_EventCard = ({
   };
 
   // Determine dropdown menu options based on event status and visibility
+  // Determine dropdown menu options based on event status and visibility
   const renderDropdownOptions = () => {
-    const isPublished = event.visibility === "published";
-    const isUnpublished = event.visibility === "unpublished";
-    const isArchived = event.visibility === "archived";
-    const isScheduled = event.status === "scheduled";
-    const isOpen = event.status === "open";
-    const isClosed = event.status === "closed";
-    const isDraft = event.status === "draft";
-    const isComingSoon = event.eventType === "coming_soon";
-    const isCompleted =
-      event.status === "closed" && new Date(event.eventDate) < new Date();
-
+    // Show all dropdown options regardless of event status/visibility
     return (
       <>
-        {/* Case 1: When the event has been published and is taking reservation */}
-        {isPublished && isOpen && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit && onEdit(event.id, "event");
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaEdit className="mr-2 text-custom_yellow" />
-              <span>Edit Event Details</span>
-            </button>
+        {/* Edit Event*/}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+        >
+          <FaEdit className="mr-2 text-custom_yellow" />
+          <span>Edit Event</span>
+        </button>
 
-            <div className="border-t border-custom_yellow"></div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit && onEdit(event.id, "claiming");
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaEdit className="mr-2 text-custom_yellow" />
-              <span>Edit Claiming Details</span>
-            </button>
+        <div className="border-t border-custom_yellow"></div>
+        {/* Edit Event Details */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit && onEdit(event.id, "event");
+          }}
+          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+        >
+          <FaEdit className="mr-2 text-custom_yellow" />
+          <span>Edit Event Details</span>
+        </button>
 
-            <div className="border-t border-custom_yellow"></div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit && onEdit(event.id, "availability");
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaEdit className="mr-2 text-custom_yellow" />
-              <span>Edit Availability</span>
-            </button>
+        <div className="border-t border-custom_yellow"></div>
 
-            <div className="border-t border-custom_yellow"></div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onCancel && onCancel(event.id);
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaTimesCircle className="mr-2 text-red-400" />
-              <span>Cancel Event</span>
-            </button>
-          </>
-        )}
+        {/* Edit Ticket Details */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit && onEdit(event.id, "ticket");
+          }}
+          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+        >
+          <FaTicketAlt className="mr-2 text-custom_yellow" />
+          <span>Edit Ticket Details</span>
+        </button>
 
-        {/* Case 2: When the event has been published but not taking reservations (scheduled & closed) */}
-        {isPublished &&
-          (isScheduled || isClosed) &&
-          !isOpen &&
-          !isComingSoon &&
-          !isCompleted && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit && onEdit(event.id, "event");
-                }}
-                className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-              >
-                <FaEdit className="mr-2 text-custom_yellow" />
-                <span>Edit Event Details</span>
-              </button>
+        <div className="border-t border-custom_yellow"></div>
 
-              <div className="border-t border-custom_yellow"></div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit && onEdit(event.id, "ticket");
-                }}
-                className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-              >
-                <FaTicketAlt className="mr-2 text-custom_yellow" />
-                <span>Edit Ticket Details</span>
-              </button>
+        {/* Edit Claiming Details */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit && onEdit(event.id, "claiming");
+          }}
+          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+        >
+          <FaEdit className="mr-2 text-custom_yellow" />
+          <span>Edit Claiming Details</span>
+        </button>
 
-              <div className="border-t border-custom_yellow"></div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit && onEdit(event.id, "claiming");
-                }}
-                className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-              >
-                <FaEdit className="mr-2 text-custom_yellow" />
-                <span>Edit Claiming Details</span>
-              </button>
+        <div className="border-t border-custom_yellow"></div>
 
-              <div className="border-t border-custom_yellow"></div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit && onEdit(event.id, "availability");
-                }}
-                className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-              >
-                <FaClock className="mr-2 text-custom_yellow" />
-                <span>Edit Availability</span>
-              </button>
+        {/* Edit Availability */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit && onEdit(event.id, "availability");
+          }}
+          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+        >
+          <FaClock className="mr-2 text-custom_yellow" />
+          <span>Edit Availability</span>
+        </button>
 
-              <div className="border-t border-custom_yellow"></div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onUnpublish && onUnpublish(event.id);
-                }}
-                className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-              >
-                <FaEye className="mr-2 text-red-400" />
-                <span>Unpublish</span>
-              </button>
-            </>
-          )}
+        <div className="border-t border-custom_yellow"></div>
 
-        {/* Case 3: When the event is coming soon */}
-        {isComingSoon && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit && onEdit(event.id, "event");
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaPencilAlt className="mr-2 text-custom_yellow" />
-              <span>Publish Event</span>
-            </button>
+        {/* Publish Now */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onPublishNow && onPublishNow(event.id);
+          }}
+          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+        >
+          <FaEye className="mr-2 text-green-400" />
+          <span>Publish Now</span>
+        </button>
 
-            <div className="border-t border-custom_yellow"></div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onCancel && onCancel(event.id);
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaTimesCircle className="mr-2 text-red-400" />
-              <span>Cancel Event</span>
-            </button>
-          </>
-        )}
+        <div className="border-t border-custom_yellow"></div>
 
-        {/* Case 4: When the event is completed but still published */}
-        {isPublished && isCompleted && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onUnpublish && onUnpublish(event.id);
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaEye className="mr-2 text-red-400" />
-              <span>Unpublish</span>
-            </button>
-          </>
-        )}
+        {/* Open Reservation */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenReservation && onOpenReservation(event.id);
+          }}
+          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+        >
+          <FaTicketAlt className="mr-2 text-green-400" />
+          <span>Open Reservation</span>
+        </button>
 
-        {/* Case 5: When the event is a draft */}
-        {isDraft && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit && onEdit(event.id, "event");
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaEdit className="mr-2 text-custom_yellow" />
-              <span>Edit Details</span>
-            </button>
+        <div className="border-t border-custom_yellow"></div>
 
-            <div className="border-t border-custom_yellow"></div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onUnpublish && onUnpublish(event.id);
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaEye className="mr-2 text-red-400" />
-              <span>Unpublish</span>
-            </button>
-          </>
-        )}
+        {/* Close Reservation */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onCloseReservation && onCloseReservation(event.id);
+          }}
+          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+        >
+          <FaTicketAlt className="mr-2 text-red-400" />
+          <span>Close Reservation</span>
+        </button>
+        <div className="border-t border-custom_yellow"></div>
 
-        {/* Case 6: When the event is unpublished (but will go to published once the display period is already happening) */}
-        {isUnpublished && !isCompleted && !isDraft && !isArchived && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit && onEdit(event.id, "event");
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaEdit className="mr-2 text-custom_yellow" />
-              <span>Edit Event Details</span>
-            </button>
+        {/* Unpublish */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log(`EventCard: Unpublish clicked for ${event.id}`);
+            onUnpublish && onUnpublish(event.id);
+          }}
+          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+        >
+          <FaEye className="mr-2 text-red-400" />
+          <span>Unpublish</span>
+        </button>
 
-            <div className="border-t border-custom_yellow"></div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit && onEdit(event.id, "ticket");
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaTicketAlt className="mr-2 text-custom_yellow" />
-              <span>Edit Ticket Details</span>
-            </button>
+        <div className="border-t border-custom_yellow"></div>
 
-            <div className="border-t border-custom_yellow"></div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit && onEdit(event.id, "claiming");
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaEdit className="mr-2 text-custom_yellow" />
-              <span>Edit Claiming Details</span>
-            </button>
-
-            <div className="border-t border-custom_yellow"></div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit && onEdit(event.id, "availability");
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaClock className="mr-2 text-custom_yellow" />
-              <span>Edit Availability</span>
-            </button>
-
-            {/* Add Publish Now option for future scheduled events */}
-            {isFutureScheduledEvent() && (
-              <>
-                <div className="border-t border-custom_yellow"></div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPublishNow && onPublishNow(event.id);
-                  }}
-                  className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-                >
-                  <FaEye className="mr-2 text-green-400" />
-                  <span>Publish Now</span>
-                </button>
-              </>
-            )}
-
-            <div className="border-t border-custom_yellow"></div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete && onDelete(event.id);
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaTrash className="mr-2 text-red-400" />
-              <span>Delete</span>
-            </button>
-          </>
-        )}
-
-        {/* Case 7: When the event is unpublished and completed */}
-        {isUnpublished && isCompleted && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete && onDelete(event.id);
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaTrash className="mr-2 text-red-400" />
-              <span>Delete</span>
-            </button>
-          </>
-        )}
-
-        {/* Case 8: When the event is archived */}
-        {isArchived && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete && onDelete(event.id);
-              }}
-              className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-            >
-              <FaTrash className="mr-2 text-red-400" />
-              <span>Delete</span>
-            </button>
-          </>
-        )}
+        {/* Delete */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete && onDelete(event.id);
+          }}
+          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+        >
+          <FaTrash className="mr-2 text-red-400" />
+          <span>Delete</span>
+        </button>
       </>
     );
   };
