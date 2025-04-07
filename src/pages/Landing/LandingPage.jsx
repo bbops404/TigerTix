@@ -4,7 +4,7 @@ import EventCard from "../../components/EventCard";
 import Header from "../../components/Header";
 import LoginPopup from "./LoginPopup";
 import { IoChevronBackOutline } from "react-icons/io5";
-
+import axios from "axios"; // For API calls
 
 const images = [
   {
@@ -29,7 +29,6 @@ const images = [
   },
 ];
 
-
 function Carousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const navigate = useNavigate();
@@ -53,7 +52,6 @@ function Carousel() {
     setTimeout(() => setIsSliding(false), 500);
   };
 
-
   // Prevent default behavior for navigation to avoid page shifts
   const handleReserveNow = (e) => {
     e.preventDefault();
@@ -62,7 +60,6 @@ function Carousel() {
       navigate("/event-ticketed");
     }, 100);
   };
-
 
   return (
     <div className="relative w-full h-[700px] overflow-hidden">
@@ -131,51 +128,20 @@ function EventSection({ title, description, events }) {
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(events.length > 3);
 
-  // Custom navigation function to prevent scrollbar jumps
-  const handleNavigation = (path, e) => {
-    if (e) e.preventDefault();
-
-    // Use a slight delay to ensure smooth transition
-    setTimeout(() => {
-      navigate(path);
-    }, 100);
-  };
-
-  // Scroll handlers for the navigation buttons
-  const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -300, behavior: "smooth" });
-    }
-  };
-
-  const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 300, behavior: "smooth" });
-    }
-  };
-
-  // Monitor scroll position to show/hide navigation arrows
-  const handleScroll = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } =
-        scrollContainerRef.current;
-      setShowLeftArrow(scrollLeft > 0);
-      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  };
-
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer) {
+      const handleScroll = () => {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
+        setShowLeftArrow(scrollLeft > 0);
+        setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+      };
+
       scrollContainer.addEventListener("scroll", handleScroll);
-      // Initialize arrow visibility
-      handleScroll();
+      handleScroll(); // Initialize arrow visibility
       return () => scrollContainer.removeEventListener("scroll", handleScroll);
     }
   }, [events]);
-
-  // Determine if content needs to be centered (1-2 events)
-  const centerContent = events.length <= 2;
 
   return (
     <section className="p-5 bg-[#222] text-white font-Poppins">
@@ -187,51 +153,31 @@ function EventSection({ title, description, events }) {
           {description}
         </h3>
 
-        <div className="relative py-5">
-          {/* Left navigation button - only show when not at the beginning and when there are more than 2 events */}
-          {!centerContent && showLeftArrow && (
-            <button
-              onClick={scrollLeft}
-              className="absolute left-0 top-1/2 -translate-y-1/2 text-[32px] font-semibold cursor-pointer z-10 bg-[#222] bg-opacity-70 px-2 rounded-l transition-opacity duration-300"
-              aria-label="Previous events"
+        {events.length === 0 ? (
+          <p className="text-center text-gray-400">No events available.</p>
+        ) : (
+          <div className="relative py-5">
+            <div
+              ref={scrollContainerRef}
+              className={`flex gap-5 overflow-x-auto scrollbar-none py-2 px-10 ${
+                events.length <= 2 ? "justify-center" : "justify-start"
+              }`}
             >
-              &lt;
-            </button>
-          )}
-
-          {/* Event cards container with proper overflow and centering when needed */}
-          <div
-            ref={scrollContainerRef}
-            className={`flex gap-5 overflow-x-auto scrollbar-none py-2 px-10 ${
-              centerContent ? "justify-center" : "justify-start"
-            }`}
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {events.map((event, index) => (
-              <EventCard
-                key={index}
-                image={event.image}
-                name={event.name}
-                location={event.location}
-                date={event.date}
-                time={event.time}
-                buttonText={event.buttonText}
-                onClick={(e) => handleNavigation(event.link, e)}
-              />
-            ))}
+              {events.map((event, index) => (
+                <EventCard
+                  key={index}
+                  image={event.image}
+                  name={event.name}
+                  location={event.location}
+                  date={event.date}
+                  time={event.time}
+                  buttonText={event.buttonText}
+                  onClick={() => navigate(event.link)}
+                />
+              ))}
+            </div>
           </div>
-
-          {/* Right navigation button - only show when not at the end and when there are more than 2 events */}
-          {!centerContent && showRightArrow && (
-            <button
-              onClick={scrollRight}
-              className="absolute right-0 top-1/2 -translate-y-1/2 text-[32px] font-semibold cursor-pointer z-10 bg-[#222] bg-opacity-70 px-2 rounded-r transition-opacity duration-300"
-              aria-label="Next events"
-            >
-              &gt;
-            </button>
-          )}
-        </div>
+        )}
       </div>
     </section>
   );
@@ -241,6 +187,14 @@ function LandingPage() {
   // 🔹 State for login popup
   const [loginPopup, setLoginPopup] = useState(false);
 
+  // State for events
+  const [ticketedEvents, setTicketedEvents] = useState([]);
+  const [freeEvents, setFreeEvents] = useState([]);
+  const [comingSoonEvents, setComingSoonEvents] = useState([]);
+
+  // State for loading and error handling
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     // Create a fixed-size wrapper to prevent layout shifts
@@ -276,116 +230,112 @@ function LandingPage() {
     }
   }, []);
 
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+
+        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+
+        // Fetch ticketed events
+        const ticketedResponse = await axios.get(
+          `${API_BASE_URL}/api/events/ticketed`,
+          {
+            params: { page: 1, limit: 5, timestamp: new Date().getTime() }, // Add timestamp to prevent caching
+          }
+        );
+        if (ticketedResponse.data.success) {
+          setTicketedEvents(ticketedResponse.data.data);
+        }
+
+        // Fetch free events
+        const freeResponse = await axios.get(
+          `${API_BASE_URL}/api/events/free-events`,
+          {
+            params: { page: 1, limit: 5, timestamp: new Date().getTime() }, // Add timestamp to prevent caching
+          }
+        );
+        if (freeResponse.data.success) {
+          setFreeEvents(freeResponse.data.data);
+        }
+
+        // Fetch coming soon events
+        const comingSoonResponse = await axios.get(
+          `${API_BASE_URL}/api/events/coming-soon`,
+          {
+            params: { page: 1, limit: 5, timestamp: new Date().getTime() }, // Add timestamp to prevent caching
+          }
+        );
+        console.log("Coming Soon Events Response:", comingSoonResponse.data); // Log the response
+        if (comingSoonResponse.data.success) {
+          setComingSoonEvents(comingSoonResponse.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching events:", err);
+        setError("Failed to load events. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
   return (
     <div className="bg-[#121212] text-white min-h-screen">
       <Header toggleLoginPopup={toggleLoginPopup} />
-      
+
       {loginPopup && (
-        <LoginPopup 
-          loginPopup={loginPopup} 
-          toggleLoginPopup={toggleLoginPopup} 
+        <LoginPopup
+          loginPopup={loginPopup}
+          toggleLoginPopup={toggleLoginPopup}
         />
       )}
 
       <Carousel />
+      {/* Ticketed Events Section */}
       <EventSection
         title="TICKETED EVENTS"
         description="Events where tickets must be reserved in advance. Ensure your spot by booking a ticket."
-        events={[
-          {
-            image: "src/assets/event1.jpg",
-            name: "UAAP Season 87 Men's Basketball",
-            location: "SM Mall of Asia Arena",
-            date: "September 4, 2024",
-            time: "2:00 PM",
-            buttonText: "Reserve Now",
-            link: "/event-ticketed",
-          },
-          {
-            image: "src/assets/event2.jpg",
-            name: "UAAP Season 87 Women's Basketball",
-            location: "Araneta Coliseum",
-            date: "September 15, 2024",
-            time: "11:30 AM",
-            buttonText: "Reserve Now",
-            link: "/event-ticketed",
-          },
-          {
-            image: "src/assets/event2.jpg",
-            name: "UAAP Season 87 Women's Basketball",
-            location: "Araneta Coliseum",
-            date: "September 15, 2024",
-            time: "11:30 AM",
-            buttonText: "Reserve Now",
-            link: "/event-ticketed",
-          },
-          {
-            image: "src/assets/event2.jpg",
-            name: "UAAP Season 87 Women's Basketball",
-            location: "Araneta Coliseum",
-            date: "September 15, 2024",
-            time: "11:30 AM",
-            buttonText: "Reserve Now",
-            link: "/event-ticketed",
-          },
-        ]}
+        events={ticketedEvents.map((event) => ({
+          image: event.image || "TigerTix/src/assets/tigertix_logo.png", // Use default image if none provided
+          name: event.name,
+          location: event.venue,
+          date: event.event_date,
+          time: event.event_time,
+          buttonText: "Reserve Now",
+          link: `/event-ticketed/${event.id}`, // Dynamic link to the event
+        }))}
       />
+
+      {/* Free Events Section */}
       <EventSection
         title="FREE EVENTS"
         description="UAAP or other IPEA Events that are open to all without the need for a reservation or ticket. Simply show up!"
-        events={[
-          {
-            image: "src/assets/event3.jpg",
-            name: "UAAP Season 87 Men's Basketball",
-            location: "SM Mall of Asia Arena",
-            date: "September 4, 2024",
-            time: "2:00 PM",
-            buttonText: "View Details",
-            link: "/event-free-landing",
-          },
-          {
-            image: "src/assets/event3.jpg",
-            name: "UAAP Season 87 Men's Basketball",
-            location: "SM Mall of Asia Arena",
-            date: "September 4, 2024",
-            time: "2:00 PM",
-            buttonText: "View Details",
-            link: "/event-free-landing",
-          },
-          {
-            image: "src/assets/event3.jpg",
-            name: "UAAP Season 87 Men's Basketball",
-            location: "SM Mall of Asia Arena",
-            date: "September 4, 2024",
-            time: "2:00 PM",
-            buttonText: "View Details",
-            link: "/event-free-landing",
-          },
-        ]}
+        events={freeEvents.map((event) => ({
+          image: event.image || "TigerTix/src/assets/tigertix_logo.png", // Use default image if none provided
+          name: event.name,
+          location: event.venue,
+          date: event.event_date,
+          time: event.event_time,
+          buttonText: "View Details",
+          link: `/event-free/${event.id}`, // Dynamic link to the event
+        }))}
       />
+
+      {/* Coming Soon Events Section */}
       <EventSection
         title="EVENTS COMING SOON"
         description="Upcoming events that will require a reservation. Ticket and reservation details are not yet available."
-        events={[
-          {
-            image: "path/to/image1.jpg",
-            name: "UAAP Season 87 Men's Basketball",
-            location: "SM Mall of Asia Arena",
-            date: "September 4, 2024",
-            time: "2:00 PM",
-            buttonText: "View Details",
-            link: "/event-coming-soon",
-          },
-          {
-            image: "path/to/image2.jpg",
-            name: "UAAP Season 87 Women's Basketball",
-            location: "Araneta Coliseum",
-            date: "September 15, 2024",
-            time: "11:30 AM",
-            buttonText: "View Details",
-            link: "/event-coming-soon",
-          },
-        ]}
+        events={comingSoonEvents.map((event) => ({
+          image: event.image || "src/assets/default-coming-soon.jpg", // Use default image if none provided
+          name: event.name,
+          location: event.venue,
+          date: event.event_date,
+          time: event.event_time,
+          buttonText: "View Details",
+          link: `/event-coming-soon/${event.id}`, // Dynamic link to the event
+        }))}
       />
     </div>
   );

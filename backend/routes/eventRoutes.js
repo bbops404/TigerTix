@@ -8,11 +8,15 @@ const claimingSlotController = require("../controllers/claimingSlotController");
   
 const authorizeAdmin = require("../middleware/authorizeAdmin.js"); // Middleware for admin access
 const authenticate = require("../middleware/authenticate.js"); // Middleware for admin access
-const adminController = require("../controllers/adminController"); // Admin controller
 const autoStatusCheck = require("../middleware/autoStatusCheck");
 const { Op } = require("sequelize");
 const Event = require("../models/Event");
 
+
+// Landing Page
+router.get("/events/ticketed",eventController.getTicketedEvents);
+router.get("/events/coming-soon",eventController.getComingSoonEvents);
+router.get("/events/free-events",eventController.getFreeEvents);
 
 // NON-PARAMETERIZED ROUTES FIRST
 // Event routes without parameters
@@ -22,9 +26,7 @@ router.get("/events/coming-soon",authenticate, authorizeAdmin, eventController.g
 router.post("/events",authenticate, authorizeAdmin, eventController.createEvent);
 router.post("/events/draft",authenticate, authorizeAdmin, eventController.createDraftEvent);
 router.post("/events/upload-image",authenticate, authorizeAdmin, eventController.uploadEventImage);
-router.get("/events/ticketed",authenticate, authorizeAdmin, eventController.getTicketedEvents);
-router.get("/events/coming-soon",authenticate, authorizeAdmin, eventController.getComingSoonEvents);
-router.get("events/free-events",authenticate, authorizeAdmin, eventController.getFreeEvents);
+
 
 // Status check endpoint (non-parameterized)
 router.get("/events/check-status", async (req, res) => {
