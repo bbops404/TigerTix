@@ -1,0 +1,336 @@
+{
+  "users": [
+    {
+      "user_id": 1,
+      "first_name": "Olive",
+      "last_name": "Angels",
+      "email": "olivesangels@ust.edu.ph",
+      "username": "olivesangels",
+      "password_hash": "olive123",
+      "role": "Admin",
+      "status": "Active",
+      "violation_count": 0,
+      "created_at": "2025-04-01T08:00:00Z",
+      "updated_at": "2025-04-01T08:00:00Z"
+    },
+    {
+      "user_id": 2,
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "johndoe@ust.edu.ph",
+      "username": "john_doe",
+      "password_hash": "john456",
+      "role": "Support Staff",
+      "status": "Active",
+      "violation_count": 1,
+      "created_at": "2025-04-01T08:00:00Z",
+      "updated_at": "2025-04-01T08:00:00Z"
+    },
+    {
+      "user_id": 3,
+      "first_name": "Marilou",
+      "last_name": "Santiago",
+      "email": "marilou.santiago@ust.edu.ph",
+      "username": "msanti",
+      "password_hash": "tigers789",
+      "role": "Alumni",
+      "status": "Suspended",
+      "violation_count": 3,
+      "created_at": "2025-04-01T08:00:00Z",
+      "updated_at": "2025-04-01T08:00:00Z"
+    },
+    {
+      "user_id": 4,
+      "first_name": "Nathan",
+      "last_name": "Cruz",
+      "email": "nathan.cruz@ust.edu.ph",
+      "username": "n_cruz",
+      "password_hash": "nathan123",
+      "role": "Student",
+      "status": "Restricted",
+      "violation_count": 1,
+      "created_at": "2025-04-01T08:00:00Z",
+      "updated_at": "2025-04-01T08:00:00Z"
+    },
+    {
+      "user_id": 5,
+      "first_name": "Liam",
+      "last_name": "Samillano",
+      "email": "lsamillano@ust.edu.ph",
+      "username": "l_samillano",
+      "password_hash": "lucas456",
+      "role": "Employee",
+      "status": "Active",
+      "violation_count": 0,
+      "created_at": "2025-04-01T08:00:00Z",
+      "updated_at": "2025-04-01T08:00:00Z"
+    }
+  ],
+
+  "reservations": [
+    {
+      "id": 1,
+      "name": "Marilou Santiago",
+      "role": "Alumni",
+      "event": "UAAP Season 87 Woman's Basketball",
+      "tier": "VIP",
+      "date": "Nov 30, 2024",
+      "time": "7:00 - 8:00 AM",
+      "amount": 350,
+      "status": "UNCLAIMED"
+    },
+    {
+      "id": 2,
+      "name": "Nathan Cruz",
+      "role": "Student",
+      "event": "Tigers Championship",
+      "tier": "General Admission",
+      "date": "Dec 15, 2024",
+      "time": "6:00 - 7:00 PM",
+      "amount": 500,
+      "status": "CLAIMED"
+    },
+    {
+      "id": 3,
+      "name": "Liam Samillano",
+      "role": "Employee",
+      "event": "UST Homecoming",
+      "tier": "Patron",
+      "date": "Dec 15, 2024",
+      "time": "6:00 - 7:00 PM",
+      "amount": 500,
+      "status": "CLAIMED"
+    }
+  ],
+
+  "events": [
+    {
+      "id": "1",
+      "name": "UAAP Season 87 Woman's Basketball",
+      "details": "The UAAP Season 87 Women's Basketball game is a highly anticipated event featuring the top collegiate teams competing for glory. Fans can expect intense action, skillful plays, and an electrifying atmosphere as the best players showcase their talent on the court. This event is a must-see for basketball enthusiasts and supporters of collegiate sports. \n\nDon't miss this thrilling game that promises to be a highlight of the season. With a rich history of competitive spirit and camaraderie, the UAAP Women's Basketball games have always been a platform for showcasing the best of young talent. Be part of the excitement and cheer for your favorite team as they battle it out for the championship.",
+      "event_date": "2024-09-15",
+      "event_time": "11:30:00",
+      "event_end_time": "13:30:00",
+      "venue": "Adamson Gymnasium",
+      "image": "src/assets/event_placeholder1.jpg",
+      "category": "UAAP Game",
+      "event_type": "Ticketed",
+      "visibility": "published",
+      "status": "open",
+      "display_start_date": "2024-08-01",
+      "display_end_date": "2024-09-15",
+      "display_start_time": "08:00:00",
+      "display_end_time": "23:59:59",
+      "reservation_start_date": "2024-08-01",
+      "reservation_start_time": "09:00:00",
+      "reservation_end_date": "2024-09-14",
+      "reservation_end_time": "23:59:59",
+      "revenue": 75000,
+      "availability": "Available"
+    },
+    {
+      "id": "2",
+      "name": "UST Homecoming",
+      "details": "The UST Homecoming is a grand celebration designed to bring together alumni from all over the world. This event is a perfect opportunity to reconnect with old friends, reminisce about cherished memories, and celebrate the enduring legacy of the University of Santo Tomas. With exciting activities, inspiring speeches, and a festive atmosphere, this homecoming promises to be an unforgettable experience for all attendees.",
+      "event_date": "2024-11-10",
+      "event_time": "19:00:00",
+      "event_end_time": "22:00:00",
+      "venue": "UST Quadricentennial Pavilion",
+      "image": "src/assets/event_placeholder2.jpg",
+      "category": "IPEA",
+      "event_type": "Free",
+      "visibility": "unpublished",
+      "status": "scheduled",
+      "display_start_date": "2024-10-01",
+      "display_end_date": "2024-11-10",
+      "display_start_time": "08:00:00",
+      "display_end_time": "23:59:59",
+      "reservation_start_date": "2024-10-15",
+      "reservation_start_time": "09:00:00",
+      "reservation_end_date": "2024-11-09",
+      "reservation_end_time": "23:59:59",
+      "revenue": 50000,
+      "availability": "Limited"
+    },
+    {
+      "id": "3",
+      "name": "Season 85 Kickoff",
+      "details": "The Season 85 Kickoff marks the beginning of another exciting chapter in UAAP history. This event will feature a spectacular opening ceremony, showcasing the rich culture and talent of the participating universities. Attendees can look forward to performances, speeches, and a preview of the thrilling competitions to come. Join us as we celebrate the spirit of sportsmanship and unity that defines the UAAP.",
+      "event_date": "2022-12-05",
+      "event_time": "20:00:00",
+      "event_end_time": "22:30:00",
+      "venue": "UST Quadricentennial Pavilion",
+      "image": "src/assets/event_placeholder3.jpg",
+      "category": "UAAP Game",
+      "event_type": "Coming Soon",
+      "visibility": "archived",
+      "status": "closed",
+      "display_start_date": "2024-11-01",
+      "display_end_date": "2024-12-05",
+      "display_start_time": "08:00:00",
+      "display_end_time": "23:59:59",
+      "reservation_start_date": "2024-11-10",
+      "reservation_start_time": "09:00:00",
+      "reservation_end_date": "2024-12-04",
+      "reservation_end_time": "23:59:59",
+      "revenue": 100000,
+      "availability": "Sold Out"
+    }
+  ],
+
+  "tickets": [
+    {
+      "id": "1",
+      "event_id": "1",
+      "seat_type": "Ticketed",
+      "ticket_type": "General Admission",
+      "price": 150.0,
+      "total_quantity": 250,
+      "remaining_quantity": 200,
+      "max_per_user": 5
+    },
+    {
+      "id": "2",
+      "event_id": "1",
+      "seat_type": "Ticketed",
+      "ticket_type": "Upper Box",
+      "price": 300.0,
+      "total_quantity": 50,
+      "remaining_quantity": 30,
+      "max_per_user": 4
+    },
+    {
+      "id": "3",
+      "event_id": "1",
+      "seat_type": "Ticketed",
+      "ticket_type": "Lower Box",
+      "price": 500.0,
+      "total_quantity": 250,
+      "remaining_quantity": 200,
+      "max_per_user": 3
+    },
+    {
+      "id": "4",
+      "event_id": "1",
+      "seat_type": "Ticketed",
+      "ticket_type": "Patron",
+      "price": 700.0,
+      "total_quantity": 50,
+      "remaining_quantity": 30,
+      "max_per_user": 2
+    },
+    {
+      "id": "5",
+      "event_id": "2",
+      "seat_type": "Free Seating",
+      "ticket_type": "",
+      "price": 200.0,
+      "total_quantity": 150,
+      "remaining_quantity": 120,
+      "max_per_user": 5
+    }
+  ],
+
+  "auditTrails": [
+    {
+      "id": 10,
+      "timestamp": "2024-12-14 14:25:10",
+      "userId": 1,
+      "username": "Olive's Angels",
+      "role": "Admin",
+      "action": "Delete Event",
+      "message": "Deleted event 'Christmas Party'",
+      "status": "Successful"
+    },
+    {
+      "id": 9,
+      "timestamp": "2024-12-14 13:10:45",
+      "userId": 2,
+      "username": "John Doe",
+      "role": "Support Staff",
+      "action": "Update User",
+      "message": "Updated user permissions",
+      "status": "Successful"
+    },
+    {
+      "id": 8,
+      "timestamp": "2024-12-13 16:45:30",
+      "userId": 2,
+      "username": "John Doe",
+      "role": "Support Staff",
+      "action": "Add User",
+      "message": "Added a user 'user567'",
+      "status": "Successful"
+    },
+    {
+      "id": 7,
+      "timestamp": "2024-12-13 12:30:20",
+      "userId": 2,
+      "username": "John Doe",
+      "role": "Support Staff",
+      "action": "Scan QR Code",
+      "message": "Scanned ticket QR for event 'UAAP Finals'",
+      "status": "Successful"
+    },
+    {
+      "id": 6,
+      "timestamp": "2024-12-12 18:10:05",
+      "userId": 2,
+      "username": "John Doe",
+      "role": "Support Staff",
+      "action": "Manage User",
+      "message": "Updated profile details",
+      "status": "Successful"
+    },
+    {
+      "id": 5,
+      "timestamp": "2024-12-12 11:00:15",
+      "userId": 1,
+      "username": "Olive's Angels",
+      "role": "Admin",
+      "action": "Add Event",
+      "message": "Event 'UAAP Quarterfinals' added",
+      "status": "Successful"
+    },
+    {
+      "id": 4,
+      "timestamp": "2024-12-12 10:30:45",
+      "userId": 2,
+      "username": "John Doe",
+      "role": "Support Staff",
+      "action": "Scan QR Code",
+      "message": "Scanned ticket QR for event 'UAAP Semifinals'",
+      "status": "Failed (Invalid)"
+    },
+    {
+      "id": 3,
+      "timestamp": "2024-12-12 09:15:30",
+      "userId": 2,
+      "username": "John Doe",
+      "role": "Support Staff",
+      "action": "Manage User",
+      "message": "Reset password",
+      "status": "Successful"
+    },
+    {
+      "id": 2,
+      "timestamp": "2024-12-11 09:02:30",
+      "userId": 2,
+      "username": "John Doe",
+      "role": "Support Staff",
+      "action": "Add User",
+      "message": "Added a user 'user789'",
+      "status": "Successful"
+    },
+    {
+      "id": 1,
+      "timestamp": "2024-12-10 08:54:32",
+      "userId": 2,
+      "username": "John Doe",
+      "role": "Support Staff",
+      "action": "Generated a Report",
+      "message": "Generated a Report about 'Event Summary'",
+      "status": "Successful"
+    }
+  ]
+}

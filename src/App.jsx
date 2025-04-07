@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import ProtectedRoutes from "./ProtectedRoutes"; // Import the protected route
 
 // ========================== FOOTER PAGES ==========================
 import Footer from "./components/Footer";
@@ -10,6 +11,7 @@ import FAQs from "./pages/FooterPages/FAQs";
 
 // ========================== LANDING PAGES ==========================
 import SignUpVerifyEmail from "./pages/Landing/SignUp_EmailVerification";
+import LoginPopup from "./pages/Landing/LoginPopup";
 import LandingPage from "./pages/Landing/LandingPage";
 import EventTicketed from "./pages/Landing/Event_Ticketed";
 import EventFree_Landing from "./pages/Landing/Event_Free";
@@ -24,8 +26,8 @@ import MyReservations from "./pages/EndUser/MyReservations";
 import MyProfile from "./pages/EndUser/MyProfile";
 import EventTicketedEndUser from "./pages/EndUser/Event_Ticketed_EndUser";
 import Reservation from "./pages/EndUser/Reservation";
-import EventFree_Enduser from "./pages/EndUser/Event_Free";
-import EventComingSoon_Enduser from "./pages/EndUser/Event_ComingSoon";
+import EventFree_Enduser from "./pages/EndUser/Event_Free_EndUser";
+import EventComingSoon_Enduser from "./pages/EndUser/Event_ComingSoon_EndUser";
 import ReservationReceipt from "./pages/EndUser/ReservationReceipt";
 
 // ========================== ADMIN PAGES ==========================
@@ -75,34 +77,43 @@ function App() {
             element={<EventComingSoon_Landing />}
           />
           <Route path="/sign-up" element={<SignUpUserDetails />} />
+          <Route path="/login" element={<LoginPopup />} />
           <Route path="/forget-password" element={<ForgetPassword />} />
           <Route path="/change-password" element={<UpdatePassword />} />
 
           {/* ========================== ENDUSER PAGES ========================== */}
-          <Route path="/home" element={<Home />} />
           <Route
-            path="/event-ticketed-enduser"
-            element={<EventTicketedEndUser />}
-          />
-          <Route path="/event-free-enduser" element={<EventFree_Enduser />} />
-          <Route
-            path="/event-coming-soon-enduser"
-            element={<EventComingSoon_Enduser />}
-          />
-          <Route path="/my-reservations" element={<MyReservations />} />
-          <Route path="/my-profile" element={<MyProfile />} />
-          <Route path="/confirm" element={<Home />} />
-          <Route path="/reservation" element={<Reservation />} />
-          <Route path="/reservation-receipt" element={<ReservationReceipt />} />
+            element={
+              <ProtectedRoutes role={["student", "employee", "alumni"]} />
+            }
+          >
+            <Route path="/home" element={<Home />} />
+            <Route
+              path="/event-ticketed-enduser"
+              element={<EventTicketedEndUser />}
+            />
+            <Route path="/event-free-enduser" element={<EventFree_Enduser />} />
+            <Route
+              path="/event-coming-soon-enduser"
+              element={<EventComingSoon_Enduser />}
+            />
+            <Route path="/my-reservations" element={<MyReservations />} />
+            <Route path="/my-profile" element={<MyProfile />} />
+            <Route path="/confirm" element={<Home />} />
+            <Route path="/reservation" element={<Reservation />} />
+            <Route
+              path="/reservation-receipt"
+              element={<ReservationReceipt />}
+            />
+          </Route>
 
           {/* ========================== ADMIN PAGES ========================== */}
-          <Route path="/dashboard" element={<AdminDashboard />} />
-          <Route path="/events" element={<AdminEventsManagment />} />
-          <Route path="/events/publish" element={<AdminPublishEvent />} />
-          <Route path="/events/schedule" element={<AdminPublishEvent />} />
+          <Route element={<ProtectedRoutes role="admin" />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/event-management" element={<AdminEventsManagment />} />
           <Route path="/reservations" element={<AdminReservations />} />
           <Route path="/users" element={<AdminUser />} />
-          <Route path="/adminprofile" element={<AdminProfile />} />
+          <Route path="/admin-profile" element={<AdminProfile />} />
           <Route path="/audit-trails" element={<AuditTrails />} />
           <Route path="/event-report" element={<AdminEventReports />} />
           <Route path="/archive" element={<AdminArchive />} />

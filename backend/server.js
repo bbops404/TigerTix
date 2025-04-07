@@ -1,29 +1,50 @@
-const express = require("express");
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const pool = require('./config/db');
+const db = require('./models/Users');
+const cookieParser = require("cookie-parser");
+
+const Redis = require("ioredis");
+const redisClient = new Redis();
+
 const app = express();
-const PORT = 8383;
+const port = process.env.PORT || 5002;
 
-let data = {
-  name: "James",
-};
+// ✅ Middleware (Order matters!)
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true, // ✅ Ensures cookies are sent
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: "Content-Type,Authorization",
+}));
 
-app.get("/", (req, res) => {
-  res.send(`<body style="background:pink; color:blue;">
-    <h1>DATA:</h1>
-    <p>${JSON.stringify(data)}</p>
-    </body>`);
+app.use(cookieParser()); // ✅ Allows reading cookies
+app.use(express.json());  
+app.use(express.urlencoded({ extended: true })); 
+
+// ✅ Debugging Middleware (Place it here)
+app.use((req, res, next) => {
+  console.log("🔍 Incoming Cookies:", req.cookies); // Debug log
+  next();
 });
 
-app.get("/dashboard", (req, res) => {
-  res.send("<h1>dashboard</h1>");
-});
+// Routes
+const authRoutes = require("./routes/auth");
+app.use("/auth", authRoutes);
 
-app.get("/api/data", (req, res) => {
-  console.log("This one was for data");
-  res.send(data);
-});
+const privateroute = require("./routes/privateroute");
+app.use("/privateroute", privateroute);
 
-app.post('/', (req, res) => {
-  const newEntry = req, body
-})
+redisClient.on("connect", () => console.log("Connected to Redis successfully! 🔥"));
+redisClient.on("error", (err) => console.error("Redis connection error:", err));
 
-app.listen(PORT, () => console.log(`Server has started on: ${PORT}`));
+app.get('/', (req, res) => res.send('Server is running! 🚀'));
+
+// Start Server
+app.listen(port, () => console.log(`Server running on port ${port}`));
+
+// Check database connection
+db.sequelize.authenticate()
+  .then(() => console.log('Sequelize connected successfully! 🎉'))
+  .catch(err => console.error('Sequelize connection error:', err));

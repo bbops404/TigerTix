@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+
+import React, { useEffect, useState } from "react";
+
 import { FaSearch, FaFilter, FaExclamationTriangle } from "react-icons/fa";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Admin_AddUserPopUp from "./Admin_AddUserPopUp";
 import Admin_EditUserPopUp from "./Admin_EditUserPopUp";
 import Admin_UserGenerateReport from "./Admin_UserGenerateReportPopUp";
-import Admin_UserFilter from "./Admin_UserFilter";
+import Admin_UserFilter from "./Admin_UserFilter"
+import axios from "axios";
 
 const DeleteUserModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
@@ -80,13 +83,30 @@ const Admin_UserPage = () => {
   const openGenerateReportPopup = () => setShowGenerateReportPopup(true);
   const closeGenerateReportPopup = () => setShowGenerateReportPopup(false);
 
+  const [users, setUsers] = useState([]);
+
   const handleDeleteUser = () => {
     closeDeleteModal();
     openSuccessModal();
   };
 
+
+  useEffect(() => {
+    // Fetching user data from the API
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get("http://localhost:5003/users"); //5002 yung sa backend na mismo
+        setUsers(response.data);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+    fetchUsers();
+  }, []); 
+
   return (
-    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
+    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
+
       {/* Header */}
       <Header_Admin />
 
@@ -106,17 +126,25 @@ const Admin_UserPage = () => {
             </div>
             <div className="flex gap-2">
 
-              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">Reset</button>
-              <button className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
-              onClick={() => setShowFilter(!showFilter)}>
-
+              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
+                Reset
+              </button>
+              <button
+                className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                onClick={() => setShowFilter(!showFilter)}
+              >
                 <FaFilter /> Sort/Filter by
               </button>
             </div>
           </div>
 
           {/* Filter Component */}
-          {showFilter && <Admin_UserFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
+          {showFilter && (
+            <Admin_UserFilter
+              showFilter={showFilter}
+              setShowFilter={setShowFilter}
+            />
+          )}
 
           {/* Users Table */}
           <div className="overflow-x-auto rounded-md shadow-md max-h-[400px] overflow-y-auto">
@@ -141,163 +169,23 @@ const Admin_UserPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  {
-                    username: "olivesangels",
-                    fullName: "Olive's Angels",
-                    role: "Student",
-                    email: "olivesangels@ust.edu.ph",
-                    status: "Restricted/Active",
-                    violations: 0,
-                  },
-                  {
-                    username: "john_doe",
-                    fullName: "John Doe",
-                    role: "Faculty",
-                    email: "johndoe@ust.edu.ph",
-                    status: "Active",
-                    violations: 1,
-                  },
-                  {
-                    username: "tigersfan",
-                    fullName: "Tigers Fan Club",
-                    role: "Alumni",
-                    email: "tigersfan@ust.edu.ph",
-                    status: "Suspended",
-                    violations: 3,
-                  },
-                  {
-                    username: "nathan_sci",
-                    fullName: "Nathan Science",
-                    role: "Student",
-                    email: "nathan@ust.edu.ph",
-                    status: "Active",
-                    violations: 0,
-                  },
-                  {
-                    username: "lucas_m",
-                    fullName: "Lucas M.",
-                    role: "Student",
-                    email: "lucasm@ust.edu.ph",
-                    status: "Active",
-                    violations: 1,
-                  },
-                  {
-                    username: "charlotte_d",
-                    fullName: "Charlotte D.",
-                    role: "Faculty",
-                    email: "charlotte_d@ust.edu.ph",
-                    status: "Active",
-                    violations: 0,
-                  },
-                  {
-                    username: "kevin_ust",
-                    fullName: "Kevin UST",
-                    role: "Alumni",
-                    email: "kevin.ust@ust.edu.ph",
-                    status: "Suspended",
-                    violations: 2,
-                  },
-                  {
-                    username: "elena_stu",
-                    fullName: "Elena Student",
-                    role: "Student",
-                    email: "elena@ust.edu.ph",
-                    status: "Active",
-                    violations: 0,
-                  },
-                  {
-                    username: "robert_a",
-                    fullName: "Robert A.",
-                    role: "Faculty",
-                    email: "robert_a@ust.edu.ph",
-                    status: "Active",
-                    violations: 1,
-                  },
-                  {
-                    username: "sophiag",
-                    fullName: "Sophia G.",
-                    role: "Student",
-                    email: "sophiag@ust.edu.ph",
-                    status: "Restricted",
-                    violations: 2,
-                  },
-                  {
-                    username: "tigersfan",
-                    fullName: "Tigers Fan Club",
-                    role: "Alumni",
-                    email: "tigersfan@ust.edu.ph",
-                    status: "Suspended",
-                    violations: 3,
-                  },
-                  {
-                    username: "nathan_sci",
-                    fullName: "Nathan Science",
-                    role: "Student",
-                    email: "nathan@ust.edu.ph",
-                    status: "Active",
-                    violations: 0,
-                  },
-                  {
-                    username: "lucas_m",
-                    fullName: "Lucas M.",
-                    role: "Student",
-                    email: "lucasm@ust.edu.ph",
-                    status: "Active",
-                    violations: 1,
-                  },
-                  {
-                    username: "charlotte_d",
-                    fullName: "Charlotte D.",
-                    role: "Faculty",
-                    email: "charlotte_d@ust.edu.ph",
-                    status: "Active",
-                    violations: 0,
-                  },
-                  {
-                    username: "kevin_ust",
-                    fullName: "Kevin UST",
-                    role: "Alumni",
-                    email: "kevin.ust@ust.edu.ph",
-                    status: "Suspended",
-                    violations: 2,
-                  },
-                  {
-                    username: "elena_stu",
-                    fullName: "Elena Student",
-                    role: "Student",
-                    email: "elena@ust.edu.ph",
-                    status: "Active",
-                    violations: 0,
-                  },
-                ].map((user, index) => (
-                  <tr
-                    key={index}
-                    className="border border-[#D6D3D3] text-center"
-                  >
-                    <td className="px-4 py-2 border border-[#D6D3D3] flex items-center">
-                      <input type="checkbox" className="mr-2" />
-                      <span className="flex-1 text-center">
-                        {user.username}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">
-                      {user.fullName}
-                    </td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">
-                      {user.role}
-                    </td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">
-                      {user.email}
-                    </td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">
-                      {user.status}
-                    </td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">
-                      {user.violations}
-                    </td>
-                  </tr>
-                ))}
+
+                  {users.map((user, index) => (
+                    <tr key={index} className="border border-[#D6D3D3] text-center">
+                      <td className="px-4 py-2 border border-[#D6D3D3] text-left">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" />
+                    <span>{user.username}</span>
+                  </div>
+                </td>
+                      <td className="px-4 py-2 border border-[#D6D3D3]">{user.first_name} {user.last_name}</td>
+                      <td className="px-4 py-2 border border-[#D6D3D3]">{user.role}</td>
+                      <td className="px-4 py-2 border border-[#D6D3D3]">{user.email}</td>
+                      <td className="px-4 py-2 border border-[#D6D3D3]">{user.status}</td>
+                      <td className="px-4 py-2 border border-[#D6D3D3]">{user.violation_count}</td>
+                    </tr>
+                  ))}
+
               </tbody>
             </table>
           </div>
@@ -305,11 +193,30 @@ const Admin_UserPage = () => {
           {/* Bottom Buttons */}
           <div className="flex justify-center gap-4 mt-6">
 
-            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={() => setShowEditUserPopup(true)}>Edit User</button>
-            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={openAddUserPopup}>Add User</button>
-            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={openDeleteModal}>Delete User/s</button>
-            <button className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105" onClick={openGenerateReportPopup}>Generate Report</button>
-
+            <button
+              className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+              onClick={() => setShowEditUserPopup(true)}
+            >
+              Edit User
+            </button>
+            <button
+              className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+              onClick={openAddUserPopup}
+            >
+              Add User
+            </button>
+            <button
+              className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+              onClick={openDeleteModal}
+            >
+              Delete User/s
+            </button>
+            <button
+              className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+              onClick={openGenerateReportPopup}
+            >
+              Generate Report
+            </button>
           </div>
         </div>
       </div>
@@ -324,10 +231,25 @@ const Admin_UserPage = () => {
 
 
       {/*PopUps*/}
-      {showPopup && <Admin_AddUserPopUp showPopup={showPopup} togglePopup={closeAddUserPopup} />}
-      {showEditUserPopup && <Admin_EditUserPopUp showPopup={showEditUserPopup} togglePopup={() => setShowEditUserPopup(false)} />}
-      {showGenerateReportPopup && <Admin_UserGenerateReport isOpen={showGenerateReportPopup} onClose={closeGenerateReportPopup} />}
 
+      {showPopup && (
+        <Admin_AddUserPopUp
+          showPopup={showPopup}
+          togglePopup={closeAddUserPopup}
+        />
+      )}
+      {showEditUserPopup && (
+        <Admin_EditUserPopUp
+          showPopup={showEditUserPopup}
+          togglePopup={() => setShowEditUserPopup(false)}
+        />
+      )}
+      {showGenerateReportPopup && (
+        <Admin_UserGenerateReport
+          isOpen={showGenerateReportPopup}
+          onClose={closeGenerateReportPopup}
+        />
+      )}
     </div>
   );
 };
