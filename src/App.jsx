@@ -1,5 +1,8 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ProtectedRoutes from "./ProtectedRoutes"; // Import the protected route
+
+const queryClient = new QueryClient();
 
 // ========================== FOOTER PAGES ==========================
 import Footer from "./components/Footer";
@@ -62,6 +65,7 @@ const Layout = ({ children }) => {
 
 function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <Layout>
         <Routes>
@@ -79,7 +83,11 @@ function App() {
           <Route path="/forget-password" element={<ForgetPassword />} />
           <Route path="/change-password" element={<UpdatePassword />} />
           {/* ========================== ENDUSER PAGES ========================== */}
-          <Route element={<ProtectedRoutes role={["student", "employee", "alumni"]} />}>
+          <Route
+            element={
+              <ProtectedRoutes role={["student", "employee", "alumni"]} />
+            }
+          >
             <Route path="/home" element={<Home />} />
             <Route
               path="/event-ticketed-enduser"
@@ -107,7 +115,8 @@ function App() {
           <Route path="/events/detail/:id" element={<EventDetailContainer />} />
           <Route path="/reservations" element={<AdminReservations />} />
           <Route path="/users" element={<AdminUser />} />
-          <Route path="/profile" element={<AdminProfile />} />
+=          <Route path="/admin-profile" element={<AdminProfile />} />
+          <Route path="/events/publish" element={<AdminPublishEvent/>} />
           <Route path="/audit-trails" element={<AuditTrails />} />
           <Route path="/event-report" element={<AdminEventReports />} />
           <Route path="/events/detail/:id" element={<EventDetailContainer />} />
@@ -120,6 +129,8 @@ function App() {
         </Routes>
       </Layout>
     </BrowserRouter>
+        </QueryClientProvider>
+
   );
 }
 

@@ -17,6 +17,8 @@ const { initScheduler } = require("./schedulerService");
 const app = express();
 const port = process.env.PORT || 5002;
 
+
+
 // ========================================================
 // REDIS DATABASE SETUP
 // For caching and fast data retrieval
@@ -171,6 +173,9 @@ app.use("/api", eventRoutes);
 // Private routes that require authentication
 const privateroute = require("./routes/privateroute");
 app.use("/privateroute", privateroute);
+
+const adminRoutes = require("./routes/admin");
+app.use("/admin", adminRoutes);
 
 const reservationRoutes = require("./routes/reservationRoutes");
 app.use("/api", reservationRoutes);
