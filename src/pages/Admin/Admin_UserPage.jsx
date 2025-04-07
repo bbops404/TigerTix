@@ -1,4 +1,6 @@
+
 import React, { useEffect, useState } from "react";
+
 import { FaSearch, FaFilter, FaExclamationTriangle } from "react-icons/fa";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import Header_Admin from "../../components/Admin/Header_Admin";
@@ -88,6 +90,7 @@ const Admin_UserPage = () => {
     openSuccessModal();
   };
 
+
   useEffect(() => {
     // Fetching user data from the API
     const fetchUsers = async () => {
@@ -103,6 +106,7 @@ const Admin_UserPage = () => {
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
+
       {/* Header */}
       <Header_Admin />
 
@@ -121,6 +125,7 @@ const Admin_UserPage = () => {
               />
             </div>
             <div className="flex gap-2">
+
               <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
                 Reset
               </button>
@@ -164,6 +169,7 @@ const Admin_UserPage = () => {
                 </tr>
               </thead>
               <tbody>
+
                   {users.map((user, index) => (
                     <tr key={index} className="border border-[#D6D3D3] text-center">
                       <td className="px-4 py-2 border border-[#D6D3D3] text-left">
@@ -179,12 +185,14 @@ const Admin_UserPage = () => {
                       <td className="px-4 py-2 border border-[#D6D3D3]">{user.violation_count}</td>
                     </tr>
                   ))}
+
               </tbody>
             </table>
           </div>
 
           {/* Bottom Buttons */}
           <div className="flex justify-center gap-4 mt-6">
+
             <button
               className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
               onClick={() => setShowEditUserPopup(true)}
@@ -221,7 +229,9 @@ const Admin_UserPage = () => {
       />
       <SuccessModal isOpen={showSuccessModal} onClose={closeSuccessModal} />
 
+
       {/*PopUps*/}
+
       {showPopup && (
         <Admin_AddUserPopUp
           showPopup={showPopup}

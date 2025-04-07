@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { FaSearch, FaFilter } from "react-icons/fa";
-
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
-
 import Admin_ReservationScanQRPopUp from "./Admin_ReservationScanQRPopUp.jsx";
 import Admin_ReservationsFilter from "./Admin_ReservationsFilter";
-
 import axios from 'axios';
 
 const Admin_Reservations = () => {
@@ -60,6 +57,7 @@ const Admin_Reservations = () => {
               <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
                 Reset
               </button>
+
               <button
                 className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
                 onClick={() => setShowFilter(!showFilter)}

@@ -276,6 +276,7 @@ function Home() {
           buttonText: "View Details",
           link: "/event-free-enduser",
         }))}
+
       />
       <EventSection
         title="EVENTS COMING SOON"

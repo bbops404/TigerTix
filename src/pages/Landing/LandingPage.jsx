@@ -92,7 +92,7 @@ function Carousel() {
       </div>
       <div className="absolute bottom-[60px] right-[100px]">
         <button
-          className="font-Poppins bg-[#F09C32] text-black font-bold py-3 px-7 min-w-[300px] rounded-full uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-yellow-600"
+          className="relative z-10 font-Poppins bg-[#F09C32] text-black font-bold py-3 px-7 min-w-[300px] rounded-full uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-yellow-600"
           onClick={handleReserveNow}
         >
           RESERVE NOW
@@ -122,6 +122,7 @@ function EventSection({ title, description, events }) {
   const handleNavigation = (path, eventData, e) => {
     if (e) e.preventDefault();
     navigate(path, { state: { event: eventData } });
+
   };
 
   const scrollLeft = () => {
