@@ -47,7 +47,7 @@ const Event = sequelize.define(
     },
     event_type: {
       type: DataTypes.ENUM("ticketed", "coming_soon", "free"),
-      defaultValue: "ticketed",
+      allowNull: true,
     },
     visibility: {
       type: DataTypes.ENUM("published", "unpublished", "archived"),
@@ -100,13 +100,13 @@ const Event = sequelize.define(
 Event.associate = (models) => {
   Event.hasMany(models.Ticket, {
     foreignKey: "event_id",
-    as: "tickets",
+    as: "Tickets",
     onDelete: "CASCADE",
   });
 
   Event.hasMany(models.ClaimingSlot, {
     foreignKey: "event_id",
-    as: "claimingSlots",
+    as: "ClaimingSlots",
     onDelete: "CASCADE",
   });
 };

@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const User = require("./models/Users");
 
+
 async function createAdmin() {
   try {
     const existingAdmin = await User.findOne({ where: { role: "admin" } });

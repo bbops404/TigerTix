@@ -57,5 +57,15 @@ const User = sequelize.define(
   }
 );
 
+User.associate = (models) => {
+  // Add this association
+  User.hasMany(models.Reservation, {
+    foreignKey: "user_id",
+    as: "Reservations", // The reservations made by the user
+    onDelete: "CASCADE", // Optional: Delete reservations if the user is deleted
+  });
+};
+
+
 
 module.exports = User;

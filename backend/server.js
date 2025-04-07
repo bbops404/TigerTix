@@ -27,6 +27,7 @@ redisClient.on("connect", () =>
 );
 redisClient.on("error", (err) => console.error("Redis connection error:", err));
 
+
 // ========================================================
 // SOCKET.IO REAL-TIME COMMUNICATION SETUP
 // For pushing real-time updates to clients
@@ -101,22 +102,21 @@ app.use((req, res, next) => {
 // EXPRESS MIDDLEWARE CONFIGURATION
 // ========================================================
 // CORS configuration for cross-origin requests
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-    methods: "GET,POST,PUT,DELETE",
-    allowedHeaders: "Content-Type,Authorization",
-  })
-);
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+  methods: "GET,POST,PUT,DELETE,PATCH",
+  allowedHeaders: "Content-Type,Authorization",
+}));
 
 // Parse cookies from request
+
 app.use(cookieParser());
 
 // HTTP request logging
 app.use(morgan("dev"));
 
-// JSON request body parsing with size limit
+
 app.use(
   express.json({
     limit: "10mb",
@@ -147,7 +147,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add Redis client to request object for controllers
+// Make Redis available in req
+
 app.use((req, res, next) => {
   req.redisClient = redisClient;
   next();
@@ -170,6 +171,12 @@ app.use("/api", eventRoutes);
 // Private routes that require authentication
 const privateroute = require("./routes/privateroute");
 app.use("/privateroute", privateroute);
+
+const reservationRoutes = require("./routes/reservationRoutes");
+app.use("/api", reservationRoutes);
+
+const adminRoutes = require("./routes/admin");
+app.use("/admin", adminRoutes);
 
 // Root route
 app.get("/", (req, res) => {
@@ -238,8 +245,11 @@ const startServer = async () => {
     await db.sequelize.authenticate();
     console.log("Sequelize connected successfully! 🎉");
 
-    // Sync database models (create tables if they don't exist)
+
+    await db.sequelize.sync({ alter: true }); // Automatically updates the database schema
+)
     await db.sync({ force: false });
+
     console.log("Database tables synchronized successfully! 📊");
 
     // Initialize the scheduler with the io instance for event status updates

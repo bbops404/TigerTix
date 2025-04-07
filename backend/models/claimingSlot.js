@@ -49,8 +49,9 @@ const ClaimingSlot = sequelize.define(
 ClaimingSlot.associate = (models) => {
   ClaimingSlot.belongsTo(models.Event, {
     foreignKey: "event_id",
-    as: "event",
+    as: "Event",
   });
 };
+
 
 module.exports = ClaimingSlot;

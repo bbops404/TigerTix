@@ -50,7 +50,7 @@ const Ticket = sequelize.define(
 Ticket.associate = (models) => {
   Ticket.belongsTo(models.Event, {
     foreignKey: "event_id",
-    as: "event",
+    as: "Event",
   });
 };
 

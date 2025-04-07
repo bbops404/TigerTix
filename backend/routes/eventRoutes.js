@@ -4,18 +4,27 @@ const router = express.Router();
 const eventController = require("../controllers/eventController");
 const ticketController = require("../controllers/ticketController");
 const claimingSlotController = require("../controllers/claimingSlotController");
+
+  
+const authorizeAdmin = require("../middleware/authorizeAdmin.js"); // Middleware for admin access
+const authenticate = require("../middleware/authenticate.js"); // Middleware for admin access
+const adminController = require("../controllers/adminController"); // Admin controller
 const autoStatusCheck = require("../middleware/autoStatusCheck");
 const { Op } = require("sequelize");
 const Event = require("../models/Event");
 
+
 // NON-PARAMETERIZED ROUTES FIRST
 // Event routes without parameters
-router.get("/events", eventController.getAllEvents);
-router.get("/events/drafts", eventController.getDraftEvents);
-router.get("/events/coming-soon", eventController.getComingSoonEvents);
-router.post("/events", eventController.createEvent);
-router.post("/events/draft", eventController.createDraftEvent);
-router.post("/events/upload-image", eventController.uploadEventImage);
+router.get("/events",authenticate, authorizeAdmin, eventController.getAllEvents);
+router.get("/events/drafts",authenticate, authorizeAdmin, eventController.getDraftEvents);
+router.get("/events/coming-soon",authenticate, authorizeAdmin, eventController.getComingSoonEvents);
+router.post("/events",authenticate, authorizeAdmin, eventController.createEvent);
+router.post("/events/draft",authenticate, authorizeAdmin, eventController.createDraftEvent);
+router.post("/events/upload-image",authenticate, authorizeAdmin, eventController.uploadEventImage);
+router.get("/events/ticketed",authenticate, authorizeAdmin, eventController.getTicketedEvents);
+router.get("/events/coming-soon",authenticate, authorizeAdmin, eventController.getComingSoonEvents);
+router.get("events/free-events",authenticate, authorizeAdmin, eventController.getFreeEvents);
 
 // Status check endpoint (non-parameterized)
 router.get("/events/check-status", async (req, res) => {
@@ -179,13 +188,13 @@ router.get("/events/upcoming-status-changes", async (req, res) => {
 
 // PARAMETERIZED ROUTES AFTER
 // Event routes with parameters
-router.get("/events/:id", eventController.getEventById);
-router.put("/events/:id", eventController.updateEvent);
-router.put("/events/:id/status", eventController.updateEventStatus);
-router.post("/events/:id/convert", eventController.convertEvent);
-router.post("/events/cancel/:id", eventController.cancelEvent);
-router.post("/events/archive/:id", eventController.archiveEvent);
-router.delete("/events/:id", eventController.permanentlyDeleteEvent);
+router.get("/events/:id",authenticate, authorizeAdmin, eventController.getEventById);
+router.put("/events/:id",authenticate, authorizeAdmin, eventController.updateEvent);
+router.put("/events/:id/status",authenticate, authorizeAdmin, eventController.updateEventStatus);
+router.post("/events/:id/convert",authenticate, authorizeAdmin, eventController.convertEvent);
+router.post("/events/cancel/:id",authenticate, authorizeAdmin, eventController.cancelEvent);
+router.post("/events/archive/:id",authenticate, authorizeAdmin, eventController.archiveEvent);
+router.delete("/events/:id",authenticate, authorizeAdmin, eventController.permanentlyDeleteEvent);
 
 // Event-specific endpoints with refresh status
 router.post("/events/:id/refresh-status", async (req, res) => {
@@ -251,23 +260,33 @@ router.post("/events/:id/refresh-status", async (req, res) => {
   }
 });
 
+
 // Ticket routes
-router.get("/events/:event_id/tickets", ticketController.getEventTickets);
-router.post("/events/:event_id/tickets", ticketController.createTicket);
+router.get("/events/:event_id/tickets", authenticate, authorizeAdmin, ticketController.getEventTickets);
+router.post("/events/:event_id/tickets", authenticate, authorizeAdmin, ticketController.createTicket);
 router.post(
   "/events/:event_id/tickets/bulk",
+  authenticate,
+  authorizeAdmin,
   ticketController.createTicketsBulk
 );
-router.put("/tickets/:ticket_id", ticketController.updateTicket);
-router.delete("/tickets/:ticket_id", ticketController.deleteTicket);
+
+router.put("/tickets/:ticket_id",authenticate, authorizeAdmin, ticketController.updateTicket);
+router.delete("/tickets/:ticket_id",authenticate, authorizeAdmin, ticketController.deleteTicket);
 router.post(
   "/events/:source_event_id/tickets/transfer/:target_event_id",
-  ticketController.transferTickets
+  authenticate, authorizeAdmin, ticketController.transferTickets
 );
+
+router.put("/tickets/:ticket_id", authenticate, authorizeAdmin, ticketController.updateTicket);
+router.delete("/tickets/:ticket_id", authenticate, authorizeAdmin, ticketController.deleteTicket);
+
 
 // Claiming slot routes
 router.get(
   "/events/:event_id/claiming-slots",
+  authenticate,
+  authorizeAdmin,
   claimingSlotController.getEventClaimingSlots
 );
 router.get(
@@ -276,10 +295,14 @@ router.get(
 );
 router.post(
   "/events/:event_id/claiming-slots",
+  authenticate,
+  authorizeAdmin,
   claimingSlotController.createClaimingSlot
 );
 router.post(
   "/events/:event_id/claiming-slots/bulk",
+  authenticate,
+  authorizeAdmin,
   claimingSlotController.createClaimingSlotsBulk
 );
 router.delete(
@@ -288,10 +311,14 @@ router.delete(
 );
 router.put(
   "/claiming-slots/:slot_id",
+  authenticate,
+  authorizeAdmin,
   claimingSlotController.updateClaimingSlot
 );
 router.delete(
   "/claiming-slots/:slot_id",
+  authenticate,
+  authorizeAdmin,
   claimingSlotController.deleteClaimingSlot
 );
 
