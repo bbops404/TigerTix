@@ -9,9 +9,9 @@ require("dotenv").config();
 
 const redis = new Redis();
 
-
 // Generate a 6-digit OTP
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+const generateOTP = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
 
 // Nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -45,7 +45,9 @@ exports.sendOTP = async (req, res) => {
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ message: "Email is already registered. Please log in instead." });
+      return res.status(400).json({
+        message: "Email is already registered. Please log in instead.",
+      });
     }
 
     const otp = generateOTP();
@@ -89,7 +91,14 @@ exports.signUp = async (req, res) => {
     const { email, firstName, lastName, username, password, role } = req.body;
     const formattedRole = role ? role.toLowerCase() : "student";
 
-    if (!email || !firstName || !lastName || !username || !password || !formattedRole) {
+    if (
+      !email ||
+      !firstName ||
+      !lastName ||
+      !username ||
+      !password ||
+      !formattedRole
+    ) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -110,114 +119,151 @@ exports.signUp = async (req, res) => {
       status: "active",
     });
 
-    res.status(201).json({ message: "Account created successfully!", user: { email, username, role: formattedRole } });
+    res.status(201).json({
+      message: "Account created successfully!",
+      user: { email, username, role: formattedRole },
+    });
   } catch (error) {
     console.error("Error creating user:", error);
-    res.status(500).json({ message: "Failed to create account. Please try again." });
+    res
+      .status(500)
+      .json({ message: "Failed to create account. Please try again." });
   }
 };
 
-
 // ✅ User Login
 exports.login = async (req, res) => {
-    try {
-        const { email, username, password } = req.body;
-        console.log("Login attempt:", { email, username });
+  try {
+    const { email, username, password } = req.body;
+    console.log("Login attempt:", { email, username });
 
-        if ((!email && !username) || !password) {
-            console.log("Missing fields");
-            return res.status(400).json({ message: "Email/Username and Password are required" });
-        }
-
-        const user = await User.findOne({
-            where: {
-                [Sequelize.Op.or]: [
-                    Sequelize.where(Sequelize.fn("LOWER", Sequelize.col("email")), email ? email.toLowerCase() : ""),
-                    Sequelize.where(Sequelize.fn("LOWER", Sequelize.col("username")), username ? username.toLowerCase() : ""),
-                ],
-            },
-        });
-
-        console.log("User found:", user ? user.username : "Not Found");
-
-        if (!user) {
-            console.log("User not found");
-            return res.status(401).json({ message: "User not found" });
-        }
-
-        const passwordMatch = await bcrypt.compare(password, user.password_hash);
-        console.log("Password match:", passwordMatch);
-
-        if (!passwordMatch) {
-            return res.status(401).json({ message: "Invalid credentials" });
-        }
-
-        // ✅ Generate JWT token
-        const token = jwt.sign(
-            { userId: user.user_id, email: user.email, username: user.username, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: "1h" }
-        );
-
-        // ✅ Store token in Redis with expiration (1 hour)
-        await redis.set(`session:${user.user_id}`, token, "EX", 3600);
-        console.log(`✅ Token stored in Redis for session:${user.user_id}`);
-
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production", // Only send over HTTPS
-            sameSite: "Lax",
-            maxAge: 3600000, // 1 hour
-        });
-        
-        console.log("✅ Cookie set successfully:", req.cookies); // Debug log
-        
-
-        res.status(200).json({
-            message: "Login successful",
-            token,
-            user: { email: user.email, username: user.username, role: user.role },
-        });
-
-    } catch (error) {
-        console.error("Error logging in:", error);
-        res.status(500).json({ message: "Failed to log in. Please try again." });
+    if ((!email && !username) || !password) {
+      console.log("Missing fields");
+      return res
+        .status(400)
+        .json({ message: "Email/Username and Password are required" });
     }
+
+    const user = await User.findOne({
+      where: {
+        [Sequelize.Op.or]: [
+          Sequelize.where(
+            Sequelize.fn("LOWER", Sequelize.col("email")),
+            email ? email.toLowerCase() : ""
+          ),
+          Sequelize.where(
+            Sequelize.fn("LOWER", Sequelize.col("username")),
+            username ? username.toLowerCase() : ""
+          ),
+        ],
+      },
+    });
+
+    console.log("User found:", user ? user.username : "Not Found");
+
+    if (!user) {
+      console.log("User not found");
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    console.log("Password match:", passwordMatch);
+
+    if (!passwordMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // ✅ Generate JWT token with CONSISTENT key naming
+    // Use user_id as the key in the token to match the database field name
+    const token = jwt.sign(
+      {
+        user_id: user.user_id, // Use user_id consistently
+        email: user.email,
+        username: user.username,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // ✅ Store token in Redis with expiration (1 hour)
+    await redis.set(`session:${user.user_id}`, token, "EX", 3600);
+    console.log(`✅ Token stored in Redis for session:${user.user_id}`);
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Only send over HTTPS
+      sameSite: "Lax",
+      maxAge: 3600000, // 1 hour
+    });
+
+    console.log("✅ Cookie set successfully:", req.cookies); // Debug log
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        user_id: user.user_id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("Error logging in:", error);
+    res.status(500).json({ message: "Failed to log in. Please try again." });
+  }
 };
 
-  // User Logout
+// User Logout
+// Modified logout function in authController.js
 exports.logout = async (req, res) => {
-    try {
-      const token = req.cookies.token; // ✅ Read token from cookies
-  
-      if (!token) {
-        return res.status(401).json({ message: "Unauthorized. No token provided." });
-      }
-  
-      // Decode token to get userId
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
-  
-      // ✅ Remove session from Redis
-      await redis.del(`session:${userId}`);
-      console.log(`✅ Session deleted for userId:${userId}`);
-  
-      // ✅ Clear cookie properly
+  try {
+    // Get token from cookies, headers, or request body as fallback
+    const token =
+      req.cookies.token ||
+      (req.headers.authorization &&
+        req.headers.authorization.replace("Bearer ", "")) ||
+      req.body.token;
+
+    if (!token) {
+      // If no token found, just clear the cookie and return success
       res.clearCookie("token", {
         httpOnly: true,
-        secure: true,
-        sameSite: "None",
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Lax",
       });
-  
-      return res.status(200).json({ message: "Logged out successfully" });
-    } catch (error) {
-      console.error("Logout error:", error);
-      return res.status(500).json({ message: "Failed to log out" });
-    }
-  };
-  
-  
 
+      return res.status(200).json({ message: "Logged out successfully" });
+    }
+
+    // If token exists, try to decode it to get the userId
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.userId || decoded.user_id;
+
+      if (userId) {
+        // Remove session from Redis
+        await redis.del(`session:${userId}`);
+      }
+    } catch (error) {
+      console.log("Error decoding token during logout:", error.message);
+      // Continue with logout even if token is invalid
+    }
+
+    // Always clear the cookie
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+    });
+
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    return res.status(500).json({ message: "Failed to log out" });
+  }
+};
 // Request Password Reset OTP
 exports.requestPasswordReset = async (req, res) => {
   try {
@@ -256,7 +302,9 @@ exports.validatePasswordResetOTP = async (req, res) => {
     }
 
     await redis.del(`password-reset:${email}`);
-    res.status(200).json({ message: "OTP verified. You may now reset your password." });
+    res
+      .status(200)
+      .json({ message: "OTP verified. You may now reset your password." });
   } catch (error) {
     console.error("Error validating password reset OTP:", error);
     res.status(500).json({ message: "Server error, please try again." });

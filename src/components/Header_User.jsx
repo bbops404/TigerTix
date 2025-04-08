@@ -1,3 +1,4 @@
+// Header_User.jsx
 import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaBell, FaSignOutAlt, FaChevronDown } from "react-icons/fa";
 import tigertix_logo from "../assets/tigertix_logo.png";
@@ -13,7 +14,9 @@ const Header_User = () => {
     const fetchPublishedEvents = async () => {
       try {
         const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
-        const response = await axios.get(`${API_BASE_URL}/api/events/published`);
+        const response = await axios.get(
+          `${API_BASE_URL}/api/events/published`
+        );
 
         if (response.data.success) {
           setPublishedEvents(response.data.data);
@@ -31,21 +34,25 @@ const Header_User = () => {
   const handleEventChange = (event) => {
     const eventId = event.target.value;
     setSelectedEvent(eventId);
+
     if (eventId) {
-      navigate(`/event-ticketed-enduser/${eventId}`); // Navigate to the dynamic event page for end users
+      // Add a slight delay before navigation for smoother experience
+      setTimeout(() => {
+        navigate(`/event-ticketed-enduser/${eventId}`);
+      }, 300); // 300ms delay gives visual feedback that selection was made
     }
   };
 
-    const handleLogout = async () => {
-      try {
-        const response = await fetch("http://localhost:5002/auth/logout", {
-          method: "POST",
-          credentials: "include", // ✅ Important! Sends cookies with request
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-  
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("http://localhost:5002/auth/logout", {
+        method: "POST",
+        credentials: "include", // ✅ Important! Sends cookies with request
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -57,24 +64,25 @@ const Header_User = () => {
       // Clear session storage
       sessionStorage.removeItem("authToken");
       sessionStorage.removeItem("userRole");
-  
+
       // Debugging logs
-      console.log("Session cleared:", sessionStorage.getItem("authToken"), sessionStorage.getItem("userRole"));
-  
+      console.log(
+        "Session cleared:",
+        sessionStorage.getItem("authToken"),
+        sessionStorage.getItem("userRole")
+      );
 
       alert("Logged out successfully!");
-    navigate("/"); // Redirect to Landing Page
-    sessionStorage.clear();
+      navigate("/"); // Redirect to Landing Page
+      sessionStorage.clear();
 
-    window.history.pushState(null, "", window.location.href);
-    window.history.replaceState(null, "", window.location.href);
-
-  } catch (error) {
-    console.error("Logout error:", error.message);
-    alert(error.message);
-  }
-};
-
+      window.history.pushState(null, "", window.location.href);
+      window.history.replaceState(null, "", window.location.href);
+    } catch (error) {
+      console.error("Logout error:", error.message);
+      alert(error.message);
+    }
+  };
 
   return (
     <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl">
@@ -88,20 +96,21 @@ const Header_User = () => {
       </Link>
 
       {/* Dropdown Selection with Arrow Icon */}
-      <div className="relative flex items-center">
-        <FaChevronDown className="absolute left-3 text-gray-600" />
+      <div className="relative flex items-center group">
+        <FaChevronDown className="absolute left-3 text-gray-600 group-hover:text-gray-800 transition-colors duration-200" />
         <select
           value={selectedEvent}
           onChange={handleEventChange}
-          className="font-Poppins text-[15px] font-medium bg-white py-3 px-5 rounded-xl text-[#2D2D2D] transition-all duration-300 transform hover:scale-105 relative hover:shadow-lg hover:text-yellow-600 w-[565px] h-[50px] border border-gray-300"
+          className="font-Poppins text-[15px] font-medium bg-white py-3 px-5 pl-8 rounded-xl text-[#2D2D2D] transition-all duration-300 relative w-[565px] h-[50px] border border-gray-300 cursor-pointer focus:ring-2 focus:ring-yellow-500 focus:outline-none"
         >
-           <option value="" disabled>
+          <option value="" disabled>
             Select Event
           </option>
-           {publishedEvents.length > 0 ? (
+          {publishedEvents.length > 0 ? (
             publishedEvents.map((event) => (
-              <option key={event.id} value={event.id}>
-                {event.name} - {new Date(event.event_date).toLocaleDateString("en-US", {
+              <option key={event.id} value={event.id} className="py-2">
+                {event.name} -{" "}
+                {new Date(event.event_date).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
@@ -113,8 +122,6 @@ const Header_User = () => {
           )}
         </select>
       </div>
-
-      
 
       {/* Right-side content */}
       <div className="flex items-center gap-4">

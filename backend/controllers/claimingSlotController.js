@@ -374,7 +374,6 @@ const claimingSlotController = {
     }
   },
 
-  // Get available claiming slots for an event (with slots that aren't full)
   getAvailableClaimingSlots: async (req, res) => {
     try {
       const { event_id } = req.params;
@@ -398,23 +397,23 @@ const claimingSlotController = {
         });
       }
 
-      // Get all claiming slots for this event that aren't full
-      const slots = await ClaimingSlot.findAll({
-        where: {
-          event_id,
-          [db.Sequelize.Op.where]: db.Sequelize.literal(
-            "current_claimers < max_claimers"
-          ),
-        },
+      // Get all claiming slots for this event first
+      const allSlots = await ClaimingSlot.findAll({
+        where: { event_id },
         order: [
           ["claiming_date", "ASC"],
           ["start_time", "ASC"],
         ],
       });
 
+      // Then filter in JavaScript to avoid database dialect issues
+      const availableSlots = allSlots.filter(
+        (slot) => slot.current_claimers < slot.max_claimers
+      );
+
       return res.status(200).json({
         success: true,
-        data: slots,
+        data: availableSlots,
       });
     } catch (error) {
       console.error("Error fetching available claiming slots:", error);

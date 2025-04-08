@@ -153,7 +153,7 @@ const PublishEventContainer = () => {
             await eventService.tickets.createBulk(eventId, [
               {
                 seat_type: "Free Seating",
-                ticket_type: "General",
+                ticket_type: "Free Seating",
                 price: eventData.ticketDetails.freeSeating.price,
                 total_quantity:
                   eventData.ticketDetails.freeSeating.numberOfTickets,

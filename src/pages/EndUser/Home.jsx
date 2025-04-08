@@ -1,32 +1,48 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Header_User from "../../components/Header_User";
-import { IoNotifications } from "react-icons/io5";
+import { IoChevronForward, IoChevronBack } from "react-icons/io5";
 import EventCard from "../../components/EventCardEndUser";
-import axios from "axios"; // For API calls
+import axios from "axios";
+
+// Empty state illustration component for when no events are available
+const EmptyStateIllustration = ({ message = "No events available" }) => (
+  <div className="flex flex-col items-center justify-center py-16 px-4">
+    <p className="text-gray-400 text-center text-lg font-medium">{message}</p>
+    <p className="text-gray-500 text-center mt-2 max-w-md">
+      Check back soon for upcoming events. New events are added regularly.
+    </p>
+  </div>
+);
 
 function Carousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [ticketedEvents, setTicketedEvents] = useState([]); // State to store ticketed events
+  const [ticketedEvents, setTicketedEvents] = useState([]);
   const navigate = useNavigate();
   const [isSliding, setIsSliding] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchTicketedEvents = async () => {
       try {
-        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
-        const response = await axios.get(`${API_BASE_URL}/api/events/published-ticketed`, {
-          params: { limit: 4 }, // Fetch up to 4 events
-        });
+        setIsLoading(true);
+        const API_BASE_URL = "http://localhost:5002";
+        const response = await axios.get(
+          `${API_BASE_URL}/api/events/published-ticketed`,
+          {
+            params: { limit: 4 },
+          }
+        );
 
         if (response.data.success) {
-          console.log("Fetched Events:", response.data.data); // Log the fetched events
           setTicketedEvents(response.data.data);
         } else {
           console.error("Failed to fetch ticketed events.");
         }
       } catch (error) {
         console.error("Error fetching ticketed events:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -34,7 +50,7 @@ function Carousel() {
   }, []);
 
   const prevSlide = () => {
-    if (isSliding) return;
+    if (isSliding || ticketedEvents.length <= 1) return;
     setIsSliding(true);
     setCurrentIndex((prevIndex) =>
       prevIndex === 0 ? ticketedEvents.length - 1 : prevIndex - 1
@@ -43,7 +59,7 @@ function Carousel() {
   };
 
   const nextSlide = () => {
-    if (isSliding) return;
+    if (isSliding || ticketedEvents.length <= 1) return;
     setIsSliding(true);
     setCurrentIndex((prevIndex) =>
       prevIndex === ticketedEvents.length - 1 ? 0 : prevIndex + 1
@@ -52,8 +68,45 @@ function Carousel() {
   };
 
   const handleReserveNow = (eventId) => {
-    navigate(`/event-ticketed-enduser/${eventId}`); // Navigate to the dynamic event page
+    navigate(`/event-ticketed-enduser/${eventId}`);
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="relative w-full h-[700px] flex items-center justify-center bg-gray-900">
+        <div className="text-white text-xl">Loading featured events...</div>
+      </div>
+    );
+  }
+
+  // If no ticketed events, show a placeholder carousel slide
+  if (ticketedEvents.length === 0) {
+    return (
+      <div className="relative w-full h-[700px] overflow-hidden">
+        <div className="flex w-full h-full">
+          <div
+            className="relative w-full flex-shrink-0 h-full bg-cover bg-center"
+            style={{ backgroundImage: 'url("src/assets/c1.jpg")' }} // Use a default background
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-[#010100] via-[#633904] to-[#000000] opacity-80"></div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-10">
+              <h2 className="font-Poppins text-6xl md:text-7xl lg:text-[80px] font-extrabold drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
+                Welcome to TigerTix
+              </h2>
+              <p className="font-Poppins text-xl md:text-2xl font-semibold mt-4 max-w-3xl drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
+                Your gateway to exclusive events at UST. Check back soon for
+                upcoming featured events.
+              </p>
+            </div>
+          </div>
+        </div>
+        <button className="absolute bottom-10 right-10 font-Poppins bg-gray-700 text-gray-300 font-bold py-3 px-7 rounded-full uppercase cursor-not-allowed opacity-70 z-10">
+          NO EVENTS AVAILABLE
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-[700px] overflow-hidden">
@@ -65,63 +118,78 @@ function Carousel() {
           <div
             key={index}
             className="relative w-full flex-shrink-0 h-full bg-cover bg-center"
-            style={{ backgroundImage: `url('src/assets/c${index + 1}.jpg')` }} // Static images
+            style={{
+              backgroundImage: `url('src/assets/c${index + 1}.jpg')`, // Use the assets from the original code
+            }}
           >
             <div className="absolute inset-0 bg-gradient-to-b from-[#010100] via-[#633904] to-[#000000] opacity-80"></div>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-10">
-              <h2 className="font-Poppins text-[99px] font-extrabold drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
+              <h2 className="font-Poppins text-6xl md:text-7xl lg:text-[80px] font-extrabold drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
                 {event.name}
               </h2>
-              <p className="font-Poppins text-[26px] font-semibold mt-2 drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
+              <p className="font-Poppins text-xl md:text-2xl font-semibold mt-4 max-w-3xl drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
                 {event.details}
               </p>
             </div>
           </div>
         ))}
       </div>
+
       {/* Reserve Now Button */}
       <button
         className="absolute bottom-10 right-10 font-Poppins bg-[#F09C32] text-black font-bold py-3 px-7 rounded-full uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-yellow-600 z-10"
-        onClick={() => handleReserveNow(ticketedEvents[currentIndex]?.id)} // Navigate to the current event page
+        onClick={() => handleReserveNow(ticketedEvents[currentIndex]?.id)}
       >
         RESERVE NOW
       </button>
-      <div className="absolute top-1/2 left-0 right-0 flex justify-between px-5 transform -translate-y-1/2">
-        <span
-          className="font-Poppins text-4xl text-white cursor-pointer"
-          onClick={prevSlide}
-        >
-          &lt;
-        </span>
-        <span
-          className="font-Poppins text-4xl text-white cursor-pointer"
-          onClick={nextSlide}
-        >
-          &gt;
-        </span>
-      </div>
-      <div className="absolute bottom-5 flex space-x-2 w-full justify-center">
-        {ticketedEvents.map((_, index) => (
-          <div
-            key={index}
-            className={`w-3 h-3 rounded-full cursor-pointer transition-all ${
-              index === currentIndex ? "bg-white" : "bg-gray-500"
-            }`}
-            onClick={() => setCurrentIndex(index)}
-          ></div>
-        ))}
-      </div>
+
+      {/* Navigation arrows - only show if more than one event */}
+      {ticketedEvents.length > 1 && (
+        <div className="absolute top-1/2 left-0 right-0 flex justify-between px-5 transform -translate-y-1/2">
+          <button
+            className="w-12 h-12 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70 flex items-center justify-center text-white cursor-pointer transition-all"
+            onClick={prevSlide}
+          >
+            <IoChevronBack className="text-2xl" />
+          </button>
+          <button
+            className="w-12 h-12 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70 flex items-center justify-center text-white cursor-pointer transition-all"
+            onClick={nextSlide}
+          >
+            <IoChevronForward className="text-2xl" />
+          </button>
+        </div>
+      )}
+
+      {/* Carousel indicators */}
+      {ticketedEvents.length > 1 && (
+        <div className="absolute bottom-5 flex space-x-2 w-full justify-center">
+          {ticketedEvents.map((_, index) => (
+            <div
+              key={index}
+              className={`w-3 h-3 rounded-full cursor-pointer transition-all ${
+                index === currentIndex ? "bg-white" : "bg-gray-500"
+              }`}
+              onClick={() => setCurrentIndex(index)}
+            ></div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function EventSection({ title, description, events }) {
+// Update the EventSection component to center events
+function EventSection({ title, description, events, loading = false }) {
   const navigate = useNavigate();
   const scrollContainerRef = useRef(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(events.length > 3);
+  const [showRightArrow, setShowRightArrow] = useState(false);
 
   useEffect(() => {
+    // Set right arrow visibility based on event count
+    setShowRightArrow(events.length > 3);
+
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer) {
       const handleScroll = () => {
@@ -136,25 +204,69 @@ function EventSection({ title, description, events }) {
     }
   }, [events]);
 
-  return (
-    <section className="p-5 bg-[#222] text-white font-Poppins">
-      <div className="max-w-6xl mx-auto">
-        <h2 className="text-left text-[28px] font-semibold mt-[30px]">
-          {title}
-        </h2>
-        <h3 className="text-left text-[16px] text-gray-400 font-light">
-          {description}
-        </h3>
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -300, behavior: "smooth" });
+    }
+  };
 
-        {events.length === 0 ? (
-          <p className="text-center text-gray-400">No events available.</p>
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 300, behavior: "smooth" });
+    }
+  };
+
+  // Determine if we should center the events (when there are few)
+  const shouldCenterEvents = events.length <= 3;
+
+  return (
+    <section className="py-12 bg-[#222] text-white font-Poppins">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="mb-6">
+          <h2 className="text-[28px] font-semibold">{title}</h2>
+          <h3 className="text-[16px] text-gray-400 font-light mt-1">
+            {description}
+          </h3>
+        </div>
+
+        {loading ? (
+          <div className="min-h-[300px] flex items-center justify-center">
+            <div className="text-gray-400">Loading events...</div>
+          </div>
+        ) : events.length === 0 ? (
+          <EmptyStateIllustration
+            message={`No ${title.toLowerCase()} available at this time`}
+          />
         ) : (
-          <div className="relative py-5">
+          <div className="relative min-h-[300px]">
+            {/* Left scroll button - only show if not centered */}
+            {!shouldCenterEvents && showLeftArrow && (
+              <button
+                onClick={scrollLeft}
+                className="absolute -left-2 top-1/2 transform -translate-y-1/2 z-10 bg-black bg-opacity-70 rounded-full p-2"
+              >
+                <IoChevronBack className="text-white text-2xl" />
+              </button>
+            )}
+
+            {/* Right scroll button - only show if not centered */}
+            {!shouldCenterEvents && showRightArrow && (
+              <button
+                onClick={scrollRight}
+                className="absolute -right-2 top-1/2 transform -translate-y-1/2 z-10 bg-black bg-opacity-70 rounded-full p-2"
+              >
+                <IoChevronForward className="text-white text-2xl" />
+              </button>
+            )}
+
             <div
               ref={scrollContainerRef}
-              className={`flex gap-5 overflow-x-auto scrollbar-none py-2 px-10 ${
-                events.length <= 2 ? "justify-center" : "justify-start"
+              className={`flex gap-6 overflow-x-auto py-4 px-2 scrollbar-hide min-h-[300px] ${
+                shouldCenterEvents
+                  ? "justify-center" // Center content when there are few events
+                  : "justify-start" // Left-align when there are many events
               }`}
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
               {events.map((event, index) => (
                 <EventCard
@@ -165,7 +277,7 @@ function EventSection({ title, description, events }) {
                   date={event.date}
                   time={event.time}
                   buttonText={event.buttonText}
-                  link={event.link} // Pass the link to EventCard
+                  link={event.link}
                 />
               ))}
             </div>
@@ -176,155 +288,161 @@ function EventSection({ title, description, events }) {
   );
 }
 
-
 function Home() {
+  // State for events
+  const [ticketedEvents, setTicketedEvents] = useState([]);
+  const [freeEvents, setFreeEvents] = useState([]);
+  const [comingSoonEvents, setComingSoonEvents] = useState([]);
 
-   
-   // State for events
-   const [ticketedEvents, setTicketedEvents] = useState([]);
-   const [freeEvents, setFreeEvents] = useState([]);
-   const [comingSoonEvents, setComingSoonEvents] = useState([]);
- 
-   // State for loading and error handling
-   const [loading, setLoading] = useState(true);
-   const [error, setError] = useState("");
- 
-   useEffect(() => {
-     // Create a fixed-size wrapper to prevent layout shifts
-     document.documentElement.style.overflow = "hidden";
-     document.body.style.overflow = "auto";
-     document.body.style.height = "100vh";
- 
-     // Add a padding-right to body to account for scrollbar width
-     // This prevents content from shifting when scrollbar appears/disappears
-     const scrollbarWidth =
-       window.innerWidth - document.documentElement.clientWidth;
-     document.body.style.paddingRight = `${scrollbarWidth}px`;
- 
-     return () => {
-       // Cleanup when component unmounts
-       document.documentElement.style.overflow = "";
-       document.body.style.overflow = "";
-       document.body.style.height = "";
-       document.body.style.paddingRight = "";
-     };
-   }, []);
- 
+  // State for loading and error handling
+  const [loading, setLoading] = useState({
+    ticketed: true,
+    free: true,
+    comingSoon: true,
+  });
+  const [error, setError] = useState("");
 
- 
-   useEffect(() => {
-     const fetchEvents = async () => {
-       try {
-         setLoading(true);
- 
-         const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
- 
-         // Fetch ticketed events
-         const ticketedResponse = await axios.get(
-           `${API_BASE_URL}/api/events/ticketed`,
-           {
-             params: { page: 1, limit: 5, timestamp: new Date().getTime() }, // Add timestamp to prevent caching
-           }
-         );
-         if (ticketedResponse.data.success) {
-           setTicketedEvents(ticketedResponse.data.data);
-         }
- 
-         // Fetch free events
-         const freeResponse = await axios.get(
-           `${API_BASE_URL}/api/events/free-events`,
-           {
-             params: { page: 1, limit: 5, timestamp: new Date().getTime() }, // Add timestamp to prevent caching
-           }
-         );
-         if (freeResponse.data.success) {
-           setFreeEvents(freeResponse.data.data);
-         }
- 
-         // Fetch coming soon events
-         const comingSoonResponse = await axios.get(
-           `${API_BASE_URL}/api/events/coming-soon`,
-           {
-             params: { page: 1, limit: 5, timestamp: new Date().getTime() }, // Add timestamp to prevent caching
-           }
-         );
-         console.log("Coming Soon Events Response:", comingSoonResponse.data); // Log the response
-         if (comingSoonResponse.data.success) {
-           setComingSoonEvents(comingSoonResponse.data.data);
-         }
-       } catch (err) {
-         console.error("Error fetching events:", err);
-         setError("Failed to load events. Please try again later.");
-       } finally {
-         setLoading(false);
-       }
-     };
- 
-     fetchEvents();
-   }, []);
- 
-   console.log(
-     ticketedEvents.map((event) => ({
-       link: `/event-ticketed/${event.id}`,
-     }))
-   );
-   
+  useEffect(() => {
+    // Create a fixed-size wrapper to prevent layout shifts
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "auto";
+    document.body.style.height = "100vh";
+
+    // Add a padding-right to body to account for scrollbar width
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.paddingRight = `${scrollbarWidth}px`;
+
+    return () => {
+      // Cleanup when component unmounts
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+      document.body.style.height = "";
+      document.body.style.paddingRight = "";
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      const API_BASE_URL = "http://localhost:5002";
+      const timestamp = new Date().getTime(); // Prevent caching
+
+      // Helper function to fetch events with loading state management
+      const fetchEventCategory = async (category, setter, loadingKey) => {
+        try {
+          const response = await axios.get(
+            `${API_BASE_URL}/api/events/${category}`,
+            { params: { page: 1, limit: 5, timestamp } }
+          );
+
+          if (response.data.success) {
+            setter(response.data.data);
+          }
+        } catch (err) {
+          console.error(`Error fetching ${category} events:`, err);
+          setError(
+            (prev) =>
+              prev || "Failed to load some events. Please try again later."
+          );
+        } finally {
+          setLoading((prev) => ({ ...prev, [loadingKey]: false }));
+        }
+      };
+
+      // Fetch all event types concurrently
+      await Promise.all([
+        fetchEventCategory("ticketed", setTicketedEvents, "ticketed"),
+        fetchEventCategory("free-events", setFreeEvents, "free"),
+        fetchEventCategory("coming-soon", setComingSoonEvents, "comingSoon"),
+      ]);
+    };
+
+    fetchEvents();
+  }, []);
+
+  // Map event data for each section
+  const mapEventData = (events, buttonText, linkPrefix) => {
+    return events.map((event) => ({
+      image: event.image || "src/assets/tigertix_logo.png", // Use default image if none provided
+      name: event.name || "Event Name",
+      location: event.venue || "TBA",
+      date: event.event_date || "TBA",
+      time: event.event_time || "TBA",
+      buttonText,
+      link: `${linkPrefix}/${event.id}`,
+    }));
+  };
+
   return (
-    <div className="bg-[#121212] text-white">
+    <div className="bg-[#121212] text-white min-h-screen">
       <Header_User />
+
+      {/* Hero Carousel */}
       <Carousel />
+
       {/* Ticketed Events Section */}
       <EventSection
         title="TICKETED EVENTS"
         description="Events where tickets must be reserved in advance. Ensure your spot by booking a ticket."
-        events={ticketedEvents.map((event) => ({
-          image: event.image || "TigerTix/src/assets/tigertix_logo.png", // Use default image if none provided
-          name: event.name,
-          location: event.venue,
-          date: event.event_date,
-          time: event.event_time,
-          buttonText: "Reserve Now",
-          link: `/event-ticketed-enduser/${event.id}`, // Dynamic link to the event
-        }))}
+        events={mapEventData(
+          ticketedEvents,
+          "Reserve Now",
+          "/event-ticketed-enduser"
+        )}
+        loading={loading.ticketed}
       />
 
-       {/* Coming Soon Events Section */}
-       <EventSection
+      {/* Coming Soon Events Section */}
+      <EventSection
         title="EVENTS COMING SOON"
         description="Upcoming events that will require a reservation. Ticket and reservation details are not yet available."
-        events={comingSoonEvents.map((event) => ({
-          image: event.image || "src/assets/default-coming-soon.jpg", // Use default image if none provided
-          name: event.name,
-          location: event.venue,
-          date: event.event_date,
-          time: event.event_time,
-          buttonText: "View Details",
-          link: `/event-coming-soon-enduser/${event.id}`, // Dynamic link to the event
-        }))}
+        events={mapEventData(
+          comingSoonEvents,
+          "View Details",
+          "/event-coming-soon-enduser"
+        )}
+        loading={loading.comingSoon}
       />
 
       {/* Free Events Section */}
       <EventSection
         title="FREE EVENTS"
         description="UAAP or other IPEA Events that are open to all without the need for a reservation or ticket. Simply show up!"
-        events={freeEvents.map((event) => ({
-          image: event.image || "TigerTix/src/assets/tigertix_logo.png", // Use default image if none provided
-          name: event.name,
-          location: event.venue,
-          date: event.event_date,
-          time: event.event_time,
-          buttonText: "View Details",
-          link: `/event-free-enduser/${event.id}`
-          , // Dynamic link to the event
-        }))}
-
-        
+        events={mapEventData(freeEvents, "View Details", "/event-free-enduser")}
+        loading={loading.free}
       />
 
-
-     
+      {/* Error message display if needed */}
+      {error && (
+        <div className="bg-red-900 bg-opacity-25 text-red-200 p-4 max-w-6xl mx-auto my-4 rounded-lg">
+          <p>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 text-white underline"
+          >
+            Refresh page
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 export default Home;
+
+// Add CSS to hide scrollbars but maintain scroll functionality
+const scrollbarStyles = `
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+`;
+
+// You can add this to your CSS or include it as a style tag in your HTML
+// <style>{scrollbarStyles}</style>
