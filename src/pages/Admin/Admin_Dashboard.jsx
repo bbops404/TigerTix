@@ -1,13 +1,53 @@
+import React, { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
+import axios from "axios";
 
 const AdminDashboard = () => {
+
+
   // Event Status Data
   const eventStatusData = [
     { name: "Claimed", value: 60, color: "#FFA500" },
     { name: "Unclaimed", value: 40, color: "#FF8C00" },
   ];
+
+  const [metrics, setMetrics] = useState({
+    totalUsers: 0,
+    userChange: 0,
+    totalReservations: 0,
+    reservationChange: 0,
+    totalEvents: 0,
+    eventChange: 0,
+    completedEvents: 0,
+    completedEventChange: 0,
+  });
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const token = sessionStorage.getItem("authToken");
+        const response = await axios.get("http://localhost:5002/admin/dashboard/metrics", {
+          withCredentials: true, // Ensures cookies are sent (if applicable)
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.data.success) {
+          setMetrics(response.data.data);
+        } else {
+          console.error("Failed to fetch metrics:", response.data.message);
+        }
+      } catch (error) {
+        console.error("Error fetching metrics:", error);
+      }
+    };
+
+    fetchMetrics();
+  }, []);
 
   return (
     <div className="bg-[#272727] main-content">
@@ -28,17 +68,51 @@ const AdminDashboard = () => {
             {/* Metrics */}
             <div className="grid grid-cols-2 gap-4">
               {[
-                "Total Users",
-                "Total Reservations",
-                "Total Events",
-                "Completed Events",
-              ].map((title, index) => (
+
+
+
+{
+  title: "Total Users",
+  value: metrics.totalUsers,
+  change: metrics.userChange,
+  description: "Users vs last month",
+},
+{
+  title: "Total Reservations",
+  value: metrics.totalReservations,
+  change: metrics.reservationChange,
+  description: "Reservations vs last month",
+},
+{
+  title: "Total Events",
+  value: metrics.totalEvents,
+  change: metrics.eventChange,
+  description: "Events vs last month",
+},
+{
+  title: "Completed Events",
+  value: metrics.completedEvents,
+  change: metrics.completedEventChange,
+  description: "Percentage of completed vs scheduled events",
+},
+
+
+
+              ].map((metric, index) => (
                 <div
                   key={index}
                   className="bg-gradient-to-r from-[#FFAB40] to-[#FFCF91] p-6 text-center shadow-lg rounded-xl h-32 flex flex-col justify-center"
                 >
-                  <span className="text-4xl font-bold text-black">100</span>
-                  <p className="text-sm text-black">Last month</p>
+                 
+                <span className="text-4xl font-bold text-black">{metric.value}</span>
+                <p className="text-sm text-black">{metric.description}</p>
+                <span
+                  className={`text-sm font-bold ${
+                    metric.change >= 0 ? "text-green-500" : "text-red-500"
+                  }`}
+                >
+                  {metric.change >= 0 ? `+${metric.change}%` : `${metric.change}%`}
+                </span>
                 </div>
               ))}
             </div>
