@@ -67,6 +67,7 @@ const Layout = ({ children }) => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+
     <BrowserRouter>
       <Layout>
         <Routes>
@@ -96,13 +97,19 @@ function App() {
                   <Route path="/reservation-receipt" element={<ReservationReceipt />} />
                 </Route>
 
-              
-                {/* ========================== ADMIN PAGES ========================== */}
+
+            {/* ========================== ADMIN PAGES ========================== */}
             <Route element={<ProtectedRoutes role="admin" />}>
               <Route path="/admin-dashboard" element={<AdminDashboard />} />
               <Route path="/events" element={<EventsManagementContainer />} />
-              <Route path="/events/publish" element={<PublishEventContainer />} />
-              <Route path="/events/detail/:id" element={<EventDetailContainer />} />
+              <Route
+                path="/events/publish"
+                element={<PublishEventContainer />}
+              />
+              <Route
+                path="/events/detail/:id"
+                element={<EventDetailContainer />}
+              />
               <Route path="/reservations" element={<AdminReservations />} />
               <Route path="/users" element={<AdminUser />} />
               <Route path="/admin-profile" element={<AdminProfile />} />
@@ -110,18 +117,16 @@ function App() {
               <Route path="/event-report" element={<AdminEventReports />} />
             </Route>
 
-
-          {/* ========================== FOOTER PAGES ========================== */}
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms-of-use" element={<TermsOfUse />} />
-          <Route path="/about-us" element={<AboutUs />} />
-          <Route path="/contact-us" element={<ContactUs />} />
-          <Route path="/faqs" element={<FAQs />} />
-        </Routes>
-      </Layout>
-    </BrowserRouter>
-        </QueryClientProvider>
-
+            {/* ========================== FOOTER PAGES ========================== */}
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-use" element={<TermsOfUse />} />
+            <Route path="/about-us" element={<AboutUs />} />
+            <Route path="/contact-us" element={<ContactUs />} />
+            <Route path="/faqs" element={<FAQs />} />
+          </Routes>
+        </Layout>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 

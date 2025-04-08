@@ -17,8 +17,6 @@ const { initScheduler } = require("./schedulerService");
 const app = express();
 const port = process.env.PORT || 5002;
 
-
-
 // ========================================================
 // REDIS DATABASE SETUP
 // For caching and fast data retrieval
@@ -28,7 +26,6 @@ redisClient.on("connect", () =>
   console.log("Connected to Redis successfully! 🔥")
 );
 redisClient.on("error", (err) => console.error("Redis connection error:", err));
-
 
 // ========================================================
 // SOCKET.IO REAL-TIME COMMUNICATION SETUP
@@ -104,12 +101,14 @@ app.use((req, res, next) => {
 // EXPRESS MIDDLEWARE CONFIGURATION
 // ========================================================
 // CORS configuration for cross-origin requests
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
-  methods: "GET,POST,PUT,DELETE,PATCH",
-  allowedHeaders: "Content-Type,Authorization",
-}));
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+    methods: "GET,POST,PUT,DELETE,PATCH",
+    allowedHeaders: "Content-Type,Authorization",
+  })
+);
 
 // Parse cookies from request
 
@@ -117,7 +116,6 @@ app.use(cookieParser());
 
 // HTTP request logging
 app.use(morgan("dev"));
-
 
 app.use(
   express.json({
@@ -170,6 +168,10 @@ app.use("/auth", authRoutes);
 const eventRoutes = require("./routes/eventRoutes");
 app.use("/api", eventRoutes);
 
+// User routes
+const userRoutes = require("./routes/userRoutes");
+app.use("/api/users", userRoutes);
+
 // Private routes that require authentication
 const privateroute = require("./routes/privateroute");
 app.use("/privateroute", privateroute);
@@ -179,8 +181,6 @@ app.use("/admin", adminRoutes);
 
 const reservationRoutes = require("./routes/reservationRoutes");
 app.use("/api", reservationRoutes);
-
-
 
 // Root route
 app.get("/", (req, res) => {
@@ -248,7 +248,6 @@ const startServer = async () => {
     // Connect to PostgreSQL database
     await db.sequelize.authenticate();
     console.log("Sequelize connected successfully! 🎉");
-
 
     await db.sequelize.sync({ alter: true }); // Automatically updates the database schema
     await db.sync({ force: false });

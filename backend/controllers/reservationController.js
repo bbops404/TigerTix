@@ -1,45 +1,33 @@
 const db = require("../models");
 const Reservation = db.Reservation;
 const Ticket = db.Ticket;
+const Event = db.Event; // Add this
+const User = db.User; // Add this
+const ClaimingSlot = db.ClaimingSlot; // Add this
+const sequelize = db.sequelize; // Add this for transaction
 
 const reservationController = {
   // Create a new reservation
   createReservation: async (req, res) => {
-    const transaction = await db.sequelize.transaction(); // Use a transaction to ensure atomicity
+    // Start a transaction to ensure all database operations succeed or fail together
+    const transaction = await db.sequelize.transaction();
 
     try {
-      const { main_reserver_id, user_ids, event_id, ticket_id, claiming_id } = req.body;
+      const { main_reserver_id, user_ids, event_id, ticket_id, claiming_id } =
+        req.body;
+
+      // For debug purposes
+      console.log(
+        "Reservation Request Body:",
+        JSON.stringify(req.body, null, 2)
+      );
 
       // Validate required fields
       if (!event_id || !ticket_id || !claiming_id) {
+        await transaction.rollback();
         return res.status(400).json({
           success: false,
           message: "Missing required reservation details",
-        });
-      }
-
-      // Fetch the event to validate the reservation period
-      const event = await db.Event.findByPk(event_id, {
-        attributes: ["reservation_end_date", "reservation_end_time"],
-      });
-
-      if (!event) {
-        return res.status(404).json({
-          success: false,
-          message: "Event not found",
-        });
-      }
-
-      // Check if the current date and time are within the reservation period
-      const currentDate = new Date();
-      const reservationEndDateTime = new Date(
-        `${event.reservation_end_date}T${event.reservation_end_time}`
-      );
-
-      if (currentDate > reservationEndDateTime) {
-        return res.status(400).json({
-          success: false,
-          message: "Reservations for this event are no longer allowed.",
         });
       }
 
@@ -58,15 +46,57 @@ const reservationController = {
         // Single reservation for the main reserver
         usersToReserveFor = [main_reserver_id];
       } else {
+        await transaction.rollback();
         return res.status(400).json({
           success: false,
           message: "Either main_reserver_id or user_ids must be provided",
         });
       }
 
+      console.log(
+        `Processing reservation for ${usersToReserveFor.length} users:`,
+        usersToReserveFor
+      );
+
+      // Check if the event exists
+      const event = await Event.findByPk(event_id);
+      if (!event) {
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          message: "Event not found",
+        });
+      }
+
+      // Validate event status - only 'open' events can be reserved
+      if (event.status !== "open") {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Event is not open for reservations. Current status: ${event.status}`,
+        });
+      }
+
+      // Check if the current date and time are within the reservation period
+      const currentDate = new Date();
+      if (event.reservation_end_date && event.reservation_end_time) {
+        const reservationEndDateTime = new Date(
+          `${event.reservation_end_date}T${event.reservation_end_time}`
+        );
+
+        if (currentDate > reservationEndDateTime) {
+          await transaction.rollback();
+          return res.status(400).json({
+            success: false,
+            message: "Reservations for this event are no longer allowed.",
+          });
+        }
+      }
+
       // Check if the ticket exists and has enough remaining quantity
       const ticket = await Ticket.findByPk(ticket_id);
       if (!ticket) {
+        await transaction.rollback();
         return res.status(404).json({
           success: false,
           message: "Ticket not found",
@@ -75,6 +105,7 @@ const reservationController = {
 
       const totalQuantity = usersToReserveFor.length; // Total tickets needed (1 per user)
       if (ticket.remaining_quantity < totalQuantity) {
+        await transaction.rollback();
         return res.status(400).json({
           success: false,
           message: "Not enough tickets available",
@@ -82,14 +113,21 @@ const reservationController = {
       }
 
       // Validate that all users exist in the system
-      const users = await db.User.findAll({
-        where: { user_id: usersToReserveFor }, // Use user_id instead of id
+      const users = await User.findAll({
+        where: { user_id: usersToReserveFor },
       });
 
       if (users.length !== usersToReserveFor.length) {
+        const foundUserIds = users.map((user) => user.user_id);
+        const missingUserIds = usersToReserveFor.filter(
+          (id) => !foundUserIds.includes(id)
+        );
+
+        await transaction.rollback();
         return res.status(404).json({
           success: false,
           message: "One or more users not found",
+          missing_users: missingUserIds,
         });
       }
 
@@ -102,9 +140,37 @@ const reservationController = {
       });
 
       if (existingReservations.length > 0) {
+        const duplicateUsers = existingReservations.map((res) => res.user_id);
+
+        await transaction.rollback();
         return res.status(400).json({
           success: false,
-          message: "One or more users already have a reservation for this event",
+          message:
+            "One or more users already have a reservation for this event",
+          duplicate_users: duplicateUsers,
+        });
+      }
+
+      // Check the claiming slot
+      const claimingSlot = await ClaimingSlot.findByPk(claiming_id);
+      if (!claimingSlot) {
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          message: "Claiming slot not found",
+        });
+      }
+
+      // Check if the ClaimingSlot has enough space
+      if (
+        claimingSlot.current_claimers + totalQuantity >
+        claimingSlot.max_claimers
+      ) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message:
+            "This claiming slot does not have enough space for your reservation",
         });
       }
 
@@ -118,35 +184,24 @@ const reservationController = {
             ticket_id,
             claiming_id,
             quantity: 1, // Each user gets 1 ticket
+            reservation_status: "pending", // Default status
           },
           { transaction }
         );
         reservations.push(newReservation);
       }
 
-      // Update the ClaimingSlot's current_claimers
-      const claimingSlot = await db.ClaimingSlot.findByPk(claiming_id);
-      if (!claimingSlot) {
-        return res.status(404).json({
-          success: false,
-          message: "Claiming slot not found",
-        });
-      }
+      // Update claiming slot's current_claimers count
+      await claimingSlot.increment("current_claimers", {
+        by: totalQuantity,
+        transaction,
+      });
 
-      // Check if the ClaimingSlot has reached its maximum claimers
-      if (claimingSlot.current_claimers >= claimingSlot.max_claimers) {
-        return res.status(400).json({
-          success: false,
-          message: "This claiming slot is already full.",
-        });
-      }
-
-      claimingSlot.current_claimers += totalQuantity; // Increment by the number of reservations
-      await claimingSlot.save({ transaction });
-
-      // Update the remaining quantity of the ticket
-      ticket.remaining_quantity -= totalQuantity;
-      await ticket.save({ transaction });
+      // Update the ticket's remaining quantity
+      await ticket.decrement("remaining_quantity", {
+        by: totalQuantity,
+        transaction,
+      });
 
       await transaction.commit(); // Commit the transaction
 
@@ -437,7 +492,6 @@ const reservationController = {
             as: "User", // Use the alias defined in the association
             attributes: ["first_name", "last_name"],
           },
-          
         ],
       });
 
@@ -618,7 +672,8 @@ const reservationController = {
       if (currentTime <= claimingEndTime) {
         return res.status(400).json({
           success: false,
-          message: "Reservation cannot be reinstated before the claiming period ends.",
+          message:
+            "Reservation cannot be reinstated before the claiming period ends.",
         });
       }
 
