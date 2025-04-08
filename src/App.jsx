@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ProtectedRoutes from "./ProtectedRoutes"; // Import the protected route
+import PublicRoutes from "./PublicRoutes";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,7 @@ function App() {
       <Layout>
         <Routes>
           {/* ========================== LANDING PAGES ========================== */}
+          <Route element={<PublicRoutes />}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/verify" element={<SignUpVerifyEmail />} />
           <Route path="/event-ticketed/:id" element={<EventTicketed />} />        
@@ -79,7 +81,10 @@ function App() {
           <Route path="/login" element={<LoginPopup />} />
           <Route path="/forget-password" element={<ForgetPassword />} />
           <Route path="/change-password" element={<UpdatePassword />} />
-          /* ========================== ENDUSER PAGES ========================== */}
+          </Route>
+
+
+          {/* ========================== ENDUSER PAGES ========================== */}
                 <Route element={<ProtectedRoutes role={["student", "employee", "alumni"]} />}>
                   <Route path="/home" element={<Home />} />
                   <Route path="/event-ticketed-enduser/:id" element={<EventTicketedEndUser />} />
