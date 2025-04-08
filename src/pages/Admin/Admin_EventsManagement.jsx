@@ -596,7 +596,7 @@ const Admin_EventsManagement = ({
                       />
                       {isFutureScheduledEvent(event) && (
                         <div className="mt-2 bg-yellow-900/30 border border-yellow-600 rounded-md p-2 text-xs">
-                          <div className="flex items-center text-custom_black">
+                          <div className="flex items-center text-gray-300">
                             <FaClock className="mr-1" />
                             <span>
                               Display scheduled in:{" "}
