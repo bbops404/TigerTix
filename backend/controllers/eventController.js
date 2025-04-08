@@ -831,7 +831,7 @@ const eventController = {
       return res.status(200).json({
         success: true,
         message: "Image uploaded successfully",
-        imageUrl: `/uploads/events/${req.file.filename}`, // Notice the leading slas
+        imageUrl: imageUrl, // Notice the leading slas
       });
     });
   },

@@ -302,8 +302,8 @@ const reservationController = {
           },
           {
             model: db.Ticket,
-            as: "Tickets", // Use the alias defined in the association
-            attributes: ["ticket_type"], // Fetch ticket type from Ticket
+            as: "Ticket", // Use the alias defined in the association
+            attributes: ["seat_type","ticket_type", "price"], // Fetch ticket type from Ticket
           },
           {
             model: db.ClaimingSlot,
@@ -313,17 +313,35 @@ const reservationController = {
         ],
       });
 
-      // Format the response
-      const formattedReservations = reservations.map((reservation) => ({
-        reservation_id: reservation.reservation_id,
-        name: `${reservation.User.first_name} ${reservation.User.last_name}`, // Format full name
-        role: reservation.User.role,
-        event_name: reservation.Event.event_name,
-        ticket_tier: reservation.Ticket.ticket_type,
-        claiming_date: reservation.ClaimingSlot.claiming_date,
-        claiming_time: `${reservation.ClaimingSlot.start_time} - ${reservation.ClaimingSlot.end_time}`,
-        claiming_status: reservation.reservation_status,
-      }));
+      const formattedReservations = reservations.map((reservation) => {
+        // Format claiming start and end times with AM/PM
+        const startTime = reservation.ClaimingSlot?.start_time
+          ? new Date(`1970-01-01T${reservation.ClaimingSlot.start_time}`).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "N/A";
+
+        const endTime = reservation.ClaimingSlot?.end_time
+          ? new Date(`1970-01-01T${reservation.ClaimingSlot.end_time}`).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "N/A";
+
+        return {
+          reservation_id: reservation.reservation_id,
+          name: `${reservation.User?.first_name || ""} ${reservation.User?.last_name || ""}`.trim(),
+          role: reservation.User?.role || "N/A",
+          event_name: reservation.Event?.name || "N/A",
+          seat_type: reservation.Ticket?.seat_type || "N/A",
+          ticket_tier: reservation.Ticket?.ticket_type || "N/A",
+          claiming_date: reservation.ClaimingSlot?.claiming_date || "N/A",
+          claiming_time: `${startTime} - ${endTime}`, // Include formatted start and end times
+          amount: reservation.Ticket?.price || 0,
+          claiming_status: reservation.reservation_status || "N/A",
+        };
+      });
 
       return res.status(200).json({
         success: true,
@@ -407,7 +425,7 @@ const reservationController = {
     }
   },
 
-  // Mark a reservation as claimed
+  // Mark a reservation as claimed - manual 
   markAsClaimed: async (req, res) => {
     try {
       const { reservation_id } = req.params;

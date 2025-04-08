@@ -5,7 +5,6 @@
  * @param {string} imageUrl - The raw image URL or path from the server
  * @returns {string|null} - Properly formatted URL or null if no image
  */
-// src/utils/ImageUtils.js - update the formatImageUrl function
 export const formatImageUrl = (imageUrl) => {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002";
 
@@ -21,10 +20,7 @@ export const formatImageUrl = (imageUrl) => {
     const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
 
     // Replace /api/uploads/ with /uploads/ in the path
-    const fixedPath = imageUrl.replace(
-      `${baseUrl}/api/uploads/`,
-      `${baseUrl}/uploads/`
-    );
+    const fixedPath = imageUrl.replace(`${baseUrl}/api/uploads/`, `${baseUrl}/uploads/`);
     return fixedPath;
   }
 

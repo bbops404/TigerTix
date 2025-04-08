@@ -3,6 +3,11 @@ const router = express.Router();
 const authenticate = require("../middleware/authenticate"); // Middleware for auth
 const authorizeAdmin = require("../middleware/authorizeAdmin.js"); // Middleware for admin access
 const adminController = require("../controllers/adminController"); // Admin controller
+const adminDashboardController = require("../controllers/adminDashboardController"); // Admin controller
+
+// Routes for Admin Dashboard
+router.get("/dashboard/metrics", authenticate, authorizeAdmin, adminDashboardController.getDashboardMetrics);
+
 
 // ✅ Protected route: Get all users (only for admin)
 router.get("/users", authenticate, authorizeAdmin, adminController.getAllUsers);

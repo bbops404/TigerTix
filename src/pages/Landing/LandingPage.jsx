@@ -295,52 +295,53 @@ function LandingPage() {
       <Carousel />
       {/* Ticketed Events Section */}
       <EventSection
-        title="TICKETED EVENTS"
-        description="Events where tickets must be reserved in advance. Ensure your spot by booking a ticket."
-        events={ticketedEvents.map((event) => ({
-          image: event.image || "TigerTix/src/assets/tigertix_logo.png", // Use default image if none provided
-          name: event.name,
-          location: event.venue,
-          date: event.event_date,
-          time: event.event_time,
-          buttonText: "Reserve Now",
-          link: `/event-ticketed/${event.id}`, // Dynamic link to the event
-        }))}
-      />
-
-       {/* Coming Soon Events Section */}
-       <EventSection
-        title="EVENTS COMING SOON"
-        description="Upcoming events that will require a reservation. Ticket and reservation details are not yet available."
-        events={comingSoonEvents.map((event) => ({
-          image: event.image || "src/assets/default-coming-soon.jpg", // Use default image if none provided
-          name: event.name,
-          location: event.venue,
-          date: event.event_date,
-          time: event.event_time,
-          buttonText: "View Details",
-          link: `/event-coming-soon/${event.id}`, // Dynamic link to the event
-        }))}
-      />
-
-      {/* Free Events Section */}
-      <EventSection
-        title="FREE EVENTS"
-        description="UAAP or other IPEA Events that are open to all without the need for a reservation or ticket. Simply show up!"
-        events={freeEvents.map((event) => ({
-          image: event.image || "TigerTix/src/assets/tigertix_logo.png", // Use default image if none provided
-          name: event.name,
-          location: event.venue,
-          date: event.event_date,
-          time: event.event_time,
-          buttonText: "View Details",
-          link: `/event-free/${event.id}`
-          , // Dynamic link to the event
-        }))}
-
-        
-      />
-
+  title="TICKETED EVENTS"
+  description="Events where tickets must be reserved in advance. Ensure your spot by booking a ticket."
+  events={ticketedEvents.map((event) => {
+    console.log("Ticketed Event Image:", event.image); // Log the image field
+    return {
+      image: event.image || "TigerTix/src/assets/tigertix_logo.png", // Use default image if none provided
+      name: event.name,
+      location: event.venue,
+      date: event.event_date,
+      time: event.event_time,
+      buttonText: "Reserve Now",
+      link: `/event-ticketed/${event.id}`, // Dynamic link to the event
+    };
+  })}
+/>
+<EventSection
+  title="EVENTS COMING SOON"
+  description="Upcoming events that will require a reservation. Ticket and reservation details are not yet available."
+  events={comingSoonEvents.map((event) => {
+    console.log("Coming Soon Event Image:", event.image); // Log the image field
+    return {
+      image: event.image || "src/assets/default-coming-soon.jpg", // Use default image if none provided
+      name: event.name,
+      location: event.venue,
+      date: event.event_date,
+      time: event.event_time,
+      buttonText: "View Details",
+      link: `/event-coming-soon/${event.id}`, // Dynamic link to the event
+    };
+  })}
+/>
+<EventSection
+  title="FREE EVENTS"
+  description="UAAP or other IPEA Events that are open to all without the need for a reservation or ticket. Simply show up!"
+  events={freeEvents.map((event) => {
+    console.log("Free Event Image:", event.image); // Log the image field
+    return {
+      image: event.image || "TigerTix/src/assets/tigertix_logo.png", // Use default image if none provided
+      name: event.name,
+      location: event.venue,
+      date: event.event_date,
+      time: event.event_time,
+      buttonText: "View Details",
+      link: `/event-free/${event.id}`, // Dynamic link to the event
+    };
+  })}
+/>
 
      
     </div>
