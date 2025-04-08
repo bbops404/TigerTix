@@ -1066,70 +1066,323 @@ const eventController = {
 
   // Get free events
   getFreeEvents: async (req, res) => {
-  try {
-    const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
+    try {
+      const { page = 1, limit = 10 } = req.query;
+      const offset = (page - 1) * limit;
 
-    const events = await Event.findAndCountAll({
-      where: {
-        event_type: "free",
-        visibility: "published",
-      },
-      limit: parseInt(limit),
-      offset: offset,
-      order: [["display_start_date", "ASC"]],
-    });
+      const events = await Event.findAndCountAll({
+        where: {
+          event_type: "free",
+          visibility: "published",
+        },
+        limit: parseInt(limit),
+        offset: offset,
+        order: [["display_start_date", "ASC"]],
+      });
 
-    return res.status(200).json({
-      success: true,
-      data: events.rows,
-      total: events.count,
-      totalPages: Math.ceil(events.count / limit),
-      currentPage: parseInt(page),
-    });
-  } catch (error) {
-    console.error("Error fetching free events:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error.message,
-    });
-  }
-},
+      return res.status(200).json({
+        success: true,
+        data: events.rows,
+        total: events.count,
+        totalPages: Math.ceil(events.count / limit),
+        currentPage: parseInt(page),
+      });
+    } catch (error) {
+      console.error("Error fetching free events:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
 
-// Get ticketed events
-getTicketedEvents: async (req, res) => {
-  try {
-    const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
+  // Get ticketed events
+  getTicketedEvents: async (req, res) => {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+      const offset = (page - 1) * limit;
 
-    const events = await Event.findAndCountAll({
-      where: {
-        event_type: "ticketed",
-        visibility: "published",
-      },
-      limit: parseInt(limit),
-      offset: offset,
-      order: [["display_start_date", "ASC"]],
-    });
+      const events = await Event.findAndCountAll({
+        where: {
+          event_type: "ticketed",
+          visibility: "published",
+        },
+        limit: parseInt(limit),
+        offset: offset,
+        order: [["display_start_date", "ASC"]],
+      });
 
-    return res.status(200).json({
-      success: true,
-      data: events.rows,
-      total: events.count,
-      totalPages: Math.ceil(events.count / limit),
-      currentPage: parseInt(page),
-    });
-  } catch (error) {
-    console.error("Error fetching ticketed events:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error.message,
-    });
-  }
-},
+      return res.status(200).json({
+        success: true,
+        data: events.rows,
+        total: events.count,
+        totalPages: Math.ceil(events.count / limit),
+        currentPage: parseInt(page),
+      });
+    } catch (error) {
+      console.error("Error fetching ticketed events:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
 
+  getTicketedEventsById: async (req, res) => {
+    try {
+      const { id } = req.params; // Get the event ID from the request parameters
+
+      const event = await Event.findByPk(id, {
+        include: [
+          {
+            model: Ticket,
+            as: "Tickets", // Use the alias defined in your Sequelize association
+          },
+        ],
+      });
+
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: "Event not found",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: event,
+      });
+    } catch (error) {
+      console.error("Error fetching ticketed event by ID:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+
+  getComingSoonEventsbyId: async (req, res) => {
+    try {
+      const { id } = req.params; // Get the event ID from the request parameters
+
+      const event = await Event.findByPk(id, {
+        include: [
+          {
+            model: Ticket, // Include related tickets if applicable
+            as: "Tickets", // Use the alias defined in your Sequelize association
+          },
+        ],
+      });
+
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: "Event not found",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: event,
+      });
+    } catch (error) {
+      console.error("Error fetching coming soon event by ID:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+
+  getFreeEventsbyId: async (req, res) => {
+    try {
+      const { id } = req.params; // Get the event ID from the request parameters
+
+      const event = await Event.findByPk(id, {
+        include: [
+          {
+            model: Ticket, // Include related tickets if applicable
+            as: "Tickets", // Use the alias defined in your Sequelize association
+          },
+        ],
+      });
+
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: "Event not found",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: event,
+      });
+    } catch (error) {
+      console.error("Error fetching free event by ID:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+
+  // get published ticketed events for users
+  getTicketedEventsByIdForUser: async (req, res) => {
+    try {
+      const { id } = req.params;
+  
+      const event = await Event.findByPk(id, {
+        include: [
+          {
+            model: Ticket,
+            as: "Tickets",
+          },
+        ],
+      });
+  
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: "Event not found",
+        });
+      }
+  
+      return res.status(200).json({
+        success: true,
+        data: event,
+      });
+    } catch (error) {
+      console.error("Error fetching ticketed event for user by ID:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+
+  getComingSoonEventsByIdForUser: async (req, res) => {
+    try {
+      const { id } = req.params;
+  
+      const event = await Event.findByPk(id, {
+        include: [
+          {
+            model: Ticket,
+            as: "Tickets",
+          },
+        ],
+      });
+  
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: "Event not found",
+        });
+      }
+  
+      return res.status(200).json({
+        success: true,
+        data: event,
+      });
+    } catch (error) {
+      console.error("Error fetching coming soon event for user by ID:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+
+  getFreeEventsByIdForUser: async (req, res) => {
+    try {
+      const { id } = req.params;
+  
+      const event = await Event.findByPk(id, {
+        include: [
+          {
+            model: Ticket,
+            as: "Tickets",
+          },
+        ],
+      });
+  
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          message: "Event not found",
+        });
+      }
+  
+      return res.status(200).json({
+        success: true,
+        data: event,
+      });
+    } catch (error) {
+      console.error("Error fetching free event for user by ID:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+
+  getPublishedTicketedEvents: async (req, res) => {
+    try {
+      const { limit = 4 } = req.query; // Limit the number of events to fetch (default: 4)
+
+      const events = await Event.findAll({
+        where: {
+          visibility: "published", // Only fetch published events
+          event_type: "ticketed", // Only fetch ticketed events
+        },
+        order: [["createdAt", "DESC"]], // Order by most recently created
+        limit: parseInt(limit), // Limit the number of results
+        attributes: ["id", "name", "details"], // Only fetch the name and details
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: events,
+      });
+    } catch (error) {
+      console.error("Error fetching published ticketed events:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+
+  getPublishedEvents: async (req, res) => {
+    try {
+      const events = await Event.findAll({
+        where: { visibility: "published" },
+        attributes: ["id", "name", "event_date"], // Include event_date in the response
+        order: [["createdAt", "DESC"]], // Order by most recent
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: events,
+      });
+    } catch (error) {
+      console.error("Error fetching published events:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+  },
 };
 
 module.exports = eventController;

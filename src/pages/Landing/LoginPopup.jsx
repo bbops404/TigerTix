@@ -67,7 +67,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
         if (data.user.role === "admin") {
           navigate("/admin-dashboard", { replace: true });
         } else if (["student", "employee", "alumni"].includes(data.user.role)) {
-          navigate("/home", { replace: true });
+          navigate("/home", { replace: true }); // i just tested but this should redirected to home
         }
 
         // Debugging cookies

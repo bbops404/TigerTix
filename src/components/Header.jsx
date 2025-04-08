@@ -1,34 +1,39 @@
 import React, { useEffect, useState } from "react";
 import tigertix_logo from "../assets/tigertix_logo.png";
-import { FaSearch } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
-const Header = ({
-  toggleLoginPopup,
-  showSearch = true,
-  showAuthButtons = true,
-}) => {
+const Header = ({ toggleLoginPopup, showAuthButtons = true }) => {
   const navigate = useNavigate();
-  const [data, setData] = useState([]);
-  const [filterData, setFilterData] = useState([]);
-  const [isFocused, setIsFocused] = useState(false);
+  const [publishedEvents, setPublishedEvents] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
 
   useEffect(() => {
-    fetch("https://jsonplaceholder.typicode.com/users")
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data);
-        setFilterData(data);
-      })
-      .catch((err) => console.log(err));
+    const fetchPublishedEvents = async () => {
+      try {
+        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const response = await axios.get(`${API_BASE_URL}/api/events/published`);
+
+        if (response.data.success) {
+          setPublishedEvents(response.data.data);
+        } else {
+          console.error("Failed to fetch published events.");
+        }
+      } catch (error) {
+        console.error("Error fetching published events:", error);
+      }
+    };
+
+    fetchPublishedEvents();
   }, []);
 
-  const handleFilter = (value) => {
-    const res = filterData.filter((f) =>
-      f.name.toLowerCase().includes(value.toLowerCase())
-    );
-    setData(res);
+  const handleEventChange = (event) => {
+    const eventId = event.target.value;
+    setSelectedEvent(eventId);
+    if (eventId) {
+      navigate(`/event-ticketed/${eventId}`); // Navigate to the dynamic event page
+    }
   };
 
   return (
@@ -42,36 +47,31 @@ const Header = ({
           />
         </Link>
 
-        {showSearch && (
-          <div className="search-top relative">
-            <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-xl border-2 border-[#D8DADC] h-8 w-[700px]">
-              <FaSearch className="w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                className="focus:outline-none text-sm w-[700px] text-gray-600"
-                placeholder="Search"
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-                onChange={(e) => handleFilter(e.target.value)}
-              />
-            </div>
-            {isFocused && data.length > 0 && (
-              <div
-                className="text-custom_black search-result absolute top-full left-0 w-[700px] bg-white shadow-lg border border-gray-200 rounded-lg mt-1 h-60 overflow-y-auto"
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                {data.map((d, i) => (
-                  <div
-                    key={i}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    {d.name}
-                  </div>
-                ))}
-              </div>
+        {/* Dropdown for Published Events */}
+        <div className="relative">
+          <select
+            value={selectedEvent}
+            onChange={handleEventChange}
+            className="font-Poppins text-[15px] font-medium bg-white py-3 px-5 rounded-xl text-[#2D2D2D] transition-all duration-300 transform hover:scale-105 relative hover:shadow-lg hover:text-yellow-600 w-[565px] h-[50px] border border-gray-300"
+          >
+            <option value="" disabled>
+              Select Event
+            </option>
+            {publishedEvents.length > 0 ? (
+              publishedEvents.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.name} - {new Date(event.event_date).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </option>
+              ))
+            ) : (
+              <option disabled>No events available yet</option>
             )}
-          </div>
-        )}
+          </select>
+        </div>
 
         {showAuthButtons && (
           <div className="flex gap-5">
