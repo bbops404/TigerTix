@@ -123,12 +123,12 @@ const Sidebar = () => {
                   ? "bg-[#997342]"
                   : "hover:bg-[#997342]"
               }`}
-            onClick={() => navigate("/profile")}
+            onClick={() => navigate("/admin-profile")}
           >
             <div
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors
                 ${
-                  location.pathname.startsWith("/profile")
+                  location.pathname.startsWith("/admin-profile")
                     ? "bg-[#FFAB40]"
                     : "bg-[#7D7D7D]"
                 } 
