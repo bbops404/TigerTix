@@ -15,18 +15,33 @@ const ClaimingDetailsForm = ({
   eventDate,
 }) => {
   const [errors, setErrors] = useState({});
+  const [localEditData, setLocalEditData] = useState({
+    claimingDate: "",
+    claimingStartTime: "",
+    claimingEndTime: "",
+    claimingVenue: "",
+    maxReservations: "",
+  });
 
   // Reset errors when data changes and ensure form updates with new data
   useEffect(() => {
     if (data) {
       setErrors({});
 
-      // We don't need to do anything else; just make sure the component
-      // re-renders when data changes by including data in the dependency array
+      // Update local edit data when selected summary changes
+      if (data.selectedSummary) {
+        setLocalEditData({
+          claimingDate: data.claimingDate || "",
+          claimingStartTime: data.claimingStartTime || "",
+          claimingEndTime: data.claimingEndTime || "",
+          claimingVenue: data.claimingVenue || "",
+          maxReservations: data.maxReservations || "",
+        });
+      }
     }
   }, [data]);
 
-  // Import React at the top
+  // Ensure dateList is in sync with claimingSummaries
   useEffect(() => {
     // Ensure dateList is in sync with claimingSummaries if not already
     if (data && data.claimingSummaries && data.claimingSummaries.length > 0) {
@@ -46,7 +61,7 @@ const ClaimingDetailsForm = ({
         });
       }
     }
-  }, [data?.claimingSummaries]);
+  }, [data?.claimingSummaries, onChange, data]);
 
   const {
     eventType = "ticketed",
@@ -150,6 +165,13 @@ const ClaimingDetailsForm = ({
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    // Update both local state and parent state
+    setLocalEditData({
+      ...localEditData,
+      [name]: value,
+    });
+
     onChange({
       ...data,
       [name]: value,
@@ -159,6 +181,12 @@ const ClaimingDetailsForm = ({
   // Handle max reservations change - only allow positive numbers
   const handleMaxReservationsChange = (value) => {
     if (value === "" || (/^\d+$/.test(value) && parseInt(value) > 0)) {
+      // Update both local state and parent state
+      setLocalEditData({
+        ...localEditData,
+        maxReservations: value,
+      });
+
       onChange({
         ...data,
         maxReservations: value,
@@ -187,6 +215,15 @@ const ClaimingDetailsForm = ({
       newData.maxReservations = relatedSummary.maxReservations.toString();
       newData.selectedSummary = relatedSummary;
       newData.isEditing = true;
+
+      // Also update local edit data
+      setLocalEditData({
+        claimingDate: date,
+        claimingStartTime: relatedSummary.startTime,
+        claimingEndTime: relatedSummary.endTime,
+        claimingVenue: relatedSummary.venue,
+        maxReservations: relatedSummary.maxReservations.toString(),
+      });
     } else {
       // Otherwise, clear the form
       newData.claimingStartTime = "";
@@ -195,6 +232,15 @@ const ClaimingDetailsForm = ({
       newData.maxReservations = "";
       newData.selectedSummary = null;
       newData.isEditing = false;
+
+      // Reset local edit data
+      setLocalEditData({
+        claimingDate: date,
+        claimingStartTime: "",
+        claimingEndTime: "",
+        claimingVenue: "",
+        maxReservations: "",
+      });
     }
 
     onChange(newData);
@@ -202,6 +248,16 @@ const ClaimingDetailsForm = ({
 
   // Handle summary selection from the table
   const handleSelectSummary = (summary) => {
+    // Update local edit data
+    setLocalEditData({
+      claimingDate: summary.date,
+      claimingStartTime: summary.startTime,
+      claimingEndTime: summary.endTime,
+      claimingVenue: summary.venue,
+      maxReservations: summary.maxReservations.toString(),
+    });
+
+    // Update main form state
     onChange({
       ...data,
       selectedSummary: summary,
@@ -216,6 +272,16 @@ const ClaimingDetailsForm = ({
 
   // Clear all form fields
   const clearForm = () => {
+    // Reset local edit data
+    setLocalEditData({
+      claimingDate: "",
+      claimingStartTime: "",
+      claimingEndTime: "",
+      claimingVenue: "",
+      maxReservations: "",
+    });
+
+    // Reset parent form state
     onChange({
       ...data,
       claimingDate: "",
@@ -231,7 +297,7 @@ const ClaimingDetailsForm = ({
 
   // Handle adding or updating claiming schedule
   const handleAddOrUpdateSchedule = () => {
-    if (isEditing) {
+    if (isEditing && selectedSummary) {
       // Editing existing schedule
       if (
         claimingDate &&
@@ -239,6 +305,7 @@ const ClaimingDetailsForm = ({
         claimingStartTime &&
         claimingEndTime
       ) {
+        // Create the updated summary object
         const summaryData = {
           id: selectedSummary.id,
           date: claimingDate,
@@ -249,18 +316,55 @@ const ClaimingDetailsForm = ({
             maxReservations === "" ? 0 : parseInt(maxReservations),
         };
 
-        const updatedSummaries = claimingSummaries.map((s) =>
-          s.id === selectedSummary.id ? summaryData : s
+        // Create a copy of the summaries array
+        const updatedSummaries = [...claimingSummaries];
+
+        // Find the index of the summary being edited
+        const summaryIndex = updatedSummaries.findIndex(
+          (s) => s.id === selectedSummary.id
         );
 
-        const newData = {
+        if (summaryIndex === -1) {
+          // If not found, just add it to the array
+          updatedSummaries.push(summaryData);
+        } else {
+          // If found, replace the existing summary with the updated one
+          updatedSummaries[summaryIndex] = summaryData;
+        }
+
+        // Update the parent state with the new summaries array
+        onChange({
           ...data,
           claimingSummaries: updatedSummaries,
-        };
+          selectedSummary: null,
+          isEditing: false,
+          claimingDate: "",
+          claimingStartTime: "",
+          claimingEndTime: "",
+          claimingVenue: "",
+          maxReservations: "",
+        });
 
-        onChange(newData);
-        syncDateListWithSummaries(updatedSummaries);
-        clearForm();
+        // Reset local edit data
+        setLocalEditData({
+          claimingDate: "",
+          claimingStartTime: "",
+          claimingEndTime: "",
+          claimingVenue: "",
+          maxReservations: "",
+        });
+
+        // Update dateList if needed
+        const uniqueDates = [...new Set(updatedSummaries.map((s) => s.date))];
+        if (
+          !dateList.includes(claimingDate) ||
+          dateList.length !== uniqueDates.length
+        ) {
+          onChange((prev) => ({
+            ...prev,
+            dateList: uniqueDates,
+          }));
+        }
       } else {
         alert(
           "Please provide all required information (date, venue, and time)"
@@ -278,7 +382,7 @@ const ClaimingDetailsForm = ({
         }
 
         const summaryData = {
-          id: Date.now(),
+          id: Date.now(), // Use timestamp as unique ID
           date: dateToUse,
           venue: claimingVenue,
           startTime: claimingStartTime,
@@ -289,15 +393,28 @@ const ClaimingDetailsForm = ({
 
         const updatedSummaries = [...claimingSummaries, summaryData];
 
-        const newData = {
+        // Update parent state
+        onChange({
           ...data,
           dateList: updatedDateList,
           claimingSummaries: updatedSummaries,
-        };
+          selectedSummary: null,
+          isEditing: false,
+          claimingDate: "",
+          claimingStartTime: "",
+          claimingEndTime: "",
+          claimingVenue: "",
+          maxReservations: "",
+        });
 
-        onChange(newData);
-        syncDateListWithSummaries(updatedSummaries);
-        clearForm();
+        // Reset local edit data
+        setLocalEditData({
+          claimingDate: "",
+          claimingStartTime: "",
+          claimingEndTime: "",
+          claimingVenue: "",
+          maxReservations: "",
+        });
       } else {
         alert(
           "Please provide all required information (date, venue, and time)"
@@ -311,12 +428,29 @@ const ClaimingDetailsForm = ({
     const updatedSummaries = claimingSummaries.filter(
       (s) => s.id !== summaryId
     );
+
     onChange({
       ...data,
       claimingSummaries: updatedSummaries,
+      selectedSummary: null,
+      isEditing: false,
+      claimingDate: "",
+      claimingStartTime: "",
+      claimingEndTime: "",
+      claimingVenue: "",
+      maxReservations: "",
     });
+
+    // Reset local edit data
+    setLocalEditData({
+      claimingDate: "",
+      claimingStartTime: "",
+      claimingEndTime: "",
+      claimingVenue: "",
+      maxReservations: "",
+    });
+
     syncDateListWithSummaries(updatedSummaries);
-    clearForm();
   };
 
   // Handle deleting a date from the date list
@@ -334,6 +468,17 @@ const ClaimingDetailsForm = ({
       dateList: updatedDateList,
       claimingSummaries: updatedSummaries,
       selectedDate: null,
+      selectedSummary: null,
+      isEditing: false,
+    });
+
+    // Reset local edit data
+    setLocalEditData({
+      claimingDate: "",
+      claimingStartTime: "",
+      claimingEndTime: "",
+      claimingVenue: "",
+      maxReservations: "",
     });
   };
 
@@ -544,6 +689,7 @@ const ClaimingDetailsForm = ({
                   name="claimingDate"
                   value={claimingDate}
                   onChange={handleInputChange}
+                  max={eventDate} // Set max date to event date
                   className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
                 />
                 <p className="text-[#B8B8B8] text-xs mt-1">
@@ -695,7 +841,6 @@ const ClaimingDetailsForm = ({
           </div>
         </div>
 
-        {/* Claiming Schedule Summary Table */}
         <div className="mt-4">
           <p className="text-[#FFAB40] text-sm mb-1">
             Claiming Schedule Summary:
