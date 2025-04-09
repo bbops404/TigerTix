@@ -221,14 +221,13 @@ const reservationController = {
     }
   },
 
-  // Get all reservations for a user
   getUserReservations: async (req, res) => {
     try {
       const { user_id } = req.params;
 
       const reservations = await Reservation.findAll({
         where: { user_id },
-        include: ["event", "tickets", "claimingSlot"],
+        include: ["Event", "Ticket", "ClaimingSlot"], // Changed to match your model association names
       });
 
       return res.status(200).json({
@@ -303,7 +302,7 @@ const reservationController = {
           {
             model: db.Ticket,
             as: "Ticket", // Use the alias defined in the association
-            attributes: ["seat_type","ticket_type", "price"], // Fetch ticket type from Ticket
+            attributes: ["seat_type", "ticket_type", "price"], // Fetch ticket type from Ticket
           },
           {
             model: db.ClaimingSlot,
@@ -316,14 +315,18 @@ const reservationController = {
       const formattedReservations = reservations.map((reservation) => {
         // Format claiming start and end times with AM/PM
         const startTime = reservation.ClaimingSlot?.start_time
-          ? new Date(`1970-01-01T${reservation.ClaimingSlot.start_time}`).toLocaleTimeString("en-US", {
+          ? new Date(
+              `1970-01-01T${reservation.ClaimingSlot.start_time}`
+            ).toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
             })
           : "N/A";
 
         const endTime = reservation.ClaimingSlot?.end_time
-          ? new Date(`1970-01-01T${reservation.ClaimingSlot.end_time}`).toLocaleTimeString("en-US", {
+          ? new Date(
+              `1970-01-01T${reservation.ClaimingSlot.end_time}`
+            ).toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
             })
@@ -331,7 +334,9 @@ const reservationController = {
 
         return {
           reservation_id: reservation.reservation_id,
-          name: `${reservation.User?.first_name || ""} ${reservation.User?.last_name || ""}`.trim(),
+          name: `${reservation.User?.first_name || ""} ${
+            reservation.User?.last_name || ""
+          }`.trim(),
           role: reservation.User?.role || "N/A",
           event_name: reservation.Event?.name || "N/A",
           seat_type: reservation.Ticket?.seat_type || "N/A",
@@ -425,7 +430,7 @@ const reservationController = {
     }
   },
 
-  // Mark a reservation as claimed - manual 
+  // Mark a reservation as claimed - manual
   markAsClaimed: async (req, res) => {
     try {
       const { reservation_id } = req.params;
@@ -470,7 +475,12 @@ const reservationController = {
   // Mark a reservation as claimed via QR code
   markAsClaimedByQRCode: async (req, res) => {
     try {
-      const { reservation_id } = req.body; // Extract reservation_id from the QR code data
+      const { reservation_id } = req.body;
+
+      console.log("Received QR claim request:", {
+        body: req.body,
+        reservationId: reservation_id,
+      });
 
       if (!reservation_id) {
         return res.status(400).json({
@@ -479,28 +489,40 @@ const reservationController = {
         });
       }
 
-      // Find the reservation by ID
-      const reservation = await Reservation.findByPk(reservation_id, {
+      // Handle numeric ID conversion
+      const parsedId = parseInt(reservation_id);
+      const queryId = !isNaN(parsedId) ? parsedId : reservation_id;
+
+      console.log(`Querying for reservation to claim with ID: ${queryId}`);
+
+      // Find the reservation by ID with simpler associations (just what we need)
+      const reservation = await db.Reservation.findOne({
+        where: { reservation_id: queryId },
         include: [
           {
-            model: db.Ticket,
-            as: "Tickets", // Use the alias defined in the association
-            attributes: ["ticket_type"],
+            model: db.User,
+            as: "User",
+            attributes: ["first_name", "last_name"],
           },
           {
-            model: db.User,
-            as: "User", // Use the alias defined in the association
-            attributes: ["first_name", "last_name"],
+            model: db.Ticket,
+            as: "Ticket",
+            attributes: ["ticket_type"],
           },
         ],
       });
 
       if (!reservation) {
+        console.log(`No reservation found with ID: ${queryId}`);
         return res.status(404).json({
           success: false,
           message: "Reservation not found",
         });
       }
+
+      console.log(
+        `Found reservation: ID ${reservation.reservation_id}, status: ${reservation.reservation_status}`
+      );
 
       // Check if the reservation status is valid for claiming
       if (reservation.reservation_status !== "pending") {
@@ -514,13 +536,28 @@ const reservationController = {
       reservation.reservation_status = "claimed";
       await reservation.save();
 
+      console.log(
+        `Successfully marked reservation ${reservation.reservation_id} as claimed`
+      );
+
+      // Format user name safely
+      const userName = reservation.User
+        ? `${reservation.User.first_name || ""} ${
+            reservation.User.last_name || ""
+          }`.trim()
+        : "Unknown User";
+
+      // Get ticket type safely
+      const ticketType = reservation.Ticket?.ticket_type || "Unknown Type";
+
       return res.status(200).json({
         success: true,
         message: "Reservation marked as claimed successfully",
         data: {
           reservation_id: reservation.reservation_id,
-          user_name: `${reservation.User.first_name} ${reservation.User.last_name}`,
-          ticket_type: reservation.Ticket.ticket_type,
+          user_name: userName,
+          ticket_type: ticketType,
+          status: "claimed",
         },
       });
     } catch (error) {
@@ -529,14 +566,19 @@ const reservationController = {
         success: false,
         message: "Internal server error",
         error: error.message,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
       });
     }
   },
-
   // Validate and retrieve reservation details via QR code
   validateReservationByQRCode: async (req, res) => {
     try {
-      const { reservation_id } = req.body; // Extract reservation_id from the QR code data
+      const { reservation_id } = req.body;
+
+      console.log("Received QR validation request:", {
+        body: req.body,
+        reservationId: reservation_id,
+      });
 
       if (!reservation_id) {
         return res.status(400).json({
@@ -545,71 +587,77 @@ const reservationController = {
         });
       }
 
-      // Find the reservation by ID
-      const reservation = await Reservation.findByPk(reservation_id, {
+      // Handle numeric ID conversion
+      const parsedId = parseInt(reservation_id);
+      const queryId = !isNaN(parsedId) ? parsedId : reservation_id;
+
+      console.log(
+        `Querying for reservation with ID: ${queryId}, type: ${typeof queryId}`
+      );
+
+      // Find the reservation with proper associations
+      const reservation = await db.Reservation.findOne({
+        where: { reservation_id: queryId },
         include: [
           {
             model: db.Ticket,
-            as: "Tickets", // Use the alias defined in the association
-            attributes: ["ticket_type", "price"], // Include ticket type and price
+            as: "Ticket", // Make sure this matches your model association alias
+            attributes: ["ticket_type", "price", "seat_type"],
           },
           {
             model: db.User,
-            as: "User", // Use the alias defined in the association
-            attributes: ["first_name", "last_name", "role"], // Include user details
+            as: "User",
+            attributes: ["first_name", "last_name", "role"],
           },
           {
             model: db.Event,
-            as: "Event", // Use the alias defined in the association
-            attributes: ["name"], // Include event name
+            as: "Event",
+            attributes: ["name"],
           },
           {
             model: db.ClaimingSlot,
-            as: "ClaimingSlot", // Use the alias defined in the association
-            attributes: ["claiming_date", "start_time", "end_time"], // Include claiming period
+            as: "ClaimingSlot",
+            attributes: ["claiming_date", "start_time", "end_time"],
           },
         ],
       });
 
       if (!reservation) {
+        console.log(`No reservation found with ID: ${queryId}`);
         return res.status(404).json({
           success: false,
           message: "Reservation not found",
         });
       }
 
-      // Check if the QR code has expired
-      const currentTime = new Date();
-      const claimingEndTime = new Date(
-        `${reservation.ClaimingSlot.claiming_date}T${reservation.ClaimingSlot.end_time}`
-      );
+      console.log("Found reservation:", {
+        id: reservation.reservation_id,
+        status: reservation.reservation_status,
+        user: reservation.User
+          ? `${reservation.User.first_name} ${reservation.User.last_name}`
+          : "Unknown",
+      });
 
-      if (currentTime > claimingEndTime) {
-        return res.status(400).json({
-          success: false,
-          message: "This QR code has expired.",
-        });
-      }
-
-      // Check if the reservation status is valid for claiming
-      if (reservation.reservation_status !== "pending") {
-        return res.status(400).json({
-          success: false,
-          message: `Reservation cannot be claimed. Current status: ${reservation.reservation_status}`,
-        });
-      }
-
-      // Format the reservation details
+      // Format the reservation details with safe fallbacks for all fields
       const reservationDetails = {
         reservation_id: reservation.reservation_id,
-        name: `${reservation.User.first_name} ${reservation.User.last_name}`,
-        role: reservation.User.role,
-        event_name: reservation.Event.name,
-        ticket_tier: reservation.Ticket.ticket_type,
-        claiming_date: reservation.ClaimingSlot.claiming_date,
-        claiming_time: `${reservation.ClaimingSlot.start_time} - ${reservation.ClaimingSlot.end_time}`,
-        amount: reservation.Ticket.price,
-        claiming_status: reservation.reservation_status,
+        name: reservation.User
+          ? `${reservation.User.first_name || ""} ${
+              reservation.User.last_name || ""
+            }`.trim()
+          : "Unknown User",
+        role: reservation.User?.role || "Unknown",
+        event_name: reservation.Event?.name || "Unknown Event",
+        seat_type: reservation.Ticket?.seat_type || "N/A",
+        ticket_tier: reservation.Ticket?.ticket_type || "N/A",
+        claiming_date: reservation.ClaimingSlot?.claiming_date || "N/A",
+        claiming_time: reservation.ClaimingSlot
+          ? `${reservation.ClaimingSlot.start_time || ""} - ${
+              reservation.ClaimingSlot.end_time || ""
+            }`
+          : "N/A",
+        amount: reservation.Ticket?.price || 0,
+        claiming_status: reservation.reservation_status || "N/A",
       };
 
       return res.status(200).json({
@@ -623,6 +671,7 @@ const reservationController = {
         success: false,
         message: "Internal server error",
         error: error.message,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
       });
     }
   },
@@ -782,6 +831,106 @@ const reservationController = {
       });
     } catch (error) {
       console.error("Error restoring reservations:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+  checkAndUpdatePendingReservations: async (req, res) => {
+    try {
+      const updateReservationStatusService = require("../middleware/updateReservationStatus");
+      const results =
+        await updateReservationStatusService.updatePendingToUnclaimed();
+
+      return res.status(200).json({
+        success: true,
+        message: `Updated ${results.updated} pending reservations to unclaimed`,
+        data: results,
+      });
+    } catch (error) {
+      console.error("Error updating pending reservations:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+  markMultipleAsClaimed: async (req, res) => {
+    const transaction = await db.sequelize.transaction();
+
+    try {
+      const { reservation_ids } = req.body;
+
+      if (!Array.isArray(reservation_ids) || reservation_ids.length === 0) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message:
+            "Please provide an array of reservation IDs to mark as claimed",
+        });
+      }
+
+      const successfulIds = [];
+      const failedIds = [];
+
+      // Process each reservation
+      for (const reservationId of reservation_ids) {
+        try {
+          // Find the reservation by ID
+          const reservation = await Reservation.findByPk(reservationId, {
+            transaction,
+          });
+
+          if (!reservation) {
+            failedIds.push({
+              reservation_id: reservationId,
+              reason: "Reservation not found",
+            });
+            continue;
+          }
+
+          // Check if the reservation status is valid for claiming
+          if (reservation.reservation_status !== "pending") {
+            failedIds.push({
+              reservation_id: reservationId,
+              reason: `Reservation cannot be marked as claimed. Current status: ${reservation.reservation_status}`,
+            });
+            continue;
+          }
+
+          // Update the reservation status to "claimed"
+          await reservation.update(
+            { reservation_status: "claimed" },
+            { transaction }
+          );
+
+          successfulIds.push(reservationId);
+        } catch (error) {
+          console.error(
+            `Error processing reservation ${reservationId}:`,
+            error
+          );
+          failedIds.push({
+            reservation_id: reservationId,
+            reason: error.message,
+          });
+        }
+      }
+
+      await transaction.commit();
+
+      return res.status(200).json({
+        success: true,
+        message: `Successfully marked ${successfulIds.length} reservations as claimed`,
+        successful: successfulIds,
+        failed: failedIds,
+      });
+    } catch (error) {
+      await transaction.rollback();
+      console.error("Error marking multiple reservations as claimed:", error);
       return res.status(500).json({
         success: false,
         message: "Internal server error",

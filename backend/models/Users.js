@@ -1,4 +1,3 @@
-
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 
@@ -63,7 +62,5 @@ User.associate = (models) => {
     onDelete: "CASCADE", // Optional: Delete reservations if the user is deleted
   });
 };
-
-
 
 module.exports = User;

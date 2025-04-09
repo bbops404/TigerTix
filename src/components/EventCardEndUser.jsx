@@ -41,6 +41,76 @@ function EventCardEndUser({
     }
   }, [image]);
 
+  // Format date to be more readable (e.g., "April 10")
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+
+    try {
+      // Check if the date is in ISO format or other common formats
+      let dateObj;
+
+      if (dateString.includes("-") || dateString.includes("/")) {
+        // Try to parse as a date string (YYYY-MM-DD or MM/DD/YYYY)
+        dateObj = new Date(dateString);
+      } else {
+        // If it's already a formatted string like "April 10", just return it
+        return dateString;
+      }
+
+      // Check if date is valid
+      if (isNaN(dateObj.getTime())) {
+        console.log("Invalid date:", dateString);
+        return dateString;
+      }
+
+      // Format as "Month Day"
+      const options = { month: "long", day: "numeric" };
+      return dateObj.toLocaleDateString("en-US", options);
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return dateString;
+    }
+  };
+
+  // Format time to include AM/PM
+  const formatTime = (timeString) => {
+    if (!timeString) return "";
+
+    try {
+      // If the time already has AM/PM, return it
+      if (
+        timeString.includes("AM") ||
+        timeString.includes("PM") ||
+        timeString.includes("am") ||
+        timeString.includes("pm")
+      ) {
+        return timeString;
+      }
+
+      // Handle 24-hour format (HH:MM)
+      if (timeString.includes(":")) {
+        const [hours, minutes] = timeString.split(":");
+        const hour = parseInt(hours, 10);
+
+        if (hour >= 0 && hour <= 23) {
+          const period = hour >= 12 ? "PM" : "AM";
+          const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12 AM
+          return `${hour12}:${minutes} ${period}`;
+        }
+      }
+
+      // If we can't parse it, return the original
+      return timeString;
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return timeString;
+    }
+  };
+
+  // Format date and time
+  const formattedDate = formatDate(date);
+  const formattedTime = formatTime(time);
+
   const handleCardClick = () => {
     if (link) {
       console.log("Navigating to:", link);
@@ -129,7 +199,7 @@ function EventCardEndUser({
       {/* Container for date | time and notification button */}
       <div className="flex items-center justify-between min-w-[300px] mt-0 mb-2">
         <div className="bg-white text-black text-xs font-bold py-1 px-2 rounded-2xl w-full text-center">
-          {date} | {time}
+          {formattedDate} | {formattedTime}
         </div>
         {/* Notification Button */}
         {notification && (

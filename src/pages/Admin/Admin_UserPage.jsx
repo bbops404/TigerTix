@@ -1,6 +1,12 @@
-//Admin_UserPage.jsx
-import React, { useEffect, useState } from "react";
-import { FaSearch, FaFilter, FaExclamationTriangle } from "react-icons/fa";
+import React, { useEffect, useState, useMemo } from "react";
+import {
+  FaSearch,
+  FaFilter,
+  FaExclamationTriangle,
+  FaSort,
+  FaSortUp,
+  FaSortDown,
+} from "react-icons/fa";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 
@@ -9,6 +15,32 @@ import Admin_EditUserPopUp from "./Admin_EditUserPopUp";
 import Admin_UserGenerateReport from "./Admin_UserGenerateReportPopUp";
 import axios from "axios";
 
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender,
+  createColumnHelper,
+} from "@tanstack/react-table";
+
+// This component is referenced but not defined - adding a placeholder
+const Admin_UserFilter = ({ showFilter, setShowFilter }) => {
+  // Placeholder for the filter component
+  return (
+    <div className="bg-gray-700 p-4 rounded-md mb-4">
+      <h3 className="text-white text-lg mb-2">Filter Options</h3>
+      {/* Filter options would go here */}
+      <button
+        className="px-4 py-2 bg-white text-black rounded-md mt-2"
+        onClick={() => setShowFilter(false)}
+      >
+        Close
+      </button>
+    </div>
+  );
+};
+
 const DeleteUserModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
   return (
@@ -16,7 +48,7 @@ const DeleteUserModal = ({ isOpen, onClose, onConfirm }) => {
       <div className="bg-white p-6 rounded-xl w-[500px] h-[200px] shadow-lg">
         <div className="flex items-center gap-2">
           <FaExclamationTriangle className="text-[#C15454] text-xl" />
-          <h2 className="text-2xl text-black font-bold">Delete U`ser</h2>
+          <h2 className="text-2xl text-black font-bold">Delete User</h2>
         </div>
         <p className="text-black mt-2">
           Are you sure you want to delete the selected user(s)?
@@ -82,10 +114,207 @@ const Admin_UserPage = () => {
   const openGenerateReportPopup = () => setShowGenerateReportPopup(true);
   const closeGenerateReportPopup = () => setShowGenerateReportPopup(false);
 
-  // ✅ Add this state for search
+  // Search state
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Users data state
   const [users, setUsers] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
+
+  // Sorting state
+  const [sorting, setSorting] = useState([]);
+
+  // Create a column helper
+  const columnHelper = createColumnHelper();
+
+  // Handle sorting function
+  const handleSort = (columnId) => {
+    setSorting((prevSorting) => {
+      // If we're already sorting by this column
+      if (prevSorting.length > 0 && prevSorting[0].id === columnId) {
+        // If it's ascending, switch to descending
+        if (!prevSorting[0].desc) {
+          return [{ id: columnId, desc: true }];
+        }
+        // If it's already descending, remove sorting
+        return [];
+      }
+      // Set new sort on this column (ascending)
+      return [{ id: columnId, desc: false }];
+    });
+  };
+
+  // Helper to render sort icon
+  const renderSortIcon = (columnId) => {
+    if (sorting.length === 0 || sorting[0].id !== columnId) {
+      return <FaSort className="text-gray-400 ml-1" />;
+    }
+    return sorting[0].desc ? (
+      <FaSortDown className="text-white ml-1" />
+    ) : (
+      <FaSortUp className="text-white ml-1" />
+    );
+  };
+
+  // Manual sorting implementation
+  const sortedUsers = useMemo(() => {
+    if (sorting.length === 0) return users;
+
+    const sortColumn = sorting[0].id;
+    const sortDirection = sorting[0].desc ? "desc" : "asc";
+
+    return [...users].sort((a, b) => {
+      const aValue = a[sortColumn];
+      const bValue = b[sortColumn];
+
+      // Handle null or undefined values
+      if (aValue == null) return sortDirection === "asc" ? -1 : 1;
+      if (bValue == null) return sortDirection === "asc" ? 1 : -1;
+
+      // Case insensitive string comparison
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortDirection === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      // Numeric comparison
+      return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+    });
+  }, [users, sorting]);
+
+  // Define columns for TanStack Table
+  const columns = useMemo(
+    () => [
+      // Selection column with checkbox
+      {
+        id: "select",
+        header: "",
+        cell: ({ row }) => (
+          <div className="flex items-center justify-center">
+            <input
+              type="checkbox"
+              className="mr-2"
+              checked={selectedUsers.includes(row.original.user_id)}
+              onChange={(e) =>
+                handleCheckboxChange(row.original.user_id, e.target.checked)
+              }
+            />
+          </div>
+        ),
+        enableSorting: false,
+      },
+      // Data columns
+      columnHelper.accessor("username", {
+        header: () => (
+          <div
+            className="cursor-pointer select-none flex items-center justify-center gap-1"
+            onClick={() => handleSort("username")}
+          >
+            Username
+            {renderSortIcon("username")}
+          </div>
+        ),
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("fullName", {
+        header: () => (
+          <div
+            className="cursor-pointer select-none flex items-center justify-center gap-1"
+            onClick={() => handleSort("fullName")}
+          >
+            Full Name
+            {renderSortIcon("fullName")}
+          </div>
+        ),
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("role", {
+        header: () => (
+          <div
+            className="cursor-pointer select-none flex items-center justify-center gap-1"
+            onClick={() => handleSort("role")}
+          >
+            Role
+            {renderSortIcon("role")}
+          </div>
+        ),
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("email", {
+        header: () => (
+          <div
+            className="cursor-pointer select-none flex items-center justify-center gap-1"
+            onClick={() => handleSort("email")}
+          >
+            Email
+            {renderSortIcon("email")}
+          </div>
+        ),
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("status", {
+        header: () => (
+          <div
+            className="cursor-pointer select-none flex items-center justify-center gap-1"
+            onClick={() => handleSort("status")}
+          >
+            Account Status
+            {renderSortIcon("status")}
+          </div>
+        ),
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("violation_count", {
+        header: () => (
+          <div
+            className="cursor-pointer select-none flex items-center justify-center gap-1"
+            onClick={() => handleSort("violation_count")}
+          >
+            Violation Count
+            {renderSortIcon("violation_count")}
+          </div>
+        ),
+        cell: (info) => info.getValue(),
+      }),
+    ],
+    [selectedUsers, sorting]
+  );
+
+  // Global filter state (for search)
+  const [globalFilter, setGlobalFilter] = useState("");
+
+  const handleCheckboxChange = (user_id, isChecked) => {
+    setSelectedUsers((prevSelected) =>
+      isChecked
+        ? [...prevSelected, user_id]
+        : prevSelected.filter((id) => id !== user_id)
+    );
+  };
+
+  // Initialize the table
+  const table = useReactTable({
+    data: sortedUsers,
+    columns,
+    state: {
+      globalFilter,
+    },
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 10, // Set the initial page size
+      },
+    },
+    manualSorting: true, // Important to enable manual sorting
+  });
+
+  // Effect to update global filter when search term changes
+  useEffect(() => {
+    setGlobalFilter(searchTerm);
+  }, [searchTerm]);
 
   const handleDeleteUser = async () => {
     try {
@@ -115,6 +344,8 @@ const Admin_UserPage = () => {
       // Handle response
       if (response.status === 200) {
         openSuccessModal(); // Open success modal if deletion is successful
+        // After successful deletion, clear the selected users
+        setSelectedUsers([]);
       } else {
         alert(response.data.message || "Something went wrong during deletion.");
       }
@@ -151,35 +382,27 @@ const Admin_UserPage = () => {
     };
 
     fetchUsers();
-  }, []);
+  }, [showSuccessModal]); // Refresh the list when users are deleted
 
-  // ✅ Filter users based on the search term
-  const filteredUsers = users.filter(
-    (user) =>
-      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.violation_count.toString().includes(searchTerm) // Ensure numbers are searchable
-  );
-  const [selectedUsers, setSelectedUsers] = useState([]);
+  // Check different selection states
+  const hasNoSelection = selectedUsers.length === 0;
+  const hasSingleSelection = selectedUsers.length === 1;
+  const hasMultipleSelection = selectedUsers.length > 1;
 
-  const handleCheckboxChange = (user_id, isChecked) => {
-    setSelectedUsers((prevSelected) =>
-      isChecked
-        ? [...prevSelected, user_id]
-        : prevSelected.filter((id) => id !== user_id)
-    );
+  // Handle reset for search and sort
+  const handleReset = () => {
+    setSearchTerm("");
+    setSorting([]);
+    setSelectedUsers([]);
+    table.resetPageIndex();
   };
 
   return (
-    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
+    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
       {/* Header */}
       <Header_Admin />
 
       {/* Main Layout */}
-
       <div className="flex">
         <Sidebar_Admin />
         <div className="flex-1 px-10 py-10">
@@ -191,11 +414,14 @@ const Admin_UserPage = () => {
                 placeholder="Search"
                 className="w-full pl-12 pr-4 py-2 rounded-full bg-gray-500 text-white outline-none"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)} // ✅ Updates state on input change
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
+              <button
+                className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                onClick={handleReset}
+              >
                 Reset
               </button>
               <button
@@ -220,88 +446,152 @@ const Admin_UserPage = () => {
             <table className="w-full text-black border-collapse border border-[#D6D3D3] bg-white rounded-md overflow-hidden">
               <thead className="sticky top-0 bg-[#F09C32] text-[#333333] text-center z-1">
                 <tr>
-                  {[
-                    "Username",
-                    "Full Name",
-                    "Role",
-                    "Email",
-                    "Account Status",
-                    "Violation Count",
-                  ].map((header, index) => (
-                    <th
-                      key={index}
-                      className="px-4 py-2 border border-[#D6D3D3] text-center"
-                    >
-                      {header}
-                    </th>
-                  ))}
+                  {table.getHeaderGroups().map((headerGroup) =>
+                    headerGroup.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        className="px-4 py-2 border border-[#D6D3D3] text-center"
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </th>
+                    ))
+                  )}
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user, index) => (
-                  <tr
-                    key={index}
-                    className="border border-[#D6D3D3] text-center"
-                  >
-                    <td className="px-4 py-2 border border-[#D6D3D3] flex items-center">
-                      <input
-                        type="checkbox"
-                        className="mr-2"
-                        onChange={(e) =>
-                          handleCheckboxChange(user.user_id, e.target.checked)
-                        }
-                      />{" "}
-                      <span className="flex-1 text-center">
-                        {user.username}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">
-                      {user.fullName}
-                    </td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">
-                      {user.role}
-                    </td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">
-                      {user.email}
-                    </td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">
-                      {user.status}
-                    </td>
-                    <td className="px-4 py-2 border border-[#D6D3D3]">
-                      {user.violation_count}
+                {table.getRowModel().rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={columns.length} className="text-center py-4">
+                      No users found.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  table.getRowModel().rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      className="border border-[#D6D3D3] text-center"
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className="px-4 py-2 border border-[#D6D3D3]"
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* Bottom Buttons */}
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center gap-2">
+              <button
+                className="px-2 py-1 bg-white text-black rounded-md hover:bg-[#F09C32]"
+                onClick={() => table.setPageIndex(0)}
+                disabled={!table.getCanPreviousPage()}
+              >
+                {"<<"}
+              </button>
+              <button
+                className="px-2 py-1 bg-white text-black rounded-md hover:bg-[#F09C32]"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                {"<"}
+              </button>
+              <button
+                className="px-2 py-1 bg-white text-black rounded-md hover:bg-[#F09C32]"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                {">"}
+              </button>
+              <button
+                className="px-2 py-1 bg-white text-black rounded-md hover:bg-[#F09C32]"
+                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                disabled={!table.getCanNextPage()}
+              >
+                {">>"}
+              </button>
+            </div>
+            <div className="text-white">
+              Page {table.getState().pagination.pageIndex + 1} of{" "}
+              {table.getPageCount()}
+            </div>
+            <select
+              className="px-2 py-1 bg-white text-black rounded-md"
+              value={table.getState().pagination.pageSize}
+              onChange={(e) => {
+                table.setPageSize(Number(e.target.value));
+              }}
+            >
+              {[5, 10, 20, 30, 40, 50].map((pageSize) => (
+                <option key={pageSize} value={pageSize}>
+                  Show {pageSize}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Bottom Buttons - Conditionally rendered based on selection */}
           <div className="flex justify-center gap-4 mt-6">
-            <button
-              className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
-              onClick={() => setShowEditUserPopup(true)}
-            >
-              Edit User
-            </button>
-            <button
-              className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
-              onClick={openAddUserPopup}
-            >
-              Add User
-            </button>
-            <button
-              className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
-              onClick={openDeleteModal}
-            >
-              Delete User
-            </button>
-            <button
-              className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
-              onClick={openGenerateReportPopup}
-            >
-              Generate Report
-            </button>
+            {hasNoSelection && (
+              <>
+                {/* Buttons when no users are selected */}
+                <button
+                  className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+                  onClick={openAddUserPopup}
+                >
+                  Add User
+                </button>
+                <button
+                  className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+                  onClick={openGenerateReportPopup}
+                >
+                  Generate Report
+                </button>
+              </>
+            )}
+
+            {hasSingleSelection && (
+              <>
+                {/* Buttons when exactly one user is selected */}
+                <button
+                  className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+                  onClick={() => setShowEditUserPopup(true)}
+                >
+                  Edit User
+                </button>
+                <button
+                  className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+                  onClick={openDeleteModal}
+                >
+                  Delete User
+                </button>
+              </>
+            )}
+
+            {hasMultipleSelection && (
+              /* Only Delete button when multiple users are selected */
+              <button
+                className="w-[190px] h-[40px] bg-white text-black rounded-full transition-all duration-100 hover:bg-[#F09C32] hover:scale-105"
+                onClick={openDeleteModal}
+              >
+                Delete User
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -311,7 +601,6 @@ const Admin_UserPage = () => {
         isOpen={showDeleteModal}
         onClose={closeDeleteModal}
         onConfirm={handleDeleteUser}
-        selectedUserIds={selectedUsers}
       />
       <SuccessModal isOpen={showSuccessModal} onClose={closeSuccessModal} />
 

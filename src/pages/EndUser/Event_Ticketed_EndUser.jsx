@@ -11,6 +11,7 @@ const Event_Ticketed_EndUser = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [hasReservation, setHasReservation] = useState(false);
+  const [reservationChecked, setReservationChecked] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,6 +30,10 @@ const Event_Ticketed_EndUser = () => {
 
         if (eventResponse.data.success) {
           setEvent(eventResponse.data.data);
+          console.log(
+            "Event data fetched successfully:",
+            eventResponse.data.data
+          );
 
           // Check user's reservations for this event
           try {
@@ -40,30 +45,55 @@ const Event_Ticketed_EndUser = () => {
               }
             );
 
-            if (userResponse.data.success) {
+            if (userResponse.data.success && userResponse.data.data) {
               const userId = userResponse.data.data.user_id;
+              console.log("Current user ID:", userId);
 
-              // Get user's reservations
+              // Get user's reservations - using the proper endpoint
               const reservationsResponse = await axios.get(
-                `${API_BASE_URL}/api/users/${userId}/reservations`,
+                `${API_BASE_URL}/api/reservations/user/${userId}`,
                 {
                   withCredentials: true,
                 }
               );
 
+              console.log("Reservations response:", reservationsResponse.data);
+
               if (reservationsResponse.data.success) {
                 // Check if user has reservation for this event
-                const hasExistingReservation =
-                  reservationsResponse.data.data.some(
-                    (reservation) => reservation.event_id === id
-                  );
+                const userReservations = reservationsResponse.data.data || [];
+
+                // Enhanced check that works regardless of string or UUID format
+                const hasExistingReservation = userReservations.some(
+                  (reservation) => {
+                    const reservationEventId = reservation.event_id;
+                    const currentEventId = id;
+                    const match = reservationEventId === currentEventId;
+
+                    if (match) {
+                      console.log("Found matching reservation:", reservation);
+                    }
+
+                    return match;
+                  }
+                );
+
+                console.log("Reservation check result:", {
+                  eventId: id,
+                  hasReservation: hasExistingReservation,
+                  reservationsCount: userReservations.length,
+                });
 
                 setHasReservation(hasExistingReservation);
               }
+            } else {
+              console.warn("Could not get user details:", userResponse.data);
             }
           } catch (reservationError) {
             console.error("Error checking reservations:", reservationError);
             // Don't set error state here - it's better to show the event and handle reservation error gracefully
+          } finally {
+            setReservationChecked(true);
           }
         } else {
           setError("Failed to fetch event details.");
@@ -327,28 +357,36 @@ const Event_Ticketed_EndUser = () => {
 
             {/* Reserve Button */}
             <div className="flex flex-col items-end mt-6">
-              <button
-                className={`font-Poppins font-bold py-3 px-7 min-w-[300px] rounded-lg inline-block mb-2 uppercase transition-all transform hover:scale-105 
-      ${
-        isReservationOpen() && hasAvailableTickets() && !hasReservation
-          ? "text-[#F09C32] outline outline-1 outline-[#F09C32] cursor-pointer"
-          : "bg-neutral-700 text-gray-400 cursor-not-allowed"
-      }`}
-                onClick={
-                  isReservationOpen() &&
-                  hasAvailableTickets() &&
-                  !hasReservation
-                    ? handleReserveClick
-                    : undefined
-                }
-                disabled={
-                  !isReservationOpen() ||
-                  !hasAvailableTickets() ||
-                  hasReservation
-                }
-              >
-                {getReservationStatus()}
-              </button>
+              {reservationChecked ? (
+                <button
+                  className={`font-Poppins font-bold py-3 px-7 min-w-[300px] rounded-lg inline-block mb-2 uppercase transition-all transform hover:scale-105 
+                  ${
+                    isReservationOpen() &&
+                    hasAvailableTickets() &&
+                    !hasReservation
+                      ? "text-[#F09C32] outline outline-1 outline-[#F09C32] cursor-pointer"
+                      : "bg-neutral-700 text-gray-400 cursor-not-allowed"
+                  }`}
+                  onClick={
+                    isReservationOpen() &&
+                    hasAvailableTickets() &&
+                    !hasReservation
+                      ? handleReserveClick
+                      : undefined
+                  }
+                  disabled={
+                    !isReservationOpen() ||
+                    !hasAvailableTickets() ||
+                    hasReservation
+                  }
+                >
+                  {getReservationStatus()}
+                </button>
+              ) : (
+                <div className="font-Poppins font-bold py-3 px-7 min-w-[300px] rounded-lg inline-block mb-2 uppercase bg-neutral-700 text-gray-400">
+                  Checking reservation status...
+                </div>
+              )}
 
               {/* Show view reservations button below reserve button */}
               {hasReservation && (
