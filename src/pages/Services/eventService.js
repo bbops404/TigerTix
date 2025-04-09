@@ -175,13 +175,69 @@ const eventService = {
   // Ticket operations
   tickets: {
     getByEventId: (eventId) => eventService.get(`/events/${eventId}/tickets`),
+
+    // Create a single ticket - consistent implementation
     create: (eventId, ticketData) =>
       eventService.post(`/events/${eventId}/tickets`, ticketData),
+
+    // Create multiple tickets - consistent implementation
     createBulk: (eventId, ticketsData) =>
       eventService.post(`/events/${eventId}/tickets/bulk`, ticketsData),
+
+    // Update a ticket - fixed implementation
     update: (ticketId, ticketData) =>
       eventService.put(`/tickets/${ticketId}`, ticketData),
+
+    // Delete a ticket - fixed implementation
     delete: (ticketId) => eventService.delete(`/tickets/${ticketId}`),
+  },
+
+  // Helper function for creating tickets - Improved implementation
+  createTickets: async (eventId, ticketDetails, eventType) => {
+    try {
+      // Prepare tickets based on the tier type
+      let tickets = [];
+
+      if (eventType === "free") {
+        // Free event - single free ticket tier
+        tickets.push({
+          seat_type: "Free Seating",
+          ticket_type: "General Admission",
+          price: 0, // Always 0 for free events
+          total_quantity: ticketDetails.freeSeating.numberOfTickets,
+          max_per_user: ticketDetails.freeSeating.maxPerPerson || 1,
+        });
+      } else if (ticketDetails.tierType === "freeSeating") {
+        // Free seating
+        tickets.push({
+          seat_type: "Free Seating",
+          ticket_type: "General Admission",
+          price: ticketDetails.freeSeating.price || 0,
+          total_quantity: ticketDetails.freeSeating.numberOfTickets,
+          max_per_user: ticketDetails.freeSeating.maxPerPerson || 1,
+        });
+      } else {
+        // Ticketed with multiple tiers
+        Object.entries(ticketDetails.ticketTiers)
+          .filter(([_, tierData]) => tierData.checked)
+          .forEach(([tierName, tierData]) => {
+            tickets.push({
+              seat_type: tierName,
+              ticket_type: "Reserved Seating",
+              price: tierData.price || 0,
+              total_quantity: tierData.number || 0,
+              max_per_user: tierData.maxPerPerson || 1,
+            });
+          });
+      }
+
+      // Use our consistent method for bulk ticket creation
+      const response = await eventService.tickets.createBulk(eventId, tickets);
+      return response;
+    } catch (error) {
+      console.error("Error creating tickets:", error);
+      throw error;
+    }
   },
 
   // Claiming slots operations
@@ -285,14 +341,82 @@ const eventService = {
           });
       }
 
-      // Send request to create tickets in bulk
-      const response = await apiClient.post(
-        `/events/${eventId}/tickets/bulk`,
-        tickets
-      );
-      return response.data;
+      // Use our consistent method for bulk ticket creation
+      const response = await eventService.tickets.createBulk(eventId, tickets);
+      return response;
     } catch (error) {
       console.error("Error creating tickets:", error);
+      throw error;
+    }
+  },
+  updateEventAvailability: async (eventId, availabilityData) => {
+    try {
+      console.log("Updating event availability with data:", availabilityData);
+
+      // Extract display and reservation periods
+      const {
+        displayPeriod,
+        reservationPeriod,
+        displayDatesChanged,
+        reservationStartNow,
+      } = availabilityData;
+
+      // Prepare data for API
+      const updatePayload = {
+        display_start_date: displayPeriod.startDate,
+        display_end_date: displayPeriod.endDate,
+        display_start_time: displayPeriod.startTime,
+        display_end_time: displayPeriod.endTime,
+      };
+
+      // Only include reservation period for ticketed events
+      if (availabilityData.eventType === "ticketed") {
+        updatePayload.reservation_start_date = reservationPeriod.startDate;
+        updatePayload.reservation_end_date = reservationPeriod.endDate;
+        updatePayload.reservation_start_time = reservationPeriod.startTime;
+        updatePayload.reservation_end_time = reservationPeriod.endTime;
+      }
+
+      // Handle status updates if necessary
+      if (displayDatesChanged) {
+        // If display dates changed for published event, temporarily unpublish
+        updatePayload.visibility = "unpublished";
+        console.log("Display dates changed, setting visibility to unpublished");
+      }
+
+      if (reservationStartNow) {
+        // If reservation start is now or in the past, update status to open
+        updatePayload.status = "open";
+        console.log("Reservation start is now or past, setting status to open");
+      }
+
+      // Call the API to update the event
+      const response = await apiClient.put(`/events/${eventId}`, updatePayload);
+
+      // If we changed the visibility to unpublished, we need to publish it again after a short delay
+      if (displayDatesChanged) {
+        console.log(
+          "Scheduling re-publish of event after display date changes"
+        );
+
+        // Wait a short time then re-publish the event
+        setTimeout(async () => {
+          try {
+            await apiClient.put(`/events/${eventId}/status`, {
+              visibility: "published",
+            });
+            console.log(
+              "Event successfully re-published after display date changes"
+            );
+          } catch (err) {
+            console.error("Failed to re-publish event:", err);
+          }
+        }, 2000); // Wait 2 seconds before re-publishing
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error updating event availability:", error);
       throw error;
     }
   },
@@ -361,5 +485,94 @@ const eventService = {
     }
   },
 };
+const eventServiceExtensions = {
+  // Check if changing a date would modify event status
+  checkStatusChanges: (
+    originalEvent,
+    newDisplayStart,
+    newDisplayEnd,
+    newReservationStart,
+    newReservationEnd
+  ) => {
+    if (!originalEvent)
+      return { displayChanged: false, reservationChanged: false };
+
+    const displayChanged =
+      originalEvent.display_start_date !== newDisplayStart ||
+      originalEvent.display_end_date !== newDisplayEnd;
+
+    // For ticketed events, also check reservation dates
+    let reservationChanged = false;
+    if (
+      originalEvent.eventType === "ticketed" ||
+      originalEvent.event_type === "ticketed"
+    ) {
+      reservationChanged =
+        originalEvent.reservation_start_date !== newReservationStart ||
+        originalEvent.reservation_end_date !== newReservationEnd;
+    }
+
+    // Check if reservation would start immediately
+    let reservationStartNow = false;
+    if (originalEvent.status === "scheduled" && newReservationStart) {
+      const now = new Date();
+      const reservationStart = new Date(
+        `${newReservationStart}T${
+          originalEvent.reservation_start_time || "00:00:00"
+        }`
+      );
+      reservationStartNow = reservationStart <= now;
+    }
+
+    return {
+      displayChanged,
+      reservationChanged,
+      reservationStartNow,
+    };
+  },
+
+  // Handle event unpublish when display dates are changed
+  handleTemporaryUnpublish: async (eventId) => {
+    try {
+      // First set to unpublished
+      await apiClient.put(`/events/${eventId}/status`, {
+        visibility: "unpublished",
+      });
+
+      // Wait a short time to ensure backend processing is complete
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Then republish
+      const response = await apiClient.put(`/events/${eventId}/status`, {
+        visibility: "published",
+      });
+
+      console.log("Event republished after display date changes");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to republish event:", error);
+      throw error;
+    }
+  },
+
+  // Refresh events after a status change
+  updateEventWithRefresh: async (eventId, updateData) => {
+    try {
+      // Update the event
+      const response = await apiClient.put(`/events/${eventId}`, updateData);
+
+      // Refresh event status
+      await apiClient.post(`/events/${eventId}/refresh-status`);
+
+      return response.data;
+    } catch (error) {
+      console.error("Error updating event with refresh:", error);
+      throw error;
+    }
+  },
+};
+
+// Merge the extensions into eventService object
+Object.assign(eventService, eventServiceExtensions);
 
 export default eventService;

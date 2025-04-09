@@ -1,18 +1,80 @@
 import React, { useState, useEffect } from "react";
 import EventDetailsForm from "../Forms/EventDetailsForm.jsx";
+import { formatImageUrl } from "../../../utils/imageUtils.js";
 
 const EditEventDetailsPopup = ({ isOpen, onClose, eventData, onSave }) => {
-  const [formData, setFormData] = useState(eventData || {});
+  const [formData, setFormData] = useState(null);
 
-  // Update formData when eventData changes
+  // Update formData when eventData changes with proper formatting
   useEffect(() => {
     if (eventData) {
-      setFormData(eventData);
+      // Format the image URL properly
+      const originalImageUrl = eventData.imagePreview || eventData.image;
+      const formattedImageUrl = originalImageUrl
+        ? formatImageUrl(originalImageUrl)
+        : null;
+
+      // Debug image URLs
+      console.log("Original image URL:", originalImageUrl);
+      console.log("Formatted image URL:", formattedImageUrl);
+
+      // Format the data to match what EventDetailsForm expects
+      const formattedData = {
+        // Ensure all expected fields exist with proper naming
+        eventName: eventData.eventName || "",
+        eventDescription: eventData.eventDescription || eventData.details || "",
+        eventDate: eventData.eventDate || "",
+        venue: eventData.venue || "",
+        startTime: eventData.startTime || "",
+        endTime: eventData.endTime || "",
+        eventCategory: eventData.eventCategory || "",
+        eventType: eventData.eventType || "ticketed",
+        // Use the properly formatted image URL
+        imagePreview: formattedImageUrl,
+        // Preserve the ID and any other necessary fields
+        id: eventData.id,
+        // Include any additional fields that might be needed when saving
+        status: eventData.status,
+        visibility: eventData.visibility,
+      };
+
+      setFormData(formattedData);
     }
   }, [eventData]);
 
+  // Update the handleSave method in EditEventDetailsPopup.jsx
+
   const handleSave = () => {
-    onSave(formData);
+    if (!formData) return;
+
+    // Make sure all needed fields from the original event are preserved
+    const updatedEvent = {
+      ...eventData, // Preserve original data
+      ...formData, // Apply changes from form
+
+      // Properly handle image data
+      eventImage: formData.eventImage, // New image file if uploaded
+      imagePreview: formData.imagePreview, // Preview URL
+
+      // For API integration - ensure these fields exist
+      eventName: formData.eventName,
+      eventDescription: formData.eventDescription || formData.details,
+      eventDate: formData.eventDate,
+      startTime: formData.startTime,
+      endTime: formData.endTime,
+      venue: formData.venue,
+      eventCategory: formData.eventCategory,
+      eventType: formData.eventType,
+    };
+
+    console.log("Saving updated event with image data:", {
+      hasEventImage: !!updatedEvent.eventImage,
+      imagePreview: updatedEvent.imagePreview ? "[Preview URL exists]" : "none",
+      originalImage: eventData.image || "none",
+    });
+
+    // Pass the edit type as 'event' to ensure the correct saving logic is used
+    onSave(updatedEvent, "event");
     onClose();
   };
 
@@ -39,7 +101,10 @@ const EditEventDetailsPopup = ({ isOpen, onClose, eventData, onSave }) => {
             submitButtonText={null}
           />
         ) : (
-          <div className="text-white">Loading event data...</div>
+          <div className="text-white flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#FFAB40] mr-3"></div>
+            <span>Loading event data...</span>
+          </div>
         )}
         <hr className="border-t border-gray-600 my-4" />
 
@@ -53,6 +118,7 @@ const EditEventDetailsPopup = ({ isOpen, onClose, eventData, onSave }) => {
           <button
             onClick={handleSave}
             className="bg-[#FFAB40] text-black px-5 py-2 rounded-full text-sm font-semibold"
+            disabled={!formData}
           >
             Save Changes
           </button>

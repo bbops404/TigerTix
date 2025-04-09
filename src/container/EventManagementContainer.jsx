@@ -9,7 +9,6 @@ import io from "socket.io-client";
 import { toast } from "react-toastify";
 import { formatImageUrl } from "../utils/imageUtils";
 
-
 const EventsManagementContainer = () => {
   // Initialize with an empty structure for all possible categories
   const [events, setEvents] = useState({
@@ -91,8 +90,6 @@ const EventsManagementContainer = () => {
       // Then categorize by visibility and status
       if (event.visibility === "archived") {
         categorized.ARCHIVED.push(mappedEvent);
-      } else if (event.status === "cancelled") {
-        categorized.CANCELLED.push(mappedEvent);
       } else if (event.status === "draft") {
         categorized.DRAFT.push(mappedEvent);
       } else if (event.status === "open" && event.visibility === "published") {
@@ -174,11 +171,13 @@ const EventsManagementContainer = () => {
                   draftsResponse,
                   comingSoonResponse,
                   unpublishedResponse,
+                  archivedResponse, // Add this
                 ] = await Promise.all([
                   eventService.events.getAll({ visibility: "published" }),
                   eventService.events.getDrafts(),
                   eventService.events.getComingSoon(),
                   eventService.events.getAll({ visibility: "unpublished" }),
+                  eventService.events.getAll({ visibility: "archived" }), // Fetch archived events
                 ]);
 
                 // Use a Map to deduplicate events by ID
@@ -580,7 +579,116 @@ const EventsManagementContainer = () => {
     }
   };
 
-  // Handler for saving event changes
+  // New method to handle availability updates
+  const handleAvailabilityUpdate = async (eventData) => {
+    try {
+      console.log("Handling availability update with data:", eventData);
+
+      // Extract display and reservation periods
+      const {
+        displayPeriod,
+        reservationPeriod,
+        displayDatesChanged,
+        reservationStartNow,
+      } = eventData;
+
+      // Prepare data for API
+      const updatePayload = {
+        display_start_date: displayPeriod.startDate,
+        display_end_date: displayPeriod.endDate,
+        display_start_time: displayPeriod.startTime,
+        display_end_time: displayPeriod.endTime,
+      };
+
+      // Only include reservation period for ticketed events
+      if (eventData.eventType === "ticketed") {
+        updatePayload.reservation_start_date = reservationPeriod.startDate;
+        updatePayload.reservation_end_date = reservationPeriod.endDate;
+        updatePayload.reservation_start_time = reservationPeriod.startTime;
+        updatePayload.reservation_end_time = reservationPeriod.endTime;
+      }
+
+      // Handle status updates if necessary
+      if (displayDatesChanged) {
+        // If display dates changed for published event, temporarily unpublish
+        updatePayload.visibility = "unpublished";
+        console.log("Display dates changed, setting visibility to unpublished");
+
+        // Show notification about temporary unpublishing
+        toast.info(
+          "Display dates were changed. Event will be temporarily unpublished and republished.",
+          {
+            position: "bottom-right",
+            autoClose: 3000,
+          }
+        );
+      }
+
+      if (reservationStartNow) {
+        // If reservation start is now or in the past, update status to open
+        updatePayload.status = "open";
+        console.log("Reservation start is now or past, setting status to open");
+
+        // Show notification about opening reservations
+        toast.info(
+          "Reservation period will start immediately. Event status will be set to 'Open'.",
+          {
+            position: "bottom-right",
+            autoClose: 3000,
+          }
+        );
+      }
+
+      // Call the API to update the event
+      await eventService.events.update(eventData.id, updatePayload);
+
+      // If we changed the visibility to unpublished, we need to publish it again after a short delay
+      if (displayDatesChanged) {
+        console.log(
+          "Scheduling re-publish of event after display date changes"
+        );
+
+        // Wait a short time then re-publish the event
+        setTimeout(async () => {
+          try {
+            await eventService.events.updateStatus(eventData.id, {
+              visibility: "published",
+            });
+            console.log(
+              "Event successfully re-published after display date changes"
+            );
+
+            // Show toast notification for successful republishing
+            toast.success(
+              "Event has been republished with updated display dates",
+              {
+                position: "bottom-right",
+                autoClose: 3000,
+              }
+            );
+
+            // Refresh the events list to reflect the changes
+            await fetchEvents();
+          } catch (err) {
+            console.error("Failed to re-publish event:", err);
+            toast.error("Failed to republish event. Please try manually.", {
+              position: "bottom-right",
+              autoClose: 4000,
+            });
+          }
+        }, 2000); // Wait 2 seconds before re-publishing
+      } else {
+        // If no display date changes, we should still refresh the events
+        await fetchEvents();
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error updating event availability:", error);
+      throw error;
+    }
+  };
+
   const handleSaveEvent = async (updatedEvent, editType) => {
     try {
       // Show loading state
@@ -594,7 +702,26 @@ const EventsManagementContainer = () => {
       // Determine which update method to use based on edit type
       switch (editType) {
         case "event":
-          // Update basic event details
+          // Handle event basic details update
+          let imageUrl = updatedEvent.imagePreview || updatedEvent.image;
+
+          if (
+            updatedEvent.eventImage &&
+            updatedEvent.eventImage instanceof File
+          ) {
+            try {
+              const imageResponse = await eventService.uploadEventImage(
+                updatedEvent.eventImage
+              );
+
+              if (imageResponse && imageResponse.imageUrl) {
+                imageUrl = imageResponse.imageUrl;
+              }
+            } catch (imageError) {
+              console.error("Error uploading image:", imageError);
+            }
+          }
+
           await eventService.events.update(updatedEvent.id, {
             name: updatedEvent.eventName,
             details: updatedEvent.eventDescription,
@@ -603,167 +730,169 @@ const EventsManagementContainer = () => {
             event_end_time: updatedEvent.endTime,
             venue: updatedEvent.venue,
             category: updatedEvent.eventCategory,
-            // Only update image if a new one was uploaded
-            ...(updatedEvent.imageUrl && { image: updatedEvent.imageUrl }),
+            ...(imageUrl && { image: imageUrl }),
           });
           break;
 
         case "ticket":
-          // Process ticket changes
           if (updatedEvent.ticketDetails) {
-            if (updatedEvent.eventType === "free") {
-              // For free events
-              const ticketData = {
-                seat_type: "Free Seating",
-                ticket_type: "General Admission",
-                price: 0, // Always 0 for free events
-                total_quantity: parseInt(
-                  updatedEvent.ticketDetails.freeSeating.numberOfTickets || 0
-                ),
-                max_per_user: parseInt(
-                  updatedEvent.ticketDetails.freeSeating.maxPerPerson || 1
-                ),
-              };
+            try {
+              // IMPROVED APPROACH: Instead of trying to update existing tickets,
+              // we'll delete all existing tickets and create new ones
 
-              // Check if we need to update an existing ticket or create a new one
-              if (updatedEvent.tickets && updatedEvent.tickets.length > 0) {
-                await eventService.tickets.update(
-                  updatedEvent.tickets[0].id,
-                  ticketData
+              // Step 1: Get existing tickets
+              const existingTicketsResponse =
+                await eventService.tickets.getByEventId(updatedEvent.id);
+              const existingTickets = existingTicketsResponse.data || [];
+
+              // Step 2: Delete all existing tickets
+              if (existingTickets.length > 0) {
+                console.log(
+                  `Removing ${existingTickets.length} existing tickets`
                 );
-              } else {
-                await eventService.tickets.create(updatedEvent.id, ticketData);
-              }
-            } else if (updatedEvent.ticketDetails.tierType === "freeSeating") {
-              // For ticketed events with free seating
-              const ticketData = {
-                seat_type: "Free Seating",
-                ticket_type: "General Admission",
-                price: parseFloat(
-                  updatedEvent.ticketDetails.freeSeating.price || 0
-                ),
-                total_quantity: parseInt(
-                  updatedEvent.ticketDetails.freeSeating.numberOfTickets || 0
-                ),
-                max_per_user: parseInt(
-                  updatedEvent.ticketDetails.freeSeating.maxPerPerson || 1
-                ),
-              };
 
-              // Check if we need to update an existing ticket or create a new one
-              if (updatedEvent.tickets && updatedEvent.tickets.length > 0) {
-                await eventService.tickets.update(
-                  updatedEvent.tickets[0].id,
-                  ticketData
-                );
-              } else {
-                await eventService.tickets.create(updatedEvent.id, ticketData);
-              }
-            } else if (updatedEvent.ticketDetails.tierType === "ticketed") {
-              // For ticketed events with multiple tiers
-
-              // First, we might need to delete existing tickets
-              if (updatedEvent.tickets && updatedEvent.tickets.length > 0) {
-                // We could either update existing tickets or delete and recreate
-                // For simplicity, let's delete all and recreate
-                for (const ticket of updatedEvent.tickets) {
+                for (const ticket of existingTickets) {
                   try {
                     await eventService.tickets.delete(ticket.id);
+                    console.log(`Deleted ticket ${ticket.id}`);
                   } catch (err) {
-                    console.error(`Error deleting ticket ${ticket.id}:`, err);
-                    // Continue with other tickets even if one fails
+                    console.warn(`Could not delete ticket ${ticket.id}:`, err);
+                    // Continue with other tickets even if this one fails
                   }
                 }
               }
 
-              // Now create the new tickets
-              const ticketsArray = [];
-              Object.entries(updatedEvent.ticketDetails.ticketTiers)
-                .filter(([_, tierData]) => tierData.checked)
-                .forEach(([tierName, tierData]) => {
-                  ticketsArray.push({
-                    seat_type: tierName,
-                    ticket_type: "Reserved Seating",
-                    price: parseFloat(tierData.price || 0),
-                    total_quantity: parseInt(tierData.number || 0),
-                    max_per_user: parseInt(tierData.maxPerPerson || 1),
-                  });
-                });
+              // Step 3: Prepare tickets for API
+              let ticketsToCreate = [];
 
-              // Create tickets in bulk if we have any
-              if (ticketsArray.length > 0) {
+              if (updatedEvent.eventType === "free") {
+                // Free event - single free ticket tier
+                ticketsToCreate.push({
+                  seat_type: "Free Seating",
+                  ticket_type: "General Admission",
+                  price: 0, // Always 0 for free events
+                  total_quantity:
+                    parseInt(
+                      updatedEvent.ticketDetails.freeSeating.numberOfTickets
+                    ) || 0,
+                  max_per_user:
+                    parseInt(
+                      updatedEvent.ticketDetails.freeSeating.maxPerPerson
+                    ) || 1,
+                });
+              } else if (
+                updatedEvent.ticketDetails.tierType === "freeSeating"
+              ) {
+                // Free seating
+                ticketsToCreate.push({
+                  seat_type: "Free Seating",
+                  ticket_type: "General Admission",
+                  price:
+                    parseFloat(updatedEvent.ticketDetails.freeSeating.price) ||
+                    0,
+                  total_quantity:
+                    parseInt(
+                      updatedEvent.ticketDetails.freeSeating.numberOfTickets
+                    ) || 0,
+                  max_per_user:
+                    parseInt(
+                      updatedEvent.ticketDetails.freeSeating.maxPerPerson
+                    ) || 1,
+                });
+              } else {
+                // Ticketed with multiple tiers
+                Object.entries(updatedEvent.ticketDetails.ticketTiers)
+                  .filter(([_, tierData]) => tierData.checked)
+                  .forEach(([tierName, tierData]) => {
+                    ticketsToCreate.push({
+                      seat_type: tierName,
+                      ticket_type: "Reserved Seating",
+                      price: parseFloat(tierData.price) || 0,
+                      total_quantity: parseInt(tierData.number) || 0,
+                      max_per_user: parseInt(tierData.maxPerPerson) || 1,
+                    });
+                  });
+              }
+
+              // Step 4: Create new tickets using bulk endpoint
+              console.log("Creating new tickets:", ticketsToCreate);
+              if (ticketsToCreate.length > 0) {
                 await eventService.tickets.createBulk(
                   updatedEvent.id,
-                  ticketsArray
+                  ticketsToCreate
                 );
+              } else {
+                console.warn("No tickets to create");
               }
+            } catch (err) {
+              console.error("Error handling tickets:", err);
+              throw err; // Re-throw to be caught by the main try/catch
             }
           }
           break;
 
         case "claiming":
-          // Process claiming slot changes
-          if (
-            updatedEvent.claimingSummaries &&
-            updatedEvent.claimingSummaries.length > 0
-          ) {
-            // First, we might need to delete existing claiming slots
-            try {
-              await eventService.claimingSlots.clearAll(updatedEvent.id);
-            } catch (err) {
-              console.error(
-                `Error clearing claiming slots for event ${updatedEvent.id}:`,
-                err
+          // For claiming slots
+          try {
+            // First clear existing claiming slots
+            await eventService.claimingSlots.clearAll(updatedEvent.id);
+
+            // Then create new ones if we have them
+            if (
+              updatedEvent.claimingSummaries &&
+              updatedEvent.claimingSummaries.length > 0
+            ) {
+              const claimingData = updatedEvent.claimingSummaries.map(
+                (summary) => ({
+                  claiming_date: summary.date,
+                  start_time: summary.startTime,
+                  end_time: summary.endTime,
+                  venue: summary.venue,
+                  max_claimers: summary.maxReservations,
+                })
               );
-              // Continue even if this fails
+
+              await eventService.claimingSlots.createBulk(
+                updatedEvent.id,
+                claimingData
+              );
             }
-
-            // Format claiming slots for API
-            const claimingSlots = updatedEvent.claimingSummaries.map(
-              (summary) => ({
-                claiming_date: summary.date,
-                start_time: summary.startTime,
-                end_time: summary.endTime,
-                venue: summary.venue,
-                max_claimers: summary.maxReservations || 0,
-              })
-            );
-
-            // Create claiming slots in bulk
-            await eventService.claimingSlots.createBulk(
-              updatedEvent.id,
-              claimingSlots
-            );
+          } catch (error) {
+            console.error("Error updating claiming slots:", error);
+            throw error;
           }
           break;
 
         case "availability":
-          // Update availability details
-          await eventService.events.update(updatedEvent.id, {
-            display_start_date: updatedEvent.displayPeriod?.startDate,
-            display_end_date: updatedEvent.displayPeriod?.endDate,
-            display_start_time: updatedEvent.displayPeriod?.startTime,
-            display_end_time: updatedEvent.displayPeriod?.endTime,
-            reservation_start_date: updatedEvent.reservationPeriod?.startDate,
-            reservation_end_date: updatedEvent.reservationPeriod?.endDate,
-            reservation_start_time: updatedEvent.reservationPeriod?.startTime,
-            reservation_end_time: updatedEvent.reservationPeriod?.endTime,
-          });
+          // Use the new specialized method for handling availability updates
+          await handleAvailabilityUpdate(updatedEvent);
           break;
 
         default:
           console.warn(`Unknown edit type: ${editType}`);
           break;
       }
+
+      // Refresh the event's status after saving
       await eventService.refreshEventStatus(updatedEvent.id);
 
-      // Refresh the events list after any edit
+      // Refresh the events list
       await refreshEvents();
+
+      // Show success message
+      toast.success(`Event ${editType} details updated successfully`, {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
 
       return true;
     } catch (err) {
       console.error(`Error updating event ${editType}:`, err);
-      setError(`Failed to update ${editType}. Please try again.`);
+      toast.error(`Failed to update ${editType} details. ${err.message}`, {
+        position: "bottom-right",
+        autoClose: 5000,
+      });
+
       return false;
     } finally {
       setLoading(false);

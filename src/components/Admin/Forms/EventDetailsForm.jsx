@@ -8,13 +8,12 @@ const EventDetailsForm = ({
   submitButtonText = "Save",
 }) => {
   const [errors, setErrors] = useState({});
+  const [isImageHovered, setIsImageHovered] = useState(false);
   const fileInputRef = useRef(null);
 
   // Use useEffect to ensure we initialize with the provided data
   useEffect(() => {
     if (data) {
-      // No need to do anything else, just ensure this effect runs when data changes
-      // This helps ensure our component re-renders with new data if it changes
       setErrors({});
     }
   }, [data]);
@@ -48,20 +47,38 @@ const EventDetailsForm = ({
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      console.log("New image selected:", file.name);
+
       const reader = new FileReader();
       reader.onloadend = () => {
+        console.log("Image preview generated");
         onChange({
           ...data,
-          eventImage: file,
-          imagePreview: reader.result,
+          eventImage: file, // This is the actual file that will be uploaded
+          imagePreview: reader.result, // This is the data URL for preview
         });
       };
       reader.readAsDataURL(file);
+    } else {
+      console.log("No file selected");
     }
   };
 
-  const handleUploadButtonClick = () => {
+  const handleUploadButtonClick = (e) => {
+    e.stopPropagation(); // Prevent event bubbling
+    e.preventDefault(); // Prevent default behavior
     fileInputRef.current.click();
+  };
+
+  const handleRemoveImage = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onChange({
+      ...data,
+      eventImage: null,
+      imagePreview: null,
+    });
+    console.log("Image removed");
   };
 
   const validate = () => {
@@ -75,7 +92,6 @@ const EventDetailsForm = ({
     if (!eventDate) {
       newErrors.eventDate = "Event date is required";
     } else {
-      // For ticketed and free events (not coming soon), validate that event date is in the future
       if (eventType !== "coming_soon") {
         if (eventDate < today) {
           newErrors.eventDate = "Event date must be in the future";
@@ -105,7 +121,6 @@ const EventDetailsForm = ({
     if (validate() && onSubmit) {
       onSubmit(data);
     } else {
-      // Scroll to the top to show errors
       window.scrollTo(0, 0);
     }
   };
@@ -126,8 +141,12 @@ const EventDetailsForm = ({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-1 items-start">
-        <div className="bg-[#FFAB40] w-8/12 h-full rounded-xl flex items-center justify-center relative">
+      <div className="grid grid-cols-2 gap-6 items-start">
+        <div
+          className="w-full aspect-square bg-[#333] rounded-xl flex items-center justify-center relative overflow-hidden"
+          onMouseEnter={() => setIsImageHovered(true)}
+          onMouseLeave={() => setIsImageHovered(false)}
+        >
           <input
             type="file"
             ref={fileInputRef}
@@ -135,28 +154,58 @@ const EventDetailsForm = ({
             accept="image/jpeg,image/png,image/gif"
             className="hidden"
           />
+
           {imagePreview ? (
-            <img
-              src={imagePreview}
-              alt="Event"
-              className="w-full h-full object-cover rounded-xl"
-              onError={(e) => {
-                console.warn(`Image preview failed to load: ${imagePreview}`);
-                onChange({ ...data, imagePreview: null }); // Reset on error
-              }}
-            />
+            <>
+              <img
+                src={imagePreview}
+                alt="Event"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  console.warn(`Image preview failed to load: ${imagePreview}`);
+                  onChange({ ...data, imagePreview: null }); // Reset on error
+                }}
+              />
+
+              {/* Overlay with buttons when hovered */}
+              <div
+                className={`absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-60 transition-opacity duration-200 ${
+                  isImageHovered ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                <button
+                  onClick={handleUploadButtonClick}
+                  className="bg-[#FFAB40] text-black text-sm font-semibold py-2 px-4 rounded-full hover:bg-[#E09933] transition-colors mb-2"
+                >
+                  Change Image
+                </button>
+
+                <button
+                  onClick={handleRemoveImage}
+                  className="bg-red-500 text-white text-sm font-semibold py-2 px-4 rounded-full hover:bg-red-600 transition-colors"
+                >
+                  Remove Image
+                </button>
+              </div>
+            </>
           ) : (
-            <button
-              onClick={handleUploadButtonClick}
-              className={`bg-[#2E2E2E] text-[#FFAB40] text-sm font-semibold py-2 px-4 rounded-full ${
-                errors.image ? "border-2 border-red-500" : ""
-              }`}
-            >
-              Upload Image
-            </button>
+            <div className="flex flex-col items-center">
+              <button
+                onClick={handleUploadButtonClick}
+                className={`bg-[#FFAB40] text-black text-sm font-semibold py-2 px-4 rounded-full hover:bg-[#E09933] transition-colors ${
+                  errors.image ? "border-2 border-red-500" : ""
+                }`}
+              >
+                Upload Image
+              </button>
+              <p className="text-gray-400 text-xs mt-2">
+                Recommended: 1200 x 800 pixels
+              </p>
+            </div>
           )}
         </div>
-        <div className="space-y-2">
+
+        <div className="space-y-3">
           <div>
             <p className="text-[#FFAB40] text-sm mb-1">Event Name:</p>
             <input
