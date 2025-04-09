@@ -622,7 +622,8 @@ const Admin_UserPage = () => {
         <Admin_UserGenerateReport
           isOpen={showGenerateReportPopup}
           onClose={closeGenerateReportPopup}
-        />
+          visibleRows={table.getRowModel().rows.map((row) => row.original)} // Pass visible rows
+          />
       )}
     </div>
   );

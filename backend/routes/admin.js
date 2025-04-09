@@ -11,6 +11,8 @@ router.get("/dashboard/metrics", authenticate, authorizeAdmin, adminDashboardCon
 
 // ✅ Protected route: Get all users (only for admin)
 router.get("/users", authenticate, authorizeAdmin, adminController.getAllUsers);
+router.post("/generate-user-report",authenticate, authorizeAdmin, adminController.generateUserReport);
+router.post("/generate-event-report",authenticate, authorizeAdmin, adminController.generateEventReport);
 
 // ✅ Protected route: Update user status (only for admin)
 router.put(

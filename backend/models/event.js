@@ -109,6 +109,13 @@ Event.associate = (models) => {
     as: "ClaimingSlots",
     onDelete: "CASCADE",
   });
+
+  Event.hasMany(models.Reservation, {
+     as: "Reservations", 
+     foreignKey: "event_id" ,
+     onDelete: "CASCADE",
+
+  });
 };
 
 module.exports = Event;

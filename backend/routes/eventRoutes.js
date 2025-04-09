@@ -39,7 +39,7 @@ router.get("/events/coming-soon",authenticate, authorizeAdmin, eventController.g
 router.post("/events",authenticate, authorizeAdmin, eventController.createEvent);
 router.post("/events/draft",authenticate, authorizeAdmin, eventController.createDraftEvent);
 router.post("/events/upload-image",authenticate, authorizeAdmin, eventController.uploadEventImage);
-
+router.get("/events-summary",authenticate, authorizeAdmin, eventController.getEventSummary);
 
 // Status check endpoint (non-parameterized)
 router.get("/events/check-status", async (req, res) => {

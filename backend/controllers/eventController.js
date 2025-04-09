@@ -1383,6 +1383,67 @@ const eventController = {
       });
     }
   },
+
+  getEventSummary: async (req, res) => {
+    try {
+      const events = await Event.findAll({
+        attributes: [
+          "id", // Event ID
+          "name", // Event Name
+          "event_date", // Event Date
+          "venue", // Event Venue
+          "category", // Event Category
+          "event_type", // Event Type
+          "status", // Event Availability
+          [db.sequelize.fn("COUNT", db.sequelize.col("Reservations.reservation_id")), "total_reservations"],
+          [
+            db.sequelize.literal(`
+              CASE
+                WHEN "Event"."event_type" = 'free' THEN 0
+                ELSE SUM(CASE WHEN "Reservations"."reservation_status" = 'claimed' THEN "Tickets"."price" ELSE 0 END)
+              END
+            `),
+            "revenue",
+          ],
+          [db.sequelize.literal(`
+            CASE
+              WHEN "Event"."event_type" = 'free' THEN 'FREE'
+              ELSE CAST("Tickets"."remaining_quantity" AS TEXT)
+            END
+          `),
+          "remaining_tickets",
+        ],
+        ],
+        include: [
+          {
+            model: Ticket,
+            as: "Tickets",
+            attributes: [],
+          },
+          {
+            model: db.Reservation,
+            as: "Reservations",
+            attributes: [],
+          },
+        ],
+        group: ["Event.id", "Tickets.remaining_quantity"],
+        order: [["event_date", "ASC"]],
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: events, // Ensure the data field contains the array of events
+      });
+    } catch (error) {
+      console.error("Error fetching event summary:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+
 };
 
 module.exports = eventController;
