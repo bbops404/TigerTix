@@ -4,7 +4,23 @@ const Ticket = db.Ticket;
 const Event = db.Event; // Add this
 const User = db.User; // Add this
 const ClaimingSlot = db.ClaimingSlot; // Add this
+const nodemailer = require("nodemailer");
+
+
+
+
 const sequelize = db.sequelize; // Add this for transaction
+
+
+// Nodemailer transporter
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 
 const reservationController = {
   // Create a new reservation
@@ -26,7 +42,6 @@ const reservationController = {
       if (!event_id || !ticket_id || !claiming_id) {
         await transaction.rollback();
         return res.status(400).json({
-          success: false,
           message: "Missing required reservation details",
         });
       }
@@ -204,6 +219,32 @@ const reservationController = {
       });
 
       await transaction.commit(); // Commit the transaction
+
+      for (const user of users) {
+        const mailOptions = {
+          from: `"TigerTix" <${process.env.EMAIL_USER}>`,
+          to: user.email,
+          subject: "Your Reservation Details",
+          html: `
+            <h1>Reservation Confirmation</h1>
+            <p>Dear ${user.first_name} ${user.last_name},</p>
+            <p>Your reservation has been successfully created. Here are the details:</p>
+            <ul>
+              <li><strong>Event:</strong> ${event.name}</li>
+              <li><strong>Ticket Type:</strong> ${ticket.ticket_type}</li>
+              <li><strong>Claiming Time:</strong> ${claimingSlot.claiming_date} (${claimingSlot.start_time} - ${claimingSlot.end_time})</li>
+            </ul>
+            <p>Please log in to your account to view your reservations and ensure all details are correct.</p>
+            <p><strong>Reminder:</strong> You must claim your tickets during the chosen claiming time. Failure to do so may result in restrictions on your account.</p>
+            <p>Thank you for using TigerTix!</p>
+          `,
+        };
+      try {
+        await transporter.sendMail(mailOptions);
+      } catch (emailError) {
+        console.error(`Failed to send email to ${user.email}:`, emailError);
+      }
+    }
 
       return res.status(201).json({
         success: true,

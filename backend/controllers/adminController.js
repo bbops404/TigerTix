@@ -4,6 +4,16 @@ const bcrypt = require("bcryptjs");
 const { Sequelize } = require("sequelize");
 const jwt = require("jsonwebtoken");
 const db = require("../models/Users"); // Import your User model
+const crypto = require("crypto");
+
+// Nodemailer transporter
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -16,7 +26,6 @@ exports.getAllUsers = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 // 🔹 Delete multiple users
 exports.deleteUser = async (req, res) => {
@@ -50,39 +59,62 @@ exports.deleteUser = async (req, res) => {
 // Admin can add a user
 exports.addUser = async (req, res) => {
   try {
-    const { email, first_name, last_name, username, password, role } = req.body;
-    const allowedRoles = ["admin", "student", "employee", "alumni",  "support staff"];
+    const { email, first_name, last_name, username, role } = req.body;
+    const allowedRoles = ["admin", "student", "employee", "alumni", "support staff"];
     const formattedRole = role && allowedRoles.includes(role.toLowerCase()) ? role.toLowerCase() : "student";
-    
 
-    if (!email || !first_name || !last_name || !username || !password || !formattedRole) {
-      return res.status(400).json({ message: "All fields are required" });
+    if (!email || !first_name || !last_name || !username || !formattedRole) {
+      return res.status(400).json({ message: "All fields are required except password" });
     }
 
+    // Check if the email is already registered
     const existingUser = await db.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: "Email is already registered." });
     }
 
-    // check if username already exists
+    // Check if the username is already taken
     const existingUsername = await db.findOne({ where: { username } });
     if (existingUsername) {
-  return res.status(400).json({ message: "Username is already taken." });
-}
+      return res.status(400).json({ message: "Username is already taken." });
+    }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Generate a temporary password
+    const temporaryPassword = crypto.randomBytes(8).toString("hex"); // 16-character random password
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
+    // Create the new user
     const newUser = await db.create({
       email,
-      first_name, 
-      last_name,   
+      first_name,
+      last_name,
       username,
       password_hash: hashedPassword,
       role: formattedRole,
       status: "active",
     });
-    
-    res.status(201).json({ message: "Account created successfully!", user: { email, username, role: formattedRole } });
+
+    // Send an email to the user with their temporary password
+    await transporter.sendMail({
+      from: `"TigerTix" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Welcome to TigerTix!",
+      html: `
+        <h1>Welcome to TigerTix, ${first_name}!</h1>
+        <p>Your account has been successfully created. Here are your login details:</p>
+        <ul>
+          <li><strong>Username:</strong> ${username}</li>
+          <li><strong>Temporary Password:</strong> ${temporaryPassword}</li>
+        </ul>
+        <p>Please log in and change your password as soon as possible.</p>
+        <p>Thank you for joining TigerTix!</p>
+      `,
+    });
+
+    res.status(201).json({
+      message: "Account created successfully! A temporary password has been sent to the user's email.",
+      user: { email, username, role: formattedRole },
+    });
   } catch (error) {
     console.error("Error creating user:", error);
     res.status(500).json({ message: "Failed to create account. Please try again." });
