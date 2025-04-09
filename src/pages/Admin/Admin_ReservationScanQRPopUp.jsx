@@ -2,10 +2,225 @@ import React, { useState, useEffect } from "react";
 import { IoArrowBack } from "react-icons/io5";
 import { BiBadgeCheck } from "react-icons/bi";
 import { BsQrCodeScan } from "react-icons/bs";
+import { FaArrowLeft } from "react-icons/fa";
 import { Html5Qrcode } from "html5-qrcode";
+import { toast } from "react-toastify";
 import axios from "axios";
 
-const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
+// Import the ConfirmMarkAsClaimedModal that was used in Admin_ClaimedReservationModal
+const ConfirmMarkAsClaimedModal = ({ isOpen, onClose, onConfirm }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-center">
+      <div className="bg-white rounded-xl p-6 w-[400px] max-w-full shadow-lg">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          Confirm Action
+        </h3>
+        <p className="text-gray-700 mb-6">
+          Are you sure you want to mark this reservation as claimed?
+        </p>
+        <div className="flex justify-end space-x-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Admin_ClaimedReservationModal component adapted for integration
+const Admin_ClaimedReservationModal = ({
+  reservations,
+  onClose,
+  onScanAgain,
+  onMarkAsClaimed,
+}) => {
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [processing, setProcessing] = useState(false);
+
+  const handleMarkAsClaimed = () => {
+    // Open the confirmation modal
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmMarkAsClaimed = async () => {
+    try {
+      setProcessing(true);
+      // Call the parent's markAsClaimed function
+      const success = await onMarkAsClaimed();
+
+      // Close the confirmation modal
+      setShowConfirmModal(false);
+
+      if (success) {
+        // Close the entire modal after a short delay to let the toast be visible
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      }
+    } catch (error) {
+      console.error("Error in mark as claimed:", error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Format reservation data for display
+  const formatReservationForDisplay = (reservation) => {
+    return {
+      id: reservation.reservation_id,
+      name: reservation.name,
+      role: reservation.role || "Attendee", // Default to Attendee if role not provided
+      event: reservation.event_name,
+      tier: reservation.ticket_tier,
+      date: reservation.claiming_date,
+      time: reservation.claiming_time,
+      amount: `₱${reservation.amount}`,
+      status: reservation.claiming_status.toUpperCase(),
+    };
+  };
+
+  // Create an array of formatted reservations (could be one or more)
+  const formattedReservations = Array.isArray(reservations)
+    ? reservations.map(formatReservationForDisplay)
+    : [formatReservationForDisplay(reservations)];
+
+  return (
+    <>
+      {/* Only render the parent modal if the confirmation modal is not open */}
+      {!showConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-[#EFF3F0] rounded-xl p-6 w-[900px] max-w-full shadow-lg relative">
+            {/* Back Icon */}
+            <button
+              onClick={onClose}
+              className="absolute top-4 left-4 text-[#F09C32] text-2xl hover:text-[#CD8428] transition duration-300"
+            >
+              <FaArrowLeft />
+            </button>
+
+            {/* Title */}
+            <h2 className="text-xl font-semibold text-[#3B3B3B] mb-2 text-left mt-8">
+              ✅ Reservation successfully retrieved!
+            </h2>
+
+            {/* Subtitle */}
+            <p className="text-sm text-gray-600 mb-4 text-left">
+              Below are the details:
+            </p>
+
+            {/* Scrollable Table */}
+            <div className="overflow-y-auto max-h-[300px] border border-[#D6D3D3] rounded-md">
+              <table className="w-full text-sm bg-white">
+                <thead className="bg-[#F09C32] text-[#333333]">
+                  <tr>
+                    {[
+                      "Reservation ID",
+                      "Name",
+                      "Role",
+                      "Event Name",
+                      "Ticket Tier",
+                      "Claiming Date",
+                      "Claiming Time",
+                      "Amount",
+                      "Claiming Status",
+                    ].map((header, index) => (
+                      <th
+                        key={index}
+                        className="py-2 px-3 border border-[#D6D3D3]"
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {formattedReservations.map((reservation) => (
+                    <tr key={reservation.id} className="text-center text-black">
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.id}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.name}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.role}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.event}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.tier}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.date}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.time}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.amount}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.status}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end mt-6 space-x-4">
+              <button
+                onClick={onScanAgain}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
+              >
+                Scan Another QR
+              </button>
+
+              {formattedReservations[0].status !== "CLAIMED" && (
+                <button
+                  onClick={handleMarkAsClaimed}
+                  disabled={processing}
+                  className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md ${
+                    processing ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  {processing ? "Processing..." : "Mark as Claimed"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      <ConfirmMarkAsClaimedModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmMarkAsClaimed}
+      />
+    </>
+  );
+};
+
+const Admin_ReservationScanQRPopUp = ({
+  showPopup,
+  togglePopup,
+  onSuccessfulClaim,
+}) => {
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [reservation, setReservation] = useState(null);
@@ -16,6 +231,9 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
   const [cameras, setCameras] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState("");
 
+  // Add a new state for showing the claimed reservation modal
+  const [showClaimedModal, setShowClaimedModal] = useState(false);
+
   // Keep track of the scanner instance - don't use React state for this
   // to avoid re-renders and ensure immediate updates
   let scannerInstance = null;
@@ -24,7 +242,7 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
 
   // Initialize available cameras when component mounts
   useEffect(() => {
-    if (showPopup && !scanned && !reservation) {
+    if (showPopup && !scanned && !reservation && !showClaimedModal) {
       checkCameras();
     }
 
@@ -41,7 +259,7 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
       // Reset global flag
       window.qrDetectionProcessing = false;
     };
-  }, [showPopup, scanned, reservation]);
+  }, [showPopup, scanned, reservation, showClaimedModal]);
 
   // Check for available cameras
   const checkCameras = async () => {
@@ -227,6 +445,9 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
       if (response.data && response.data.success && response.data.data) {
         setReservation(response.data.data);
         setClaimStatus(response.data.data.claiming_status);
+
+        // Show the claimed reservation modal after successful validation
+        setShowClaimedModal(true);
       } else {
         throw new Error(
           response.data.message || "Failed to fetch reservation details"
@@ -269,7 +490,8 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
   };
 
   const handleMarkAsClaimed = async () => {
-    if (!reservation || !reservation.reservation_id || processingClaim) return;
+    if (!reservation || !reservation.reservation_id || processingClaim)
+      return false;
 
     try {
       setProcessingClaim(true);
@@ -296,6 +518,26 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
       if (response.data.success) {
         setClaimStatus("claimed");
         setReservation((prev) => ({ ...prev, claiming_status: "claimed" }));
+
+        // Show success toast
+        toast.success("Reservation marked as claimed!", {
+          style: {
+            backgroundColor: "#FFFFFF",
+            color: "#000",
+            fontWeight: "bold",
+            borderRadius: "8px",
+            padding: "10px",
+            marginTop: "70px",
+          },
+          autoClose: 2000,
+        });
+
+        // Call the callback function if provided to refresh parent component
+        if (typeof onSuccessfulClaim === "function") {
+          onSuccessfulClaim();
+        }
+
+        return true;
       } else {
         throw new Error(response.data.message || "Failed to mark as claimed");
       }
@@ -310,6 +552,21 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
       }
 
       setError(err.message || "Failed to mark reservation as claimed");
+
+      // Show error toast
+      toast.error("Failed to mark as claimed", {
+        style: {
+          backgroundColor: "#FFFFFF",
+          color: "#000",
+          fontWeight: "bold",
+          borderRadius: "8px",
+          padding: "10px",
+          marginTop: "70px",
+        },
+        autoClose: 2000,
+      });
+
+      return false;
     } finally {
       setProcessingClaim(false);
     }
@@ -320,6 +577,7 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
     setScanned(false);
     setReservation(null);
     setError(null);
+    setShowClaimedModal(false);
     window.qrDetectionProcessing = false;
     togglePopup();
   };
@@ -329,6 +587,7 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
     setScanned(false);
     setReservation(null);
     setError(null);
+    setShowClaimedModal(false);
     window.qrDetectionProcessing = false;
 
     // Small delay to ensure DOM is ready
@@ -383,6 +642,18 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
 
   // Render different content based on scan status
   const renderContent = () => {
+    // If the claimed reservation modal should be shown, don't render other content
+    if (showClaimedModal && reservation) {
+      return (
+        <Admin_ClaimedReservationModal
+          reservations={reservation}
+          onClose={handleClose}
+          onScanAgain={handleScanAgain}
+          onMarkAsClaimed={handleMarkAsClaimed}
+        />
+      );
+    }
+
     if (error) {
       return (
         <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -403,97 +674,6 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
         <div className="flex flex-col items-center justify-center p-8">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 mb-4"></div>
           <div className="text-gray-700">Processing QR code...</div>
-        </div>
-      );
-    }
-
-    if (reservation) {
-      return (
-        <div className="w-full p-6">
-          <h2 className="text-xl font-bold text-center text-gray-800 mb-4">
-            Reservation Details
-          </h2>
-
-          <div className="bg-gray-100 rounded-lg p-4 mb-4">
-            <table className="w-full text-left text-gray-700">
-              <tbody>
-                <tr className="border-b border-gray-200">
-                  <th className="py-2 font-semibold">Reservation ID:</th>
-                  <td className="py-2">{reservation.reservation_id}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <th className="py-2 font-semibold">Name:</th>
-                  <td className="py-2">{reservation.name}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <th className="py-2 font-semibold">Event:</th>
-                  <td className="py-2">{reservation.event_name}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <th className="py-2 font-semibold">Ticket Tier:</th>
-                  <td className="py-2">{reservation.ticket_tier}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <th className="py-2 font-semibold">Claiming Date:</th>
-                  <td className="py-2">{reservation.claiming_date}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <th className="py-2 font-semibold">Claiming Time:</th>
-                  <td className="py-2">{reservation.claiming_time}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <th className="py-2 font-semibold">Amount:</th>
-                  <td className="py-2">₱{reservation.amount}</td>
-                </tr>
-                <tr>
-                  <th className="py-2 font-semibold">Status:</th>
-                  <td
-                    className={`py-2 font-medium ${
-                      claimStatus === "claimed"
-                        ? "text-green-600"
-                        : claimStatus === "pending"
-                        ? "text-yellow-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {claimStatus.toUpperCase()}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex flex-col space-y-3">
-            {claimStatus === "pending" && (
-              <button
-                onClick={handleMarkAsClaimed}
-                disabled={processingClaim}
-                className={`flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition ${
-                  processingClaim ? "opacity-70 cursor-not-allowed" : ""
-                }`}
-              >
-                {processingClaim ? (
-                  <>
-                    <span className="animate-spin mr-2">⟳</span>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <BiBadgeCheck className="mr-2" size={20} />
-                    Mark as Claimed
-                  </>
-                )}
-              </button>
-            )}
-
-            <button
-              onClick={handleScanAgain}
-              className="flex items-center justify-center px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
-            >
-              <BsQrCodeScan className="mr-2" size={18} />
-              Scan Another QR Code
-            </button>
-          </div>
         </div>
       );
     }
@@ -523,28 +703,6 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
             Position the QR code within the scanning area
           </div>
         )}
-
-        {/* Manual input form as fallback */}
-        <div className="w-full max-w-md mt-8 p-4 border border-gray-200 rounded-lg">
-          <h3 className="text-md font-semibold mb-2">Manual Code Entry</h3>
-          <p className="text-sm text-gray-600 mb-3">
-            If scanning fails, enter the code manually:
-          </p>
-          <form onSubmit={handleManualInput} className="flex items-center">
-            <input
-              type="text"
-              name="manualCode"
-              placeholder="Enter QR code text"
-              className="flex-1 p-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 transition"
-            >
-              Submit
-            </button>
-          </form>
-        </div>
       </div>
     );
   };
@@ -555,31 +713,36 @@ const Admin_ReservationScanQRPopUp = ({ showPopup, togglePopup }) => {
         showPopup ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     >
-      <div className="bg-white rounded-lg shadow-lg w-[700px] max-h-[90vh] overflow-y-auto p-6 relative flex flex-col">
-        <div className="flex justify-between items-center mb-4">
+      {/* Don't render the main container if showing the claimed modal */}
+      {showClaimedModal ? (
+        renderContent()
+      ) : (
+        <div className="bg-white rounded-lg shadow-lg w-[700px] max-h-[90vh] overflow-y-auto p-6 relative flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <button
+              onClick={handleClose}
+              className="text-gray-600 hover:text-gray-800 transition"
+            >
+              <IoArrowBack size={24} />
+            </button>
+            <h2 className="text-xl font-bold text-gray-800">
+              Scan Reservation QR Code
+            </h2>
+            <div className="w-6"></div> {/* Empty div for alignment */}
+          </div>
+
+          <div className="flex-1 flex flex-col items-center justify-center">
+            {renderContent()}
+          </div>
+
           <button
             onClick={handleClose}
-            className="text-gray-600 hover:text-gray-800 transition"
+            className="mt-4 px-6 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 transition self-center"
           >
-            <IoArrowBack size={24} />
+            Close
           </button>
-          <h2 className="text-xl font-bold text-gray-800">
-            Scan Reservation QR Code
-          </h2>
-          <div className="w-6"></div> {/* Empty div for alignment */}
         </div>
-
-        <div className="flex-1 flex flex-col items-center justify-center">
-          {renderContent()}
-        </div>
-
-        <button
-          onClick={handleClose}
-          className="mt-4 px-6 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 transition self-center"
-        >
-          Close
-        </button>
-      </div>
+      )}
     </div>
   );
 };

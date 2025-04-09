@@ -221,14 +221,13 @@ const reservationController = {
     }
   },
 
-  // Get all reservations for a user
   getUserReservations: async (req, res) => {
     try {
       const { user_id } = req.params;
 
       const reservations = await Reservation.findAll({
         where: { user_id },
-        include: ["event", "tickets", "claimingSlot"],
+        include: ["Event", "Ticket", "ClaimingSlot"], // Changed to match your model association names
       });
 
       return res.status(200).json({

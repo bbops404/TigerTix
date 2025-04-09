@@ -75,7 +75,7 @@ const PublishEventContainer = () => {
         eventVisibility = "unpublished";
       } else {
         // Current or past display date
-        switch (eventDetails.eventType) {
+        switch (eventData.eventDetails.eventType) {
           case "coming_soon":
             eventStatus = "closed";
             eventVisibility = "published";

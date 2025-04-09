@@ -336,6 +336,12 @@ const Admin_Reservations = () => {
     });
   }, [selectedReservations, reservations]);
 
+  // Handler for successful QR code claiming - refreshes the reservations list
+  const handleSuccessfulClaim = () => {
+    // Refresh the reservations data after successful QR code claim
+    fetchReservations();
+  };
+
   // Handle reinstate action - UPDATED with real backend calls
   const handleReinstate = async () => {
     if (!hasUnclaimedSelected || actionLoading) return;
@@ -751,6 +757,7 @@ const Admin_Reservations = () => {
         <Admin_ReservationScanQRPopUp
           showPopup={showQRPopup}
           togglePopup={() => setShowQRPopup(false)}
+          onSuccessfulClaim={handleSuccessfulClaim}
         />
       )}
     </div>
