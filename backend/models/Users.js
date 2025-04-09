@@ -63,4 +63,14 @@ User.associate = (models) => {
   });
 };
 
+User.associate = (models) => {
+  console.log("Associating User with models:", models);
+  console.log("models.AuditTrail:", models.AuditTrail);
+  User.hasMany(models.AuditTrail, {
+    foreignKey: "user_id",
+    as: "auditTrails",
+  });
+};
+
+
 module.exports = User;

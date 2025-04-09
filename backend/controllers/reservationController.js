@@ -5,6 +5,7 @@ const Event = db.Event; // Add this
 const User = db.User; // Add this
 const ClaimingSlot = db.ClaimingSlot; // Add this
 const nodemailer = require("nodemailer");
+const { createAuditTrail } = require("./auditTrailController");
 
 
 
@@ -497,12 +498,29 @@ const reservationController = {
       // Update the reservation status to "claimed"
       reservation.reservation_status = "claimed";
       await reservation.save();
+      consolemo.log("User data for audit log:", req.user);
 
+    try {
+  await createAuditTrail({
+    user_id: req.user.user_id,
+    username: req.user.username,
+    role: req.user.role,
+    action: "Mark Reservation as Claimed",
+    affectedEntity: "Reservation",
+    message: `Marked reservation ID ${reservation_id} as claimed.`,
+    status: "Successful",
+  });
+} catch (error) {
+  console.error("Failed to create audit log:", error);
+}
       return res.status(200).json({
+        
         success: true,
         message: "Reservation marked as claimed successfully",
         data: reservation,
       });
+
+
     } catch (error) {
       console.error("Error marking reservation as claimed:", error);
       return res.status(500).json({
@@ -577,10 +595,7 @@ const reservationController = {
       reservation.reservation_status = "claimed";
       await reservation.save();
 
-      console.log(
-        `Successfully marked reservation ${reservation.reservation_id} as claimed`
-      );
-
+      
       // Format user name safely
       const userName = reservation.User
         ? `${reservation.User.first_name || ""} ${
@@ -590,6 +605,23 @@ const reservationController = {
 
       // Get ticket type safely
       const ticketType = reservation.Ticket?.ticket_type || "Unknown Type";
+
+      try {
+        await createAuditTrail({
+          user_id: req.user.user_id,
+          username: req.user.username,
+          role: req.user.role,
+          action: "Mark Reservation as Claimed",
+          affectedEntity: "Reservation",
+          message: `Marked reservation ID ${reservation_id} as claimed.`,
+          status: "Successful",
+        });
+      } catch (error) {
+        console.error("Failed to create audit log:", error);
+      }
+      console.log(
+        `Successfully marked reservation ${reservation.reservation_id} as claimed`
+      );
 
       return res.status(200).json({
         success: true,
@@ -601,6 +633,8 @@ const reservationController = {
           status: "claimed",
         },
       });
+
+      
     } catch (error) {
       console.error("Error marking reservation as claimed via QR code:", error);
       return res.status(500).json({
@@ -778,6 +812,15 @@ const reservationController = {
       reservation.reservation_status = "claimed";
       await reservation.save();
 
+await createAuditTrail({
+  user_id: req.user.user_id,
+  username: req.user.username,
+  role: req.user.role,
+  action: "Reinstated reservation",
+  message: `Marked ${reservation_id} reservations from unclaimed to claimed.`,
+  status: "Successful",
+});
+      
       return res.status(200).json({
         success: true,
         message: "Reservation reinstated to claimed successfully",
@@ -854,10 +897,20 @@ const reservationController = {
             await ticket.save();
           }
 
+
+
           // Update the reservation status to "cancelled"
           reservation.reservation_status = "cancelled";
           await reservation.save();
 
+await createAuditTrail({
+  user_id: req.user.user_id,
+  username: req.user.username,
+  role: req.user.role,
+  action: "Restore reservation",
+  message: `Marked ${reservation_id} reservations from unclaimed to cancelled.`,
+  status: "Successful",
+});
           restoredReservations.push(reservation);
         } catch (error) {
           errors.push({ reservation_id, message: error.message });
@@ -948,7 +1001,21 @@ const reservationController = {
             { transaction }
           );
 
+
+
           successfulIds.push(reservationId);
+
+          // Inside markMultipleAsClaimed
+await createAuditTrail({
+  user_id: req.user.user_id,
+  username: req.user.username,
+  role: req.user.role,
+  action: "Mark Multiple Reservations as Claimed",
+  affectedEntity: "Reservations",
+  message: `Marked ${successfulIds.length} reservations as claimed.`,
+  status: "Successful",
+});
+          
         } catch (error) {
           console.error(
             `Error processing reservation ${reservationId}:`,

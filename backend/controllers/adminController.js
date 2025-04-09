@@ -3,10 +3,12 @@ const Redis = require("ioredis");
 const bcrypt = require("bcryptjs");
 const { Sequelize } = require("sequelize");
 const jwt = require("jsonwebtoken");
-const db = require("../models/Users"); // Import your User model
-const crypto = require("crypto");
+const { User } = require("../models"); 
+// Correct importconst crypto = require("crypto");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
+const { createAuditTrail } = require("./auditTrailController");
+const crypto = require("crypto");
 
 // Nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -17,10 +19,26 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const authenticate = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded; // Populate req.user with decoded token data
+    } catch (error) {
+      console.error("Invalid token:", error);
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+  } else {
+    return res.status(401).json({ message: "No token provided" });
+  }
+  next();
+};
+
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await db.findAll({
-      attributes: ["user_id","username", "email", "role", "first_name", "last_name", "status", "violation_count"]
+    const users = await User.findAll({
+      attributes: ["user_id", "username", "email", "role", "first_name", "last_name", "status", "violation_count"]
     });
     res.status(200).json(users);
   } catch (error) {
@@ -29,31 +47,52 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// 🔹 Delete multiple users
 exports.deleteUser = async (req, res) => {
   try {
+    console.log("Delete User Request body:", req.body); // Debug the request body
+
     const { ids } = req.body; // Expecting an array of IDs in the request body
+
+    console.log("Delete user ids:", ids); // Debug the request body
 
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ message: "No user IDs provided" });
     }
 
-    // Find all users with the provided IDs
-    const users = await db.findAll({
-      where: {
-        user_id: ids,
-      },
-    });
+    const users = await User.findAll({ where: { user_id: ids } });
 
     if (users.length === 0) {
       return res.status(404).json({ message: "Users not found" });
     }
 
+    // Log the successful action in the audit trail
+    await createAuditTrail({
+      user_id: req.user?.user_id || "unknown",
+      username: req.user?.username || "unknown",
+      role: req.user?.role || "unknown",
+      action: "Delete User(s)",
+      affectedEntity: "User", // Specify the affected entity
+      message: `Admin deleted ${users.length} user(s): ${ids.join(", ")}`,
+      status: "Successful",
+    });
+
     // Delete all the users found
-    await Promise.all(users.map(user => user.destroy()));
+    await Promise.all(users.map((user) => user.destroy()));
 
     res.status(200).json({ message: `${users.length} user(s) deleted successfully` });
   } catch (error) {
+    console.error("Error deleting users:", error);
+
+    // Log the failed action in the audit trail
+    await createAuditTrail({
+      user_id: req.user?.user_id || "unknown",
+      username: req.user?.username || "unknown",
+      role: req.user?.role || "unknown",
+      action: "Delete User(s)",
+      message: "Failed to delete users.",
+      status: "Failed",
+    });
+
     res.status(500).json({ message: "Error deleting users", error });
   }
 };
@@ -70,13 +109,13 @@ exports.addUser = async (req, res) => {
     }
 
     // Check if the email is already registered
-    const existingUser = await db.findOne({ where: { email } });
+    const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: "Email is already registered." });
     }
 
     // Check if the username is already taken
-    const existingUsername = await db.findOne({ where: { username } });
+    const existingUsername = await User.findOne({ where: { username } });
     if (existingUsername) {
       return res.status(400).json({ message: "Username is already taken." });
     }
@@ -86,7 +125,7 @@ exports.addUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
     // Create the new user
-    const newUser = await db.create({
+    const newUser = await User.create({
       email,
       first_name,
       last_name,
@@ -94,6 +133,7 @@ exports.addUser = async (req, res) => {
       password_hash: hashedPassword,
       role: formattedRole,
       status: "active",
+      
     });
 
     // Send an email to the user with their temporary password
@@ -111,6 +151,17 @@ exports.addUser = async (req, res) => {
         <p>Please log in and change your password as soon as possible.</p>
         <p>Thank you for joining TigerTix!</p>
       `,
+    });
+
+    await createAuditTrail({
+      user_id: req.user.user_id,
+      username: req.user.username,
+      role: req.user.role,
+      action: "Add User",
+      message: `Admin added a new user: ${username} (${email})`,
+      status: "Successful",
+      affectedEntity: "User", // Specify the affected entity
+
     });
 
     res.status(201).json({
@@ -141,7 +192,7 @@ exports.updateUserStatus = async (req, res) => {
     }
 
     // Find the user in the database
-    const user = await db.findByPk(id);
+    const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -149,6 +200,16 @@ exports.updateUserStatus = async (req, res) => {
     // Update the user's status
     user.status = status;
 
+    await createAuditTrail({
+      user_id: req.user.user_id,
+      username: req.user.username,
+      role: req.user.role,
+      action: "Update User Status",
+      message: `Admin updated the status of user ID ${id} to ${status}`,
+      status: "Successful",
+      affectedEntity: "User", // Specify the affected entity
+
+    });
     // Save the changes
     await user.save();
 
@@ -177,7 +238,7 @@ exports.updateUserType= async (req, res) => {
     }
 
     // Find the user in the database
-    const user = await db.findByPk(id);
+    const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -227,7 +288,7 @@ exports.generateEventReport = async (req, res) => {
       return res.status(400).json({ message: "No rows provided for the report." });
     }
 
-    const user = await db.findOne({
+    const user = await User.findOne({
       where: { user_id: req.user.user_id }, // Assuming `user_id` is available in req.user
       attributes: ["first_name", "last_name", "role"], // Fetch only the required fields
     });
@@ -399,6 +460,15 @@ exports.generateEventReport = async (req, res) => {
 
     // Finalize the PDF and end the stream
     doc.end();
+
+    await createAuditTrail({
+      user_id: req.user.user_id,
+      username: req.user.username,
+      role: req.user.role,
+      action: "Generate Event Report",
+      message: "Admin generated an event report.",
+      status: "Successful",
+    });
   } catch (error) {
     console.error("Error generating user report:", error);
     res.status(500).json({ message: "Failed to generate user report. Please try again." });
@@ -414,7 +484,7 @@ exports.generateUserReport = async (req, res) => {
       return res.status(400).json({ message: "No rows provided for the report." });
     }
 
-    const user = await db.findOne({
+    const user = await User.findOne({
       where: { user_id: req.user.user_id }, // Assuming `user_id` is available in req.user
       attributes: ["first_name", "last_name", "role"], // Fetch only the required fields
     });
@@ -586,6 +656,17 @@ exports.generateUserReport = async (req, res) => {
 
     // Finalize the PDF and end the stream
     doc.end();
+
+    await createAuditTrail({
+      user_id: req.user.user_id,
+      username: req.user.username,
+      role: req.user.role,
+      action: "Generate User Report",
+      message: "Admin generated a user report.",
+      status: "Successful",
+      affectedEntity: "Report", // Specify the affected entity
+
+    });
   } catch (error) {
     console.error("Error generating user report:", error);
     res.status(500).json({ message: "Failed to generate user report. Please try again." });

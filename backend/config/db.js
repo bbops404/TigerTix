@@ -4,7 +4,7 @@ require("dotenv").config();
 // Sequelize setup
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: "postgres",
-  logging: false, // Set to true for debugging SQL queries
+  logging: false, // Enable SQL query logging for debugging
 });
 
 sequelize

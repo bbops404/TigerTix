@@ -44,6 +44,7 @@ const Reservation = sequelize.define(
     tableName: "Reservations",
     timestamps: true, // Enable Sequelize's automatic timestamps
   }
+  
 );
 
 // Define associations
