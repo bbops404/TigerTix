@@ -4199,28 +4199,3 @@ const Admin_PublishEvent = ({
 };
 
 export default Admin_PublishEvent;
-
-/**
- * This event management system follows these rules:
- *
- * 1. Free/Promotional Events:
- *    - Skip ticket details and claiming details
- *    - Only require event details and availability settings
- *    - Published with status: Closed, visibility: Published
- *
- * 2. Coming Soon Events:
- *    - Optional ticket details (checkbox to include tier info)
- *    - Skip claiming details
- *    - Published with status: Closed, visibility: Published
- *
- * 3. Ticketed Events:
- *    - Complete flow with event details, ticket details, claiming details, and availability
- *    - Published with status: Scheduled, visibility: Published
- *
- * 4. Draft Events:
- *    - Any event type can be saved as draft
- *    - Draft events have status: Draft, visibility: Unpublished
- *
- * Flow control maintains the previously inputted details when navigating back.
- * Each step validates the required fields before proceeding.
- */

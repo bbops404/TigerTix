@@ -1,4 +1,3 @@
-// Header_User.jsx
 import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaBell, FaSignOutAlt, FaChevronDown } from "react-icons/fa";
 import tigertix_logo from "../assets/tigertix_logo.png";
@@ -8,12 +7,35 @@ import axios from "axios";
 const Header_User = () => {
   const [publishedEvents, setPublishedEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
+  const [user, setUser] = useState(null); // State for user data
+  const [loading, setLoading] = useState(true); // State for loading
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Function to fetch user data
+    const fetchUserData = async () => {
+      try {
+        const API_BASE_URL = "http://localhost:5002"; // Base URL
+        const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
+          withCredentials: true, // Important for including cookies
+        });
+
+        if (response.data.success) {
+          setUser(response.data.data);
+        } else {
+          console.error("Failed to fetch user data.");
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Function to fetch published events
     const fetchPublishedEvents = async () => {
       try {
-        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const API_BASE_URL = "http://localhost:5002"; // Base URL
         const response = await axios.get(
           `${API_BASE_URL}/api/events/published`
         );
@@ -28,6 +50,8 @@ const Header_User = () => {
       }
     };
 
+    // Fetch both user data and published events
+    fetchUserData();
     fetchPublishedEvents();
   }, []);
 
@@ -84,6 +108,27 @@ const Header_User = () => {
     }
   };
 
+  // Get the proper display name for the user
+  const getUserDisplayName = () => {
+    if (loading) return "Loading...";
+    if (!user) return "Guest";
+
+    // First try to use first_name
+    if (user.first_name) {
+      return `${user.first_name}`;
+    }
+    // Fall back to username if available
+    else if (user.username) {
+      return user.username;
+    }
+    // Last resort, use email prefix
+    else if (user.email) {
+      return user.email.split("@")[0];
+    }
+
+    return "User"; // Default fallback
+  };
+
   return (
     <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl">
       {/* Logo */}
@@ -125,7 +170,9 @@ const Header_User = () => {
 
       {/* Right-side content */}
       <div className="flex items-center gap-4">
-        <span className="text-gray-800 font-medium">Hi, Name!</span>
+        <span className="text-gray-800 font-medium">
+          Hi, {getUserDisplayName()}!
+        </span>
 
         {/* Profile Icon - Routes to My Profile */}
         <Link to="/my-profile">

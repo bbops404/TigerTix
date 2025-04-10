@@ -21,6 +21,7 @@ const Reservation = () => {
   const [apiError, setApiError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [ticketType, setTicketType] = useState("");
   const [ticketTypeId, setTicketTypeId] = useState(""); // To store the selected ticket ID
@@ -397,9 +398,12 @@ const Reservation = () => {
 
   const handleConfirmReservation = async () => {
     try {
-      setValidationError("");
+      // Set submission state to true to show loading indicators
+      setIsSubmitting(true);
+      setValidationError("Processing your reservation...");
 
       if (!user || !user.user_id) {
+        setIsSubmitting(false);
         setValidationError(
           "User information not available. Please log in again."
         );
@@ -412,6 +416,7 @@ const Reservation = () => {
         const emailValidation = await validateDatabaseEmails(emailsToValidate);
 
         if (!emailValidation.valid) {
+          setIsSubmitting(false);
           setValidationError(
             emailValidation.message ||
               "Some email addresses were not found in the system."
@@ -421,7 +426,7 @@ const Reservation = () => {
         }
       }
 
-      // Get user IDs from emails, ensuring we're handling all errors properly
+      // Get user IDs from emails
       let additionalUserIds = [];
       if (ticketCount > 1) {
         try {
@@ -434,6 +439,7 @@ const Reservation = () => {
 
             // Check if we got all the user IDs we needed
             if (additionalUserIds.length !== emailsToConvert.length) {
+              setIsSubmitting(false);
               setValidationError(
                 "Some users could not be found. Please check the email addresses."
               );
@@ -445,6 +451,7 @@ const Reservation = () => {
           }
         } catch (error) {
           console.error("Error getting user IDs:", error);
+          setIsSubmitting(false);
           setValidationError(
             "Error retrieving user details. Please try again."
           );
@@ -481,9 +488,14 @@ const Reservation = () => {
           emails: emails.slice(0, ticketCount),
           timeSlot: claimingSlot,
           ticketPrices: getTicketPrices(),
+          ticketPrice: getTicketPrices()[ticketType] || 0,
           userEmail: user.email,
           firstName: user.first_name,
           lastName: user.last_name,
+          eventName: event.name,
+          eventDate: event.event_date,
+          eventTime: event.event_time,
+          eventVenue: event.venue,
           event: event,
           reservationId:
             response.data && response.data.length > 0
@@ -493,6 +505,9 @@ const Reservation = () => {
             claimingSlots.find((slot) => slot.id === claimingSlotId)?.venue ||
             "UST IPEA",
         };
+
+        // Store in localStorage as a backup
+        localStorage.setItem("reservationData", JSON.stringify(receiptData));
 
         // Navigate to the receipt page
         navigate("/reservation-receipt", { state: receiptData });
@@ -516,32 +531,8 @@ const Reservation = () => {
         "An unexpected error occurred while creating your reservation."
       );
       setShowConfirmModal(false);
-    }
-  };
-
-  // Helper function to get user IDs from emails
-  const getUserIdsFromEmails = async (emails) => {
-    try {
-      // Filter out any empty or invalid emails
-      const validEmails = emails.filter((email) => email && email.trim());
-
-      if (validEmails.length === 0) {
-        return [];
-      }
-
-      // Call API to get user IDs from emails
-      const response = await getUserIdsByEmail(validEmails);
-
-      if (response.success && response.userIds) {
-        // Filter out any null values (emails that weren't found)
-        return response.userIds.filter((id) => id !== null);
-      } else {
-        console.error("Failed to get user IDs:", response.message);
-        throw new Error(response.message || "Failed to retrieve user IDs");
-      }
-    } catch (error) {
-      console.error("Error getting user IDs:", error);
-      throw error; // Re-throw to be handled by the calling function
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -604,6 +595,7 @@ const Reservation = () => {
               userEmail={user?.email || emails[0]}
               validationError={validationError}
               maxTickets={maxPerUser}
+              isSubmitting={isSubmitting}
             />
           </div>
         </div>
@@ -767,10 +759,11 @@ const Reservation = () => {
                   {/* Confirm Button */}
                   <div className="mt-8 text-center">
                     <button
-                      className="font-Poppins bg-black text-[#F09C32] font-bold text-lg py-3 px-7 w-full lg:min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600"
+                      className="font-Poppins bg-black text-[#F09C32] font-bold text-lg py-3 px-7 w-full lg:min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600 disabled:opacity-50"
                       onClick={handleSummaryConfirmation}
+                      disabled={isSubmitting}
                     >
-                      CONFIRM
+                      {isSubmitting ? "PROCESSING..." : "CONFIRM"}
                     </button>
                   </div>
                 </div>
@@ -783,7 +776,7 @@ const Reservation = () => {
       {/* Confirmation Modal - only shown when clicking CONFIRM in summary */}
       <ConfirmationEventModal
         isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
+        onClose={() => !isSubmitting && setShowConfirmModal(false)}
         onConfirm={handleConfirmReservation}
         ticketType={ticketType}
         ticketCount={ticketCount}
@@ -792,6 +785,7 @@ const Reservation = () => {
         ticketPrices={getTicketPrices()}
         userEmail={user?.email || emails[0]}
         eventName={event?.name}
+        isSubmitting={isSubmitting}
       />
     </div>
   );
