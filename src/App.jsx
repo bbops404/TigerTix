@@ -60,6 +60,7 @@ const Layout = ({ children }) => {
     "/audit-trails",
     "/event-report",
     "/sign-up",
+    "/verify",
     "/forget-password",
     "/change-password"
   ];
