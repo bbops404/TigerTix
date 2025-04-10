@@ -50,7 +50,8 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
 
         // Store token securely in sessionStorage (only for active session)
         sessionStorage.setItem("authToken", data.token);
-        sessionStorage.setItem("userRole", data.user.role); // Store role for ProtectedRoutes
+        sessionStorage.setItem("userRole", data.user.role);
+        sessionStorage.setItem("username", data.user.username);
         console.log("Token (Frontend) :", data.token);
         console.log("User role (Frontend):", data.user.role);
 
