@@ -5,6 +5,7 @@ import { Navigate, Outlet } from "react-router-dom";
 const getToken = () => sessionStorage.getItem("authToken");
 const getUserRole = () => sessionStorage.getItem("userRole");
 
+
 const ProtectedRoutes = ({ role }) => {
   const token = getToken();
   const userRole = getUserRole();

@@ -119,7 +119,7 @@ const SignUp = () => {
 
   return (
     <div>
-      <Header showSearch={false} showAuthButtons={false} />
+    <Header showAuthButtons={false} showDropdown={false} />
       {loginPopup && (
         <LoginPopup
           loginPopup={loginPopup}

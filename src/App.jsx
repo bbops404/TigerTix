@@ -51,7 +51,15 @@ import AdminScheduleEvent from "./pages/Admin/Admin_ScheduleEvent";
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideFooterRoutes = ["/admin-dashboard"];
+  const hideFooterRoutes = [
+    "/admin-dashboard",
+    "/events",
+    "/reservations",
+    "/users",
+    "/admin-profile",
+    "/audit-trails",
+    "/event-report"
+  ];
   const shouldShowFooter = !hideFooterRoutes.some((route) =>
     location.pathname.startsWith(route)
   );
