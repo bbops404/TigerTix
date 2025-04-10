@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import axios from "axios";
+
 
 const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -6,15 +8,41 @@ const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
       setError("New passwords do not match!");
       return;
     }
-
-    alert("Password successfully changed!");
-    togglePopup();
+  
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/change-password", // Replace with your actual endpoint
+        {
+          currentPassword,
+          newPassword,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // Include token if required
+            "Content-Type": "application/json",
+          },
+        }
+      );
+  
+      if (response.data.success) {
+        alert("Password successfully changed!");
+        togglePopup();
+      } else {
+        setError(response.data.message || "Failed to change password.");
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || "An error occurred.");
+    }
   };
+
+
+
+ 
 
   return (
     showPopup && (
