@@ -4,7 +4,24 @@ const Ticket = db.Ticket;
 const Event = db.Event; // Add this
 const User = db.User; // Add this
 const ClaimingSlot = db.ClaimingSlot; // Add this
+const nodemailer = require("nodemailer");
+const { createAuditTrail } = require("./auditTrailController");
+
+
+
+
 const sequelize = db.sequelize; // Add this for transaction
+
+
+// Nodemailer transporter
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 
 const reservationController = {
   // Create a new reservation
@@ -26,7 +43,6 @@ const reservationController = {
       if (!event_id || !ticket_id || !claiming_id) {
         await transaction.rollback();
         return res.status(400).json({
-          success: false,
           message: "Missing required reservation details",
         });
       }
@@ -204,6 +220,32 @@ const reservationController = {
       });
 
       await transaction.commit(); // Commit the transaction
+
+      for (const user of users) {
+        const mailOptions = {
+          from: `"TigerTix" <${process.env.EMAIL_USER}>`,
+          to: user.email,
+          subject: "Your Reservation Details",
+          html: `
+            <h1>Reservation Confirmation</h1>
+            <p>Dear ${user.first_name} ${user.last_name},</p>
+            <p>Your reservation has been successfully created. Here are the details:</p>
+            <ul>
+              <li><strong>Event:</strong> ${event.name}</li>
+              <li><strong>Ticket Type:</strong> ${ticket.ticket_type}</li>
+              <li><strong>Claiming Time:</strong> ${claimingSlot.claiming_date} (${claimingSlot.start_time} - ${claimingSlot.end_time})</li>
+            </ul>
+            <p>Please log in to your account to view your reservations and ensure all details are correct.</p>
+            <p><strong>Reminder:</strong> You must claim your tickets during the chosen claiming time. Failure to do so may result in restrictions on your account.</p>
+            <p>Thank you for using TigerTix!</p>
+          `,
+        };
+      try {
+        await transporter.sendMail(mailOptions);
+      } catch (emailError) {
+        console.error(`Failed to send email to ${user.email}:`, emailError);
+      }
+    }
 
       return res.status(201).json({
         success: true,
@@ -456,12 +498,29 @@ const reservationController = {
       // Update the reservation status to "claimed"
       reservation.reservation_status = "claimed";
       await reservation.save();
+      consolemo.log("User data for audit log:", req.user);
 
+    try {
+  await createAuditTrail({
+    user_id: req.user.user_id,
+    username: req.user.username,
+    role: req.user.role,
+    action: "Mark Reservation as Claimed",
+    affectedEntity: "Reservation",
+    message: `Marked reservation ID ${reservation_id} as claimed.`,
+    status: "Successful",
+  });
+} catch (error) {
+  console.error("Failed to create audit log:", error);
+}
       return res.status(200).json({
+        
         success: true,
         message: "Reservation marked as claimed successfully",
         data: reservation,
       });
+
+
     } catch (error) {
       console.error("Error marking reservation as claimed:", error);
       return res.status(500).json({
@@ -536,10 +595,7 @@ const reservationController = {
       reservation.reservation_status = "claimed";
       await reservation.save();
 
-      console.log(
-        `Successfully marked reservation ${reservation.reservation_id} as claimed`
-      );
-
+      
       // Format user name safely
       const userName = reservation.User
         ? `${reservation.User.first_name || ""} ${
@@ -549,6 +605,23 @@ const reservationController = {
 
       // Get ticket type safely
       const ticketType = reservation.Ticket?.ticket_type || "Unknown Type";
+
+      try {
+        await createAuditTrail({
+          user_id: req.user.user_id,
+          username: req.user.username,
+          role: req.user.role,
+          action: "Mark Reservation as Claimed",
+          affectedEntity: "Reservation",
+          message: `Marked reservation ID ${reservation_id} as claimed.`,
+          status: "Successful",
+        });
+      } catch (error) {
+        console.error("Failed to create audit log:", error);
+      }
+      console.log(
+        `Successfully marked reservation ${reservation.reservation_id} as claimed`
+      );
 
       return res.status(200).json({
         success: true,
@@ -560,6 +633,8 @@ const reservationController = {
           status: "claimed",
         },
       });
+
+      
     } catch (error) {
       console.error("Error marking reservation as claimed via QR code:", error);
       return res.status(500).json({
@@ -737,6 +812,15 @@ const reservationController = {
       reservation.reservation_status = "claimed";
       await reservation.save();
 
+await createAuditTrail({
+  user_id: req.user.user_id,
+  username: req.user.username,
+  role: req.user.role,
+  action: "Reinstated reservation",
+  message: `Marked ${reservation_id} reservations from unclaimed to claimed.`,
+  status: "Successful",
+});
+      
       return res.status(200).json({
         success: true,
         message: "Reservation reinstated to claimed successfully",
@@ -813,10 +897,20 @@ const reservationController = {
             await ticket.save();
           }
 
+
+
           // Update the reservation status to "cancelled"
           reservation.reservation_status = "cancelled";
           await reservation.save();
 
+await createAuditTrail({
+  user_id: req.user.user_id,
+  username: req.user.username,
+  role: req.user.role,
+  action: "Restore reservation",
+  message: `Marked ${reservation_id} reservations from unclaimed to cancelled.`,
+  status: "Successful",
+});
           restoredReservations.push(reservation);
         } catch (error) {
           errors.push({ reservation_id, message: error.message });
@@ -907,7 +1001,21 @@ const reservationController = {
             { transaction }
           );
 
+
+
           successfulIds.push(reservationId);
+
+          // Inside markMultipleAsClaimed
+await createAuditTrail({
+  user_id: req.user.user_id,
+  username: req.user.username,
+  role: req.user.role,
+  action: "Mark Multiple Reservations as Claimed",
+  affectedEntity: "Reservations",
+  message: `Marked ${successfulIds.length} reservations as claimed.`,
+  status: "Successful",
+});
+          
         } catch (error) {
           console.error(
             `Error processing reservation ${reservationId}:`,

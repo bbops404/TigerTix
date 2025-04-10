@@ -7,10 +7,19 @@ const adminDashboardController = require("../controllers/adminDashboardControlle
 
 // Routes for Admin Dashboard
 router.get("/dashboard/metrics", authenticate, authorizeAdmin, adminDashboardController.getDashboardMetrics);
+router.get("/upcoming-events", authenticate, authorizeAdmin, adminDashboardController.getUpcomingEvents);
+router.get("/recent-reservations", authenticate, authorizeAdmin, adminDashboardController.getRecentReservations);
+// Get ticketed events
+router.get("/ticketed-events", authenticate, authorizeAdmin,adminDashboardController.getTicketedEvents);
+router.get("/event-claiming-status/:eventId",authenticate,authorizeAdmin, adminDashboardController.getEventClaimingStatus);
+
+
 
 
 // ✅ Protected route: Get all users (only for admin)
 router.get("/users", authenticate, authorizeAdmin, adminController.getAllUsers);
+router.post("/generate-user-report",authenticate, authorizeAdmin, adminController.generateUserReport);
+router.post("/generate-event-report",authenticate, authorizeAdmin, adminController.generateEventReport);
 
 // ✅ Protected route: Update user status (only for admin)
 router.put(

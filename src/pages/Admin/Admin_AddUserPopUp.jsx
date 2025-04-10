@@ -39,8 +39,6 @@ const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState("");
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isSuccessModalOpen, setSuccessModalOpen] = useState(false);
@@ -50,12 +48,8 @@ const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!username || !firstName || !lastName || !email || !password || !confirmPassword || !role) {
+    if (!username || !firstName || !lastName || !email || !role) {
       alert("All fields are required!");
-      return;
-    }
-    if (password !== confirmPassword) {
-      alert("Passwords do not match!");
       return;
     }
     setConfirmModalOpen(true);
@@ -73,7 +67,6 @@ const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
           first_name: firstName,
           last_name: lastName,
           username,
-          password,
           role
         },
         {
@@ -127,16 +120,8 @@ const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
                 <input type="text" className="border p-2 rounded w-full" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
               </div>
               <div>
-                <label>Password</label>
-                <input type="password" className="border p-2 rounded w-full" value={password} onChange={(e) => setPassword(e.target.value)} required />
-              </div>
-              <div>
                 <label>Last Name</label>
                 <input type="text" className="border p-2 rounded w-full" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-              </div>
-              <div>
-                <label>Confirm Password</label>
-                <input type="password" className="border p-2 rounded w-full" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
               </div>
               <div>
                 <label>Email</label>

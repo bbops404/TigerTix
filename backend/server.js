@@ -110,6 +110,11 @@ app.use(
   })
 );
 
+app.use(express.json());
+
+// Middleware to parse URL-encoded requests
+app.use(express.urlencoded({ extended: true }));
+
 // Parse cookies from request
 
 app.use(cookieParser());
@@ -182,6 +187,9 @@ app.use("/admin", adminRoutes);
 const reservationRoutes = require("./routes/reservationRoutes");
 app.use("/api", reservationRoutes);
 
+const auditTrailsRoute = require("./routes/auditTrails");
+app.use("/api/audit-trails", auditTrailsRoute);
+
 // Root route
 app.get("/", (req, res) => {
   res.send("Server is running! 🚀");
@@ -249,14 +257,19 @@ const startServer = async () => {
     await db.sequelize.authenticate();
     console.log("Sequelize connected successfully! 🎉");
 
-    await db.sequelize.sync({ alter: true }); // Automatically updates the database schema
-    await db.sync({ force: false });
-
-    console.log("Database tables synchronized successfully! 📊");
+    try {
+      // Use `alter: true` to update the schema without dropping tables
+      await db.sync({ alter: true });
+      console.log("Database tables synchronized successfully! 📊");
+    } catch (syncError) {
+      console.error("Error during database synchronization:", syncError);
+      throw syncError;
+    }
 
     // Initialize the scheduler with the io instance for event status updates
     initScheduler(io);
 
+    
     // Start HTTP server
     server.listen(port, () => {
       console.log(`Server running on port ${port} 🚀`);
@@ -266,6 +279,7 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
 
 // Start the server
 startServer();

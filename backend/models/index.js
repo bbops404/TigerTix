@@ -1,4 +1,3 @@
-
 const { Sequelize } = require("sequelize");
 const sequelize = require("../config/db");
 
@@ -8,6 +7,7 @@ const Event = require("./Event");
 const Ticket = require("./Ticket");
 const ClaimingSlot = require("./ClaimingSlot");
 const Reservation = require("./reservation");
+const AuditTrail = require("./AuditTrail"); // Import the AuditTrail model
 
 // Initialize db object
 const db = {};
@@ -19,16 +19,16 @@ db.Event = Event;
 db.Ticket = Ticket;
 db.ClaimingSlot = ClaimingSlot;
 db.Reservation = Reservation;
+db.AuditTrail = AuditTrail; // Add AuditTrail to the db object
 
-// Initialize associations between models
-// This ensures that all models are loaded before associations are created
+
+
 Object.keys(db).forEach((modelName) => {
   if (db[modelName] && db[modelName].associate) {
-    db[modelName].associate(db);
+    db[modelName].associate(db); // Pass the `db` object containing all models
   }
 });
 
-// Add sync function to db object
 db.sync = async (options = {}) => {
   try {
     await sequelize.sync(options);
@@ -39,6 +39,5 @@ db.sync = async (options = {}) => {
     throw error;
   }
 };
-
 
 module.exports = db;
