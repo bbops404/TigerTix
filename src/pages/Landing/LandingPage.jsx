@@ -70,10 +70,10 @@ function Carousel() {
           >
             <div className="absolute inset-0 bg-gradient-to-b from-[#010100] via-[#633904] to-[#000000] opacity-80"></div>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-10">
-              <h2 className="font-Poppins text-[99px] font-extrabold drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
+              <h2 className="font-Poppins text-6xl md:text-7xl lg:text-[80px] font-extrabold drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
                 {event.name}
               </h2>
-              <p className="font-Poppins text-[26px] font-semibold mt-2 drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
+              <p className="font-Poppins text-xl md:text-2xl font-semibold mt-4 max-w-3xl drop-shadow-[0_4px_10px_rgba(0,0,0,0.7)]">
                 {event.details}
               </p>
             </div>

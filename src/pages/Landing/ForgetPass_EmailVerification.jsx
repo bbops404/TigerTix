@@ -71,7 +71,7 @@ const ForgetPassword = () => {
 
   return (
     <div>
-      <Header showSearch={false} showAuthButtons={false} />
+      <Header showAuthButtons={false} showDropdown={false} />
       <div className="flex">
         <div className="w-1/2 relative h-[90vh]">
           <img

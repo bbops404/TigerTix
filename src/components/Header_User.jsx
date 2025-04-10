@@ -132,33 +132,6 @@ const Header_User = () => {
           <FaUser className="text-gray-800 text-lg cursor-pointer hover:text-gray-600" />
         </Link>
 
-        {/* Notification Icon with Toggle */}
-        <div className="relative">
-          <FaBell
-            className="text-gray-800 text-lg cursor-pointer hover:text-gray-600"
-            onClick={() => setShowNotifications(!showNotifications)}
-          />
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-72 bg-[#F3B05B] shadow-lg rounded-lg p-4 z-50">
-              <h3 className="font-bold text-black flex items-center gap-2">
-                Notifications{" "}
-                <span className="bg-black text-white text-xs px-2 py-1 rounded-md">
-                  3
-                </span>
-              </h3>
-              <div className="mt-2 p-3 border rounded-lg bg-gray-100 text-[12px] text-[#606060]">
-                📢 An event you registered for starts in 15 minutes!
-              </div>
-              <div className="mt-2 p-3 border rounded-lg bg-gray-100 text-[12px] text-[#606060]">
-                🏀 UAAP SEASON 87 MEN'S BASKETBALL Tickets Available
-              </div>
-              <div className="mt-2 p-3 border rounded-lg bg-gray-100 text-[12px] text-[#606060]">
-                🏀 UAAP SEASON 87 WOMEN'S BASKETBALL Tickets Available
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Logout Icon - Calls handleLogout */}
         <FaSignOutAlt
           className="text-gray-800 text-lg cursor-pointer hover:text-gray-600"

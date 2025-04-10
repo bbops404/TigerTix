@@ -26,7 +26,7 @@ const Footer = () => {
               <p className="font-bold mb-3">ABOUT US</p>
               <Link to="/contact-us" className="hover:underline">Contact Us</Link>
               <Link to="/about-us" className="hover:underline">Who We Are</Link>
-              <button className="hover:underline">Our Mission and Vision</button>
+              <Link to="/about-us" className="hover:underline">Our Mission and Vision</Link>
             </div>
 
           {/* Quick Links Section */}

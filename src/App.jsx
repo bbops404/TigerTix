@@ -69,7 +69,11 @@ const Layout = ({ children }) => {
     "/users",
     "/admin-profile",
     "/audit-trails",
-    "/event-report"
+    "/event-report",
+    "/sign-up",
+    "/verify",
+    "/forget-password",
+    "/change-password"
   ];
   const shouldShowFooter = !hideFooterRoutes.some((route) =>
     location.pathname.startsWith(route)

@@ -9,10 +9,9 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
   const [selectedUser, setSelectedUser] = useState(null);
-
   const [user, setUser] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -75,6 +74,11 @@ if (data.user.role === "admin") {
         // Debugging cookies
         console.log("Stored Cookies (frontend):", document.cookie);
       }
+
+      else {
+        setErrorMessage("Wrong username or password");
+      }
+
     } catch (error) {
       console.error("Login error:", error);
       alert("Failed to log in. Please  again later.");
@@ -150,6 +154,11 @@ if (data.user.role === "admin") {
                   )}
                 </button>
               </div>
+            </div>
+
+            <div>
+            {/* Error Message */}
+            {errorMessage && (<p className="text-red-500 text-xs mt-0.5">{errorMessage}</p>)}
             </div>
 
             {/* Forgot Password */}
