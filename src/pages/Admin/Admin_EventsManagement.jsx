@@ -260,9 +260,31 @@ const Admin_EventsManagement = ({
             ) || [],
         };
       case "archived":
+        // Debug logging
+        console.log("Events object in archived tab:", events);
+
+        const allEvents = [
+          ...(events.OPEN || []),
+          ...(events.SCHEDULED || []),
+          ...(events.COMPLETED || []),
+          ...(events.DRAFT || []),
+          ...(events.UNPUBLISHED || []),
+        ];
+
+        console.log("All events before filtering:", allEvents);
+
+        const archivedEvents = allEvents.filter((event) => {
+          console.log(`Event visibility check:`, {
+            eventId: event.id,
+            visibility: event.visibility,
+          });
+          return event.visibility === "archived";
+        });
+
+        console.log("Archived events:", archivedEvents);
+
         return {
-          ARCHIVED: events.ARCHIVED || [],
-          CANCELLED: events.CANCELLED || [],
+          ARCHIVED: archivedEvents,
         };
       default:
         return events;

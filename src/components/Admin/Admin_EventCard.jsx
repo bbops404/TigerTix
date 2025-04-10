@@ -87,146 +87,147 @@ const Admin_EventCard = ({
   // Determine dropdown menu options based on event status and visibility
   // Determine dropdown menu options based on event status and visibility
   const renderDropdownOptions = () => {
-    // Show all dropdown options regardless of event status/visibility
-    return (
-      <>
-        {/* Edit Event*/}
+    const { status, visibility, eventType } = event;
+    const dropdownItems = [];
+
+    // Common edit actions
+    const editActions = [
+      {
+        icon: <FaEdit className="mr-2 text-custom_yellow" />,
+        label: "Edit Event Details",
+        action: () => onEdit && onEdit(event.id, "event"),
+      },
+      {
+        icon: <FaTicketAlt className="mr-2 text-custom_yellow" />,
+        label: "Edit Ticket Details",
+        action: () => onEdit && onEdit(event.id, "ticket"),
+      },
+      {
+        icon: <FaEdit className="mr-2 text-custom_yellow" />,
+        label: "Edit Claiming Details",
+        action: () => onEdit && onEdit(event.id, "claiming"),
+      },
+      {
+        icon: <FaClock className="mr-2 text-custom_yellow" />,
+        label: "Edit Availability",
+        action: () => onEdit && onEdit(event.id, "availability"),
+      },
+    ];
+
+    // Scenario 1: Published and taking reservations
+    if (
+      status === "open" &&
+      visibility === "published" &&
+      eventType === "ticketed"
+    ) {
+      dropdownItems.push(
+        ...editActions.slice(0, 1), // Edit Event Details
+        {
+          icon: <FaEye className="mr-2 text-red-400" />,
+          label: "Unpublish Event",
+          action: () => onUnpublish && onUnpublish(event.id),
+        },
+        {
+          icon: <FaTicketAlt className="mr-2 text-red-400" />,
+          label: "Close Reservation",
+          action: () => onCloseReservation && onCloseReservation(event.id),
+        }
+      );
+    }
+    // Scenario 2: Published but not taking reservations (scheduled & closed)
+    else if (
+      (status === "scheduled" || status === "closed") &&
+      visibility === "published"
+    ) {
+      dropdownItems.push(...editActions, {
+        icon: <FaEye className="mr-2 text-red-400" />,
+        label: "Unpublish",
+        action: () => onUnpublish && onUnpublish(event.id),
+      });
+    }
+    // Scenario 3: Coming Soon
+    else if (eventType === "coming_soon") {
+      dropdownItems.push(
+        {
+          icon: <FaEye className="mr-2 text-green-400" />,
+          label: "Publish Event",
+          action: () => onPublishNow && onPublishNow(event.id),
+        },
+        {
+          icon: <FaTimesCircle className="mr-2 text-red-400" />,
+          label: "Cancel Event",
+          action: () => onCancelEvent && onCancelEvent(event.id),
+        }
+      );
+    }
+    // Scenario 4: Completed but still published
+    else if (status === "closed" && visibility === "published") {
+      dropdownItems.push({
+        icon: <FaEye className="mr-2 text-red-400" />,
+        label: "Unpublish",
+        action: () => onUnpublish && onUnpublish(event.id),
+      });
+    }
+    // Scenario 5: Draft
+    else if (status === "draft") {
+      dropdownItems.push(
+        {
+          icon: <FaEdit className="mr-2 text-custom_yellow" />,
+          label: "Edit Details",
+          action: () => onEdit && onEdit(event.id, "event"),
+        },
+        {
+          icon: <FaEye className="mr-2 text-red-400" />,
+          label: "Unpublish",
+          action: () => onUnpublish && onUnpublish(event.id),
+        }
+      );
+    }
+    // Scenario 6: Unpublished (but will go to published)
+    else if (
+      visibility === "unpublished" &&
+      (eventType === "ticketed" || eventType === "coming_soon")
+    ) {
+      dropdownItems.push(...editActions, {
+        icon: <FaTrash className="mr-2 text-red-400" />,
+        label: "Delete",
+        action: () => onDelete && onDelete(event.id),
+      });
+    }
+    // Scenario 7: Unpublished and completed
+    else if (visibility === "unpublished" && status === "closed") {
+      dropdownItems.push({
+        icon: <FaTrash className="mr-2 text-red-400" />,
+        label: "Delete",
+        action: () => onDelete && onDelete(event.id),
+      });
+    }
+    // Scenario 8: Archived
+    else if (visibility === "archived") {
+      dropdownItems.push({
+        icon: <FaTrash className="mr-2 text-red-400" />,
+        label: "Delete",
+        action: () => onDelete && onDelete(event.id),
+      });
+    }
+
+    return dropdownItems.map((item, index) => (
+      <React.Fragment key={index}>
         <button
           onClick={(e) => {
             e.stopPropagation();
+            item.action();
           }}
           className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
         >
-          <FaEdit className="mr-2 text-custom_yellow" />
-          <span>Edit Event</span>
+          {item.icon}
+          <span>{item.label}</span>
         </button>
-
-        <div className="border-t border-custom_yellow"></div>
-        {/* Edit Event Details */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit && onEdit(event.id, "event");
-          }}
-          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-        >
-          <FaEdit className="mr-2 text-custom_yellow" />
-          <span>Edit Event Details</span>
-        </button>
-
-        <div className="border-t border-custom_yellow"></div>
-
-        {/* Edit Ticket Details */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit && onEdit(event.id, "ticket");
-          }}
-          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-        >
-          <FaTicketAlt className="mr-2 text-custom_yellow" />
-          <span>Edit Ticket Details</span>
-        </button>
-
-        <div className="border-t border-custom_yellow"></div>
-
-        {/* Edit Claiming Details */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit && onEdit(event.id, "claiming");
-          }}
-          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-        >
-          <FaEdit className="mr-2 text-custom_yellow" />
-          <span>Edit Claiming Details</span>
-        </button>
-
-        <div className="border-t border-custom_yellow"></div>
-
-        {/* Edit Availability */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit && onEdit(event.id, "availability");
-          }}
-          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-        >
-          <FaClock className="mr-2 text-custom_yellow" />
-          <span>Edit Availability</span>
-        </button>
-
-        <div className="border-t border-custom_yellow"></div>
-
-        {/* Publish Now */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onPublishNow && onPublishNow(event.id);
-          }}
-          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-        >
-          <FaEye className="mr-2 text-green-400" />
-          <span>Publish Now</span>
-        </button>
-
-        <div className="border-t border-custom_yellow"></div>
-
-        {/* Open Reservation */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenReservation && onOpenReservation(event.id);
-          }}
-          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-        >
-          <FaTicketAlt className="mr-2 text-green-400" />
-          <span>Open Reservation</span>
-        </button>
-
-        <div className="border-t border-custom_yellow"></div>
-
-        {/* Close Reservation */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onCloseReservation && onCloseReservation(event.id);
-          }}
-          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-        >
-          <FaTicketAlt className="mr-2 text-red-400" />
-          <span>Close Reservation</span>
-        </button>
-        <div className="border-t border-custom_yellow"></div>
-
-        {/* Unpublish */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            console.log(`EventCard: Unpublish clicked for ${event.id}`);
-            onUnpublish && onUnpublish(event.id);
-          }}
-          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-        >
-          <FaEye className="mr-2 text-red-400" />
-          <span>Unpublish</span>
-        </button>
-
-        <div className="border-t border-custom_yellow"></div>
-
-        {/* Delete */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete && onDelete(event.id);
-          }}
-          className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
-        >
-          <FaTrash className="mr-2 text-red-400" />
-          <span>Delete</span>
-        </button>
-      </>
-    );
+        {index < dropdownItems.length - 1 && (
+          <div className="border-t border-custom_yellow"></div>
+        )}
+      </React.Fragment>
+    ));
   };
 
   return (

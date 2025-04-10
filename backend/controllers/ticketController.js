@@ -48,7 +48,7 @@ const ticketController = {
       });
 
       console.log("New Ticket Created:", newTicket);
-      
+
       return res.status(201).json({
         success: true,
         message: "Ticket tier created successfully",
@@ -178,6 +178,9 @@ const ticketController = {
       const { seat_type, ticket_type, price, total_quantity, max_per_user } =
         req.body;
 
+      console.log(`Updating ticket ${ticket_id} with data:`, req.body);
+
+      // Find the ticket with related event information
       const ticket = await Ticket.findByPk(ticket_id, {
         include: [{ model: Event, as: "event" }],
       });
@@ -195,8 +198,15 @@ const ticketController = {
         updatedPrice = 0;
       }
 
+      // Parse numeric values to ensure they're handled correctly
+      const parsedTotalQuantity = parseInt(total_quantity);
+      const parsedMaxPerUser = parseInt(max_per_user);
+
       // Calculate the difference for remaining tickets
-      const quantityDifference = total_quantity - ticket.total_quantity;
+      const currentTotalQuantity = ticket.total_quantity || 0;
+      const quantityDifference = isNaN(parsedTotalQuantity)
+        ? 0
+        : parsedTotalQuantity - currentTotalQuantity;
       const newRemainingQuantity =
         ticket.remaining_quantity + quantityDifference;
 
@@ -208,19 +218,26 @@ const ticketController = {
         });
       }
 
-      await ticket.update({
+      // Update with new values or keep existing ones
+      const updatedTicket = await ticket.update({
         seat_type: seat_type || ticket.seat_type,
         ticket_type: ticket_type || ticket.ticket_type,
         price: updatedPrice !== undefined ? updatedPrice : ticket.price,
-        total_quantity: total_quantity || ticket.total_quantity,
+        total_quantity: isNaN(parsedTotalQuantity)
+          ? ticket.total_quantity
+          : parsedTotalQuantity,
         remaining_quantity: newRemainingQuantity,
-        max_per_user: max_per_user || ticket.max_per_user,
+        max_per_user: isNaN(parsedMaxPerUser)
+          ? ticket.max_per_user
+          : parsedMaxPerUser,
       });
+
+      console.log(`Successfully updated ticket ${ticket_id}`);
 
       return res.status(200).json({
         success: true,
         message: "Ticket tier updated successfully",
-        data: ticket,
+        data: updatedTicket,
       });
     } catch (error) {
       console.error("Error updating ticket tier:", error);
