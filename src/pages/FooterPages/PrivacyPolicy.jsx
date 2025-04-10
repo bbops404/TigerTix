@@ -1,12 +1,41 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import LoginPopup from "../Landing/LoginPopup";
 import { Link } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 import Header from "../../components/Header";
+import Header_User from "../../components/Header_User";
 
 const PrivacyPolicy = () => {
+  // 🔹 State for login popup
+  const [loginPopup, setLoginPopup] = useState(false);
+
+  const toggleLoginPopup = () => {
+    setLoginPopup((prev) => !prev);
+  };
+
+  // 🔹 Check if login popup should be shown on load
+  useEffect(() => {
+    const shouldShowLogin = sessionStorage.getItem("showLoginPopup");
+    if (shouldShowLogin === "true") {
+      setLoginPopup(true);
+      sessionStorage.removeItem("showLoginPopup");
+    }
+  }, []); // Dependency array ensures this runs only once on mount
+
+  const isLoggedIn = !!sessionStorage.getItem("authToken"); // Replace with your token logic
+  
   return (
     <div className="bg-[#202020] text-white min-h-screen">
-      <Header />
+      {/* Conditionally render the header */}
+      {isLoggedIn ? <Header_User /> : <Header toggleLoginPopup={toggleLoginPopup} />}
+
+      {/* Render LoginPopup if needed */}
+      {loginPopup && (
+        <LoginPopup
+          loginPopup={loginPopup}
+          toggleLoginPopup={toggleLoginPopup}
+        />
+      )}
 
       {/* Back Button */}
       <div className="px-6 mt-6">

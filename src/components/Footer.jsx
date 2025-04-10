@@ -6,58 +6,69 @@ import { PiInstagramLogoFill } from "react-icons/pi";
 import { MdEmail } from "react-icons/md";
 
 const Footer = () => {
+
+  const isLoggedIn = !!sessionStorage.getItem("authToken"); // Replace with your token logic
+
   return (
     <div>
       {/* Main Footer Section */}
-      <div className="px-16 py-5 flex bg-[linear-gradient(180deg,#000000,#2E2E2E)] justify-between font-Poppins text-sm text-white">
-        {/* Logo */}
-        <img src={logo_text} className="w-40 h-15 my-6" alt="Tigertix Logo" />
+      <div className="px-8 md:px-16 py-5 flex flex-col bg-[linear-gradient(180deg,#000000,#2E2E2E)] font-Poppins text-sm text-white gap-6 md:gap-0">
+        <div className="flex flex-col md:flex-row justify-between items-center w-full">
+          {/* Logo */}
+          <div className="flex justify-center md:justify-start">
+            <img src={logo_text} className="w-40 h-15 my-6" alt="Tigertix Logo" />
+          </div>
 
-        {/* About Us Section */}
-        <div className="flex flex-col text-left">
-          <p className="text-left font-bold mb-3">ABOUT US</p>
-          <Link to="/contact-us" className="text-left hover:underline">Contact Us</Link>
-          <Link to="/about-us" className="text-left hover:underline">Who We Are</Link>
-          <button className="text-left hover:underline">Our Mission and Vision</button>
-        </div>
+          {/* Footer Sections Container */}
+          <div className="flex flex-col md:flex-row justify-end text-center w-full md:w-auto gap-12">
+            {/* About Us Section */}
+            <div className="flex flex-col">
+              <p className="font-bold mb-3">ABOUT US</p>
+              <Link to="/contact-us" className="hover:underline">Contact Us</Link>
+              <Link to="/about-us" className="hover:underline">Who We Are</Link>
+              <button className="hover:underline">Our Mission and Vision</button>
+            </div>
 
-        {/* Quick Links Section */}
-        <div className="flex flex-col text-left">
-          <p className="text-left font-bold mb-3">QUICK LINKS</p>
-          <Link to="/faqs" className="text-left hover:underline">FAQs</Link>
-          <button className="text-left hover:underline">Events</button>
-        </div>
+          {/* Quick Links Section */}
+          <div className="flex flex-col">
+            <p className="font-bold mb-3">QUICK LINKS</p>
+            <Link to="/faqs" className="hover:underline">FAQs</Link>
+            {isLoggedIn ? (
+              <Link to="/home" className="hover:underline">Events</Link>
+            ) : (
+              <Link to="/" className="hover:underline">Events</Link>
+            )}
+          </div>
 
-        {/* Terms and Conditions Section */}
-        <div className="flex flex-col text-left">
-          <p className="text-left font-bold mb-3">TERMS AND CONDITIONS</p>
-          <Link to="/privacy-policy" className="text-left hover:underline">
-            Privacy Policy
-          </Link>
-          <Link to="/terms-of-use" className="text-left hover:underline">
-            Terms of Use
-          </Link>
+
+            {/* Terms and Conditions Section */}
+            <div className="flex flex-col">
+              <p className="font-bold mb-3">TERMS AND CONDITIONS</p>
+              <Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link>
+              <Link to="/terms-of-use" className="hover:underline">Terms of Use</Link>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Bottom Footer Section */}
-      <div className="flex bg-custom_yellow px-16 py-8 font-Poppins text-custom_black">
+      <div className="flex flex-col md:flex-row items-center bg-custom_yellow px-8 md:px-16 py-6 font-Poppins text-custom_black text-center md:text-left">
         {/* Social Media Icons */}
-        <div className="flex text-2xl">
+        <div className="flex text-2xl space-x-3 mb-4 md:mb-0">
           <button>
-            <FaFacebook className="m-1 hover:text-white" />
+            <FaFacebook className="hover:text-white" />
           </button>
           <button>
-            <PiInstagramLogoFill className="m-1 hover:text-white" />
+            <PiInstagramLogoFill className="hover:text-white" />
           </button>
           <button>
-            <MdEmail className="m-1 hover:text-white" />
+            <MdEmail className="hover:text-white" />
           </button>
         </div>
 
         {/* Copyright & Version Info */}
-        <div className="flex-1 flex justify-center">
-          <div className="text-xs font-light text-center">
+        <div className="flex-1 flex justify-end text-center">
+          <div className="text-xs font-light">
             <p>© 2024 TIGERTIX. All Rights Reserved.</p>
             <p>Version 1.0</p>
           </div>

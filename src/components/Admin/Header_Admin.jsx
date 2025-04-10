@@ -1,9 +1,21 @@
 import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaSignOutAlt } from "react-icons/fa";
+import { useEffect, useState } from "react";
 import tigertix_logo from "../../assets/tigertix_logo.png";
 
 const Header_Admin = () => {
   const navigate = useNavigate();
+  const [userName, setUserName] = useState(""); // State to store the admin's name
+
+  useEffect(() => {
+    // Retrieve the username from sessionStorage
+    const storedName = sessionStorage.getItem("username");
+    if (storedName) {
+      setUserName(storedName); // Set the username in state
+    } else {
+      setUserName("Admin"); // Fallback if no username is found
+    }
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -15,26 +27,20 @@ const Header_Admin = () => {
         },
       });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.message || "Logout failed");
+      if (!response.ok) {
+        throw new Error(data.message || "Logout failed");
+      }
+
+      alert("Logged out successfully!");
+      navigate("/"); // Redirect to Landing Page
+      sessionStorage.clear(); // Clear session storage
+    } catch (error) {
+      console.error("Logout error:", error.message);
+      alert(error.message);
     }
-
-    alert("Logged out successfully!");
-    navigate("/"); // Redirect to Landing Page
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    sessionStorage.clear();
-
-    window.history.pushState(null, "", window.location.href);
-window.history.replaceState(null, "", window.location.href);
-
-  } catch (error) {
-    console.error("Logout error:", error.message);
-    alert(error.message);
-  }
-};
+  };
 
   return (
     <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl">
@@ -49,10 +55,11 @@ window.history.replaceState(null, "", window.location.href);
 
       {/* Right-side content */}
       <div className="flex items-center gap-4">
-        <span className="text-gray-800 font-medium">Hi, Admin!</span>
+        {/* Display the admin's username */}
+        <span className="text-gray-800 font-medium">Hi, {userName}!</span>
 
         {/* Profile Icon - Routes to Admin Profile */}
-        <Link to="/adminprofile">
+        <Link to="/admin-profile">
           <FaUser className="text-gray-800 text-lg cursor-pointer hover:text-gray-600" />
         </Link>
 

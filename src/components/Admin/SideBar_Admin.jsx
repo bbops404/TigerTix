@@ -160,7 +160,7 @@ const Sidebar = () => {
               <BarChart size={20} />
             </div>
             <span className="text-white text-center w-full py-2">
-              Event Report & Analytics
+              Event Reports
             </span>
           </li>
 
