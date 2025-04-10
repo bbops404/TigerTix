@@ -86,10 +86,8 @@ const autoStatusCheck = {
             id: event.id,
             oldVisibility: event.visibility,
             newVisibility: "unpublished",
-            // For free events, also change status to closed when display period ends
-            ...(event.event_type === "free" && event.status === "open"
-              ? { oldStatus: event.status, newStatus: "closed" }
-              : {}),
+            oldStatus: event.status,
+            newStatus: "closed", // Always close when display period ends
             reason: "Display period has ended",
           };
         }

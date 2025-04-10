@@ -67,36 +67,52 @@ const Layout = ({ children }) => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Layout>
+          <Routes>
+            {/* ========================== LANDING PAGES ========================== */}
+            <Route element={<PublicRoutes />}>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/verify" element={<SignUpVerifyEmail />} />
+              <Route path="/event-ticketed/:id" element={<EventTicketed />} />
+              <Route path="/event-free/:id" element={<EventFree_Landing />} />
+              <Route
+                path="/event-coming-soon/:id"
+                element={<EventComingSoon_Landing />}
+              />
+              <Route path="/sign-up" element={<SignUpUserDetails />} />
+              <Route path="/login" element={<LoginPopup />} />
+              <Route path="/forget-password" element={<ForgetPassword />} />
+              <Route path="/change-password" element={<UpdatePassword />} />
+            </Route>
 
-    <BrowserRouter>
-      <Layout>
-        <Routes>
-          {/* ========================== LANDING PAGES ========================== */}
-          <Route element={<PublicRoutes />}>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/verify" element={<SignUpVerifyEmail />} />
-          <Route path="/event-ticketed/:id" element={<EventTicketed />} />        
-            <Route path="/event-free/:id" element={<EventFree_Landing />} />
-          <Route path="/event-coming-soon/:id"element={<EventComingSoon_Landing />} />
-          <Route path="/sign-up" element={<SignUpUserDetails />} />
-          <Route path="/login" element={<LoginPopup />} />
-          <Route path="/forget-password" element={<ForgetPassword />} />
-          <Route path="/change-password" element={<UpdatePassword />} />
-          </Route>
-
-
-          {/* ========================== ENDUSER PAGES ========================== */}
-                <Route element={<ProtectedRoutes role={["student", "employee", "alumni"]} />}>
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/event-ticketed-enduser/:id" element={<EventTicketedEndUser />} />
-                  <Route path="/event-free-enduser/:id" element={<EventFree_Enduser />} />
-                  <Route path="/event-coming-soon-enduser/:id" element={<EventComingSoon_Enduser />} />
-                  <Route path="/my-reservations" element={<MyReservations />} />
-                  <Route path="/my-profile" element={<MyProfile />} />
-                  <Route path="/reservation" element={<Reservation />} />
-                  <Route path="/reservation-receipt" element={<ReservationReceipt />} />
-                </Route>
-
+            {/* ========================== ENDUSER PAGES ========================== */}
+            <Route
+              element={
+                <ProtectedRoutes role={["student", "employee", "alumni"]} />
+              }
+            >
+              <Route path="/home" element={<Home />} />
+              <Route
+                path="/event-ticketed-enduser/:id"
+                element={<EventTicketedEndUser />}
+              />
+              <Route
+                path="/event-free-enduser/:id"
+                element={<EventFree_Enduser />}
+              />
+              <Route
+                path="/event-coming-soon-enduser/:id"
+                element={<EventComingSoon_Enduser />}
+              />
+              <Route path="/my-reservations" element={<MyReservations />} />
+              <Route path="/my-profile" element={<MyProfile />} />
+              <Route path="/reservation" element={<Reservation />} />
+              <Route
+                path="/reservation-receipt"
+                element={<ReservationReceipt />}
+              />
+            </Route>
 
             {/* ========================== ADMIN PAGES ========================== */}
             <Route element={<ProtectedRoutes role="admin" />}>
@@ -107,10 +123,15 @@ function App() {
                 element={<PublishEventContainer />}
               />
               <Route
+                path="/events/publish/:id"
+                element={<PublishEventContainer />}
+              />
+              <Route
                 path="/events/detail/:id"
                 element={<EventDetailContainer />}
               />
               <Route path="/reservations" element={<AdminReservations />} />
+
               <Route path="/users" element={<AdminUser />} />
               <Route path="/admin-profile" element={<AdminProfile />} />
               <Route path="/audit-trails" element={<AuditTrails />} />

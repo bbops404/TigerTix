@@ -41,6 +41,23 @@ const formatImageUrl = (imageUrl) => {
 
 // Modified EventDetails component with updated event types and validation
 const EventDetails = ({ onNext, initialData }) => {
+  useEffect(() => {
+    console.log("EventDetails component received initialData:", initialData);
+    // Check if initialData has what we need
+    if (initialData) {
+      if (initialData.eventName) setEventName(initialData.eventName);
+      if (initialData.eventDescription)
+        setEventDescription(initialData.eventDescription);
+      if (initialData.eventDate) setEventDate(initialData.eventDate);
+      if (initialData.venue) setVenue(initialData.venue);
+      if (initialData.startTime) setStartTime(initialData.startTime);
+      if (initialData.endTime) setEndTime(initialData.endTime);
+      if (initialData.eventCategory)
+        setEventCategory(initialData.eventCategory);
+      if (initialData.eventType) setEventType(initialData.eventType);
+      if (initialData.imagePreview) setImagePreview(initialData.imagePreview);
+    }
+  }, [initialData]);
   const [eventName, setEventName] = useState(initialData?.eventName || "");
   const [eventDescription, setEventDescription] = useState(
     initialData?.eventDescription || ""
@@ -365,6 +382,60 @@ const EventDetails = ({ onNext, initialData }) => {
 
 // Modified TicketDetails component with validation
 const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
+  useEffect(() => {
+    console.log("TicketDetails component received initialData:", initialData);
+
+    if (initialData) {
+      // Set tier type if available
+      if (initialData.tierType) {
+        setTierType(initialData.tierType);
+      }
+
+      // For free events, initialize free seating data
+      if (eventType === "free" && initialData.freeSeating) {
+        setFreeSeatingTickets(
+          initialData.freeSeating.numberOfTickets?.toString() || ""
+        );
+        setFreeSeatingMaxPerPerson(
+          initialData.freeSeating.maxPerPerson?.toString() || ""
+        );
+        // Price is always 0 for free events
+      }
+
+      // For ticketed events with free seating
+      else if (
+        initialData.tierType === "freeSeating" &&
+        initialData.freeSeating
+      ) {
+        setFreeSeatingTickets(
+          initialData.freeSeating.numberOfTickets?.toString() || ""
+        );
+        setFreeSeatingPrice(initialData.freeSeating.price?.toString() || "");
+        setFreeSeatingMaxPerPerson(
+          initialData.freeSeating.maxPerPerson?.toString() || ""
+        );
+      }
+
+      // For ticketed events with multiple tiers
+      else if (initialData.ticketTiers) {
+        setIncludeTiers(true);
+        setTicketTiers(initialData.ticketTiers);
+
+        // Calculate total tickets
+        const total = Object.values(initialData.ticketTiers).reduce(
+          (sum, tier) =>
+            sum + (tier.checked && tier.number ? parseInt(tier.number) : 0),
+          0
+        );
+        setTotalTickets(total);
+      }
+
+      // Set the "include tiers" for coming soon events
+      if (eventType === "coming_soon") {
+        setIncludeTiers(initialData.hasTierInfo || false);
+      }
+    }
+  }, [initialData, eventType]);
   const [totalTickets, setTotalTickets] = useState(0);
   const [tierType, setTierType] = useState(
     initialData?.tierType || "freeSeating"
@@ -834,8 +905,7 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
               </span>
             </label>
             <p className="text-[#B8B8B8] text-xs mt-1 ml-7">
-              This will allow you to set up ticket tiers in advance, but they
-              won't be available until the event is fully published.
+              This will allow you to set up ticket tiers if it is available.
             </p>
           </div>
         </div>
@@ -1177,9 +1247,6 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
                        } focus:outline-none focus:border-[#FFAB40]`}
               placeholder="Max tickets per person"
             />
-            <p className="text-[#B8B8B8] text-xs mt-2">
-              For maximum tickets per person, set between 1-10.
-            </p>
           </div>
         </div>
 
@@ -1308,9 +1375,6 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
               />
             </div>
           </div>
-          <p className="text-[#B8B8B8] text-xs mt-3">
-            For maximum tickets per person, set between 1-10.
-          </p>
         </div>
       )}
 
@@ -1472,6 +1536,38 @@ const ClaimingDetails = ({
   initialData,
   eventDate,
 }) => {
+  useEffect(() => {
+    console.log("ClaimingDetails component received initialData:", initialData);
+
+    if (initialData) {
+      // Initialize date list from available dates
+      if (
+        initialData.availableDates &&
+        Array.isArray(initialData.availableDates)
+      ) {
+        setDateList(initialData.availableDates);
+      }
+
+      // Initialize claiming summaries
+      if (
+        initialData.claimingSummaries &&
+        Array.isArray(initialData.claimingSummaries)
+      ) {
+        setClaimingSummaries(initialData.claimingSummaries);
+
+        // Extract unique dates from claiming summaries if no availableDates were provided
+        if (!initialData.availableDates) {
+          const uniqueDates = [
+            ...new Set(
+              initialData.claimingSummaries.map((summary) => summary.date)
+            ),
+          ];
+          setDateList(uniqueDates);
+        }
+      }
+    }
+  }, [initialData]);
+
   const [claimingDate, setClaimingDate] = useState("");
   const [claimingStartTime, setClaimingStartTime] = useState("");
   const [claimingEndTime, setClaimingEndTime] = useState("");
@@ -2227,6 +2323,32 @@ const AvailabilityDetails = ({
   initialData,
   eventDate,
 }) => {
+  useEffect(() => {
+    console.log(
+      "AvailabilityDetails component received initialData:",
+      initialData
+    );
+
+    // Only initialize the event type from initialData
+    if (initialData && initialData.eventType) {
+      // Keep eventType if it exists in initialData
+      // This is important for the form to know what fields to display
+      // but we'll leave all date/time fields empty
+    }
+
+    // Explicitly set all date and time fields to empty
+    setDisplayStartDate("");
+    setDisplayEndDate("");
+    setDisplayStartTime("");
+    setDisplayEndTime("");
+
+    if (eventType === "ticketed") {
+      setReservationStartDate("");
+      setReservationEndDate("");
+      setReservationStartTime("");
+      setReservationEndTime("");
+    }
+  }, [initialData, eventType]);
   // Initialize with existing data if available
   // Display period state
   const [displayStartDate, setDisplayStartDate] = useState(
@@ -3710,12 +3832,35 @@ const Admin_PublishEvent = ({
   onPublish = () => console.warn("No publish handler"),
   onSaveAsDraft = () => console.warn("No save as draft handler"),
   isSubmitting = false,
+  initialData = null,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [eventDetails, setEventDetails] = useState(null);
-  const [ticketDetails, setTicketDetails] = useState(null);
-  const [claimingDetails, setClaimingDetails] = useState(null);
-  const [availabilityDetails, setAvailabilityDetails] = useState(null);
+  const [eventDetails, setEventDetails] = useState(
+    initialData?.eventDetails || null
+  );
+  const [ticketDetails, setTicketDetails] = useState(
+    initialData?.ticketDetails || null
+  );
+  const [claimingDetails, setClaimingDetails] = useState(
+    initialData?.claimingDetails || null
+  );
+  const [availabilityDetails, setAvailabilityDetails] = useState(
+    initialData?.availabilityDetails || null
+  );
+
+  // Update state when initialData changes (for coming soon conversions)
+  useEffect(() => {
+    if (initialData) {
+      if (initialData.eventDetails) setEventDetails(initialData.eventDetails);
+      if (initialData.ticketDetails)
+        setTicketDetails(initialData.ticketDetails);
+      if (initialData.claimingDetails)
+        setClaimingDetails(initialData.claimingDetails);
+      if (initialData.availabilityDetails)
+        setAvailabilityDetails(initialData.availabilityDetails);
+    }
+  }, [initialData]);
+
   const isValidEventDetails = () => {
     // Check if eventDetails exists and has minimum required fields
     if (!eventDetails) return false;
@@ -3734,6 +3879,7 @@ const Admin_PublishEvent = ({
       (field) => eventDetails[field] && eventDetails[field].trim() !== ""
     );
   };
+
   // Get the next step based on event type
   const getNextStep = (currentStep, eventType) => {
     // For free events: Skip tickets and claiming steps
@@ -3866,6 +4012,11 @@ const Admin_PublishEvent = ({
   // Helper function to determine button text
   const getNextButtonText = (step) => {
     if (step === 5) {
+      // For coming soon conversions, use a different text
+      if (eventDetails?.comingSoonConversion) {
+        return "Convert to Published Event";
+      }
+
       // Final publish button based on event type
       if (eventType === "coming_soon") return "Save as Coming Soon";
       if (eventType === "free") return "Publish Free Event";
@@ -3898,6 +4049,9 @@ const Admin_PublishEvent = ({
 
         <div className="bg-[#272727] flex items-center justify-center w-full p-6">
           <div className="w-full max-w-4xl">
+            {/* Special heading for Coming Soon conversions */}
+            {eventDetails?.comingSoonConversion && <div></div>}
+
             {currentStep === 1 && (
               <EventDetails
                 onNext={handleEventDetailsNext}
