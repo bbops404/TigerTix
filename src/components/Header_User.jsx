@@ -4,13 +4,6 @@ import { useEffect, useState } from "react";
 import tigertix_logo from "../assets/tigertix_logo.png";
 
 const Header_User = () => {
-<<<<<<< HEAD
-  const [publishedEvents, setPublishedEvents] = useState([]);
-  const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
-  const [user, setUser] = useState(null); // State for user data
-  const [loading, setLoading] = useState(true); // State for loading
-=======
->>>>>>> feature/footer-fe
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [userName, setUserName] = useState(""); // State to store the user's name
@@ -18,42 +11,12 @@ const Header_User = () => {
   const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
 
   useEffect(() => {
-<<<<<<< HEAD
-    // Function to fetch user data
-    const fetchUserData = async () => {
-      try {
-        const API_BASE_URL = "http://localhost:5002"; // Base URL
-        const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
-          withCredentials: true, // Important for including cookies
-        });
-
-        if (response.data.success) {
-          setUser(response.data.data);
-        } else {
-          console.error("Failed to fetch user data.");
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Function to fetch published events
-    const fetchPublishedEvents = async () => {
-      try {
-        const API_BASE_URL = "http://localhost:5002"; // Base URL
-        const response = await axios.get(
-          `${API_BASE_URL}/api/events/published`
-        );
-=======
     // Fetch published events
     const fetchPublishedEvents = async () => {
       try {
         const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
         const response = await fetch(`${API_BASE_URL}/api/events/published`);
         const data = await response.json();
->>>>>>> feature/footer-fe
 
         if (response.ok && data.success) {
           setPublishedEvents(data.data);
@@ -66,7 +29,6 @@ const Header_User = () => {
     };
 
     // Fetch both user data and published events
-    fetchUserData();
     fetchPublishedEvents();
   }, []);
 
@@ -182,46 +144,13 @@ const Header_User = () => {
 
       {/* Right-side content */}
       <div className="flex items-center gap-4">
-<<<<<<< HEAD
-        <span className="text-gray-800 font-medium">
-          Hi, {getUserDisplayName()}!
-        </span>
-=======
         {/* Display the username */}
         <span className="text-gray-800 font-medium">Hi, {userName}!</span>
->>>>>>> feature/footer-fe
 
         {/* Profile Icon - Routes to My Profile */}
         <Link to="/my-profile">
           <FaUser className="text-gray-800 text-lg cursor-pointer hover:text-gray-600" />
         </Link>
-
-        {/* Notification Icon with Toggle */}
-        <div className="relative">
-          <FaBell
-            className="text-gray-800 text-lg cursor-pointer hover:text-gray-600"
-            onClick={() => setShowNotifications(!showNotifications)}
-          />
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-72 bg-[#F3B05B] shadow-lg rounded-lg p-4 z-50">
-              <h3 className="font-bold text-black flex items-center gap-2">
-                Notifications{" "}
-                <span className="bg-black text-white text-xs px-2 py-1 rounded-md">
-                  3
-                </span>
-              </h3>
-              <div className="mt-2 p-3 border rounded-lg bg-gray-100 text-[12px] text-[#606060]">
-                📢 An event you registered for starts in 15 minutes!
-              </div>
-              <div className="mt-2 p-3 border rounded-lg bg-gray-100 text-[12px] text-[#606060]">
-                🏀 UAAP SEASON 87 MEN'S BASKETBALL Tickets Available
-              </div>
-              <div className="mt-2 p-3 border rounded-lg bg-gray-100 text-[12px] text-[#606060]">
-                🏀 UAAP SEASON 87 WOMEN'S BASKETBALL Tickets Available
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* Logout Icon - Calls handleLogout */}
         <FaSignOutAlt
