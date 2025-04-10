@@ -21,6 +21,7 @@ const Admin_EventCard = ({
   onOpenReservation,
   onCloseReservation,
   onPublishNow,
+  onNavigateToEdit, // New prop for handling navigation to edit page
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
@@ -84,7 +85,26 @@ const Admin_EventCard = ({
     return false;
   };
 
-  // Determine dropdown menu options based on event status and visibility
+  // Helper function to check if event has passed (either event date or reservation end date)
+  const hasEventPassed = () => {
+    const now = new Date();
+    if (event.reservation_end_date && event.reservation_end_time) {
+      const reservationEndDateTime = new Date(
+        `${event.reservation_end_date}T${event.reservation_end_time}`
+      );
+      if (reservationEndDateTime < now) return true;
+    }
+    // Check if event date has passed
+    if (event.eventDate) {
+      const eventDate = new Date(event.eventDate);
+      if (eventDate < now) return true;
+    }
+
+    // Check if reservation end date has passed
+
+    return false;
+  };
+
   // Determine dropdown menu options based on event status and visibility
   const renderDropdownOptions = () => {
     const { status, visibility, eventType } = event;
@@ -114,19 +134,10 @@ const Admin_EventCard = ({
       },
     ];
 
-    // Scenario 1: Published and taking reservations
-    if (
-      status === "open" &&
-      visibility === "published" &&
-      eventType === "ticketed"
-    ) {
+    // Scenario 1: Published and taking reservations (open)
+    if (status === "open" && visibility === "published") {
       dropdownItems.push(
         ...editActions.slice(0, 1), // Edit Event Details
-        {
-          icon: <FaEye className="mr-2 text-red-400" />,
-          label: "Unpublish Event",
-          action: () => onUnpublish && onUnpublish(event.id),
-        },
         {
           icon: <FaTicketAlt className="mr-2 text-red-400" />,
           label: "Close Reservation",
@@ -134,33 +145,34 @@ const Admin_EventCard = ({
         }
       );
     }
-    // Scenario 2: Published but not taking reservations (scheduled & closed)
-    else if (
-      (status === "scheduled" || status === "closed") &&
-      visibility === "published"
-    ) {
-      dropdownItems.push(...editActions, {
-        icon: <FaEye className="mr-2 text-red-400" />,
-        label: "Unpublish",
-        action: () => onUnpublish && onUnpublish(event.id),
+    // Scenario 3: Coming Soon
+    else if (eventType === "coming_soon" && visibility === "published") {
+      dropdownItems.push({
+        icon: <FaEdit className="mr-2 text-green-400" />,
+        label: "Edit Event", // Changed from "Publish Event" to "Edit Event"
+        action: () => onNavigateToEdit && onNavigateToEdit(event.id, true), // Use new handler for navigation
       });
     }
-    // Scenario 3: Coming Soon
-    else if (eventType === "coming_soon") {
+    // Scenario 2: Published and scheduled (not yet open)
+    else if (status === "scheduled" && visibility === "published") {
       dropdownItems.push(
+        ...editActions,
         {
-          icon: <FaEye className="mr-2 text-green-400" />,
-          label: "Publish Event",
-          action: () => onPublishNow && onPublishNow(event.id),
+          // Edit Event Details
+
+          icon: <FaTicketAlt className="mr-2 text-green-400" />,
+          label: "Open Reservation",
+          action: () => onOpenReservation && onOpenReservation(event.id),
         },
         {
-          icon: <FaTimesCircle className="mr-2 text-red-400" />,
-          label: "Cancel Event",
-          action: () => onCancelEvent && onCancelEvent(event.id),
+          icon: <FaEye className="mr-2 text-red-400" />,
+          label: "Unpublish",
+          action: () => onUnpublish && onUnpublish(event.id),
         }
       );
     }
-    // Scenario 4: Completed but still published
+
+    // Scenario 4: Closed but still published - ONLY show unpublish option
     else if (status === "closed" && visibility === "published") {
       dropdownItems.push({
         icon: <FaEye className="mr-2 text-red-400" />,
@@ -172,36 +184,49 @@ const Admin_EventCard = ({
     else if (status === "draft") {
       dropdownItems.push(
         {
-          icon: <FaEdit className="mr-2 text-custom_yellow" />,
-          label: "Edit Details",
-          action: () => onEdit && onEdit(event.id, "event"),
+          icon: <FaEdit className="mr-2 text-green-400" />,
+          label: "Edit Event", // Changed from "Publish" to "Edit Event"
+          action: () => onNavigateToEdit && onNavigateToEdit(event.id, false), // Use new handler for navigation
         },
         {
-          icon: <FaEye className="mr-2 text-red-400" />,
-          label: "Unpublish",
-          action: () => onUnpublish && onUnpublish(event.id),
+          icon: <FaTrash className="mr-2 text-red-400" />,
+          label: "Delete",
+          action: () => onDelete && onDelete(event.id),
         }
       );
+    }
+    // Scenario 7: Unpublished and completed/closed
+    else if (visibility === "unpublished" && status === "closed") {
+      // Check if event has passed before showing delete (archive) option
+      if (hasEventPassed()) {
+        dropdownItems.push({
+          icon: <FaTrash className="mr-2 text-red-400" />,
+          label: "Delete", // This is actually archive (soft delete)
+          action: () => onDelete && onDelete(event.id),
+        });
+      } else {
+        // If event hasn't passed yet, show edit options
+        dropdownItems.push(...editActions, {
+          icon: <FaTrash className="mr-2 text-red-400" />,
+          label: "Delete",
+          action: () => onDelete && onDelete(event.id),
+        });
+      }
     }
     // Scenario 6: Unpublished (but will go to published)
     else if (
       visibility === "unpublished" &&
-      (eventType === "ticketed" || eventType === "coming_soon")
+      (eventType === "ticketed" ||
+        eventType === "coming_soon" ||
+        eventType === "free")
     ) {
-      dropdownItems.push(...editActions, {
-        icon: <FaTrash className="mr-2 text-red-400" />,
-        label: "Delete",
-        action: () => onDelete && onDelete(event.id),
-      });
-    }
-    // Scenario 7: Unpublished and completed
-    else if (visibility === "unpublished" && status === "closed") {
       dropdownItems.push({
-        icon: <FaTrash className="mr-2 text-red-400" />,
-        label: "Delete",
-        action: () => onDelete && onDelete(event.id),
+        icon: <FaEdit className="mr-2 text-green-400" />,
+        label: "Edit Event", // Changed from "Publish" to "Edit Event"
+        action: () => onNavigateToEdit && onNavigateToEdit(event.id, false), // Use new handler for navigation
       });
     }
+
     // Scenario 8: Archived
     else if (visibility === "archived") {
       dropdownItems.push({
@@ -393,8 +418,8 @@ const Admin_EventCard = ({
         </div>
       )}
 
-      {/* Status badge if not open */}
-      {event.status !== "open" && (
+      {/* Status badge if not open and not coming soon */}
+      {event.status !== "open" && event.eventType !== "coming_soon" && (
         <div
           className={`absolute top-10 right-2 transition-transform duration-300 ${
             isHovered ? "transform translate-y-0" : "opacity-90"

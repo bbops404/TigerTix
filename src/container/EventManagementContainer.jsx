@@ -32,6 +32,7 @@ const EventsManagementContainer = () => {
   // Set up the API URL
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
   // Function to categorize events by their status
+  // Function to categorize events by their status
   const categorizeEvents = useCallback((eventsList) => {
     const categorized = {
       OPEN: [],
@@ -60,8 +61,8 @@ const EventsManagementContainer = () => {
         venue: event.venue,
         eventType: event.event_type,
         eventCategory: event.category,
-        status: event.status || "draft", // Default to draft if status is missing
-        visibility: event.visibility || "unpublished", // Default to unpublished if visibility is missing
+        status: event.status || "draft",
+        visibility: event.visibility || "unpublished",
         imagePreview: formatImageUrl(event.image),
         // Include other properties needed by components
         details: event.details,
@@ -81,49 +82,81 @@ const EventsManagementContainer = () => {
         updatedAt: event.updatedAt || new Date().toISOString(),
       };
 
-      // First categorize by event type for "COMING SOON"
-      if (event.event_type === "coming_soon") {
-        categorized["COMING SOON"].push(mappedEvent);
-        return; // Skip other categorization
-      }
-
-      // Then categorize by visibility and status
+      // Check if it's an archived event first
       if (event.visibility === "archived") {
         categorized.ARCHIVED.push(mappedEvent);
-      } else if (event.status === "draft") {
-        categorized.DRAFT.push(mappedEvent);
-      } else if (event.status === "open" && event.visibility === "published") {
-        categorized.OPEN.push(mappedEvent);
-      } else if (
-        event.status === "scheduled" &&
-        event.visibility === "published"
-      ) {
-        categorized.SCHEDULED.push(mappedEvent);
-      } else if (event.status === "closed") {
-        const now = new Date();
-        const isEventDatePassed =
-          event.event_date && new Date(event.event_date) < now;
-        const isReservationEnded =
-          event.reservation_end_date &&
-          event.reservation_end_time &&
-          new Date(
-            `${event.reservation_end_date}T${event.reservation_end_time}`
-          ) < now;
+        return; // Skip further categorization
+      }
 
-        // Check if this is a completed event (event date passed OR reservation period ended)
-        if (isEventDatePassed || isReservationEnded) {
-          categorized.COMPLETED.push(mappedEvent);
-        } else {
-          // Free events or events closed for other reasons
-          if (event.visibility === "published") {
-            categorized.SCHEDULED.push(mappedEvent);
+      // Check if display period has ended
+      const now = new Date();
+      const hasDisplayEnded =
+        event.display_end_date &&
+        event.display_end_time &&
+        new Date(`${event.display_end_date}T${event.display_end_time}`) < now;
+
+      // Check if event date has passed
+      const isEventDatePassed =
+        event.event_date && new Date(event.event_date) < now;
+
+      // Check if reservation period has ended
+      const isReservationEnded =
+        event.reservation_end_date &&
+        event.reservation_end_time &&
+        new Date(
+          `${event.reservation_end_date}T${event.reservation_end_time}`
+        ) < now;
+
+      // If display period has ended, move to COMPLETED regardless of status
+      if (hasDisplayEnded) {
+        categorized.COMPLETED.push(mappedEvent);
+        return;
+      }
+
+      // Now handle published events
+      if (event.visibility === "published") {
+        // Special handling for "coming soon" event type
+        if (
+          event.event_type === "coming_soon" &&
+          event.status === "scheduled"
+        ) {
+          categorized["COMING SOON"].push(mappedEvent);
+          return; // Skip further categorization
+        }
+
+        // Other published events based on status
+        if (event.status === "open") {
+          categorized.OPEN.push(mappedEvent);
+        } else if (event.status === "scheduled") {
+          categorized.SCHEDULED.push(mappedEvent);
+        } else if (event.status === "closed") {
+          // Check if it's completed (event date passed or reservation ended)
+          if (isEventDatePassed || isReservationEnded) {
+            categorized.COMPLETED.push(mappedEvent);
           } else {
+            // Closed but not completed events go to SCHEDULED
+            categorized.SCHEDULED.push(mappedEvent);
+          }
+        } else if (event.status === "cancelled") {
+          categorized.CANCELLED.push(mappedEvent);
+        }
+      }
+      // Handle unpublished events
+      else {
+        if (event.status === "draft") {
+          categorized.DRAFT.push(mappedEvent);
+        } else if (event.status === "closed") {
+          // Check if it's completed (event date passed or reservation ended)
+          if (isEventDatePassed || isReservationEnded) {
+            categorized.COMPLETED.push(mappedEvent);
+          } else {
+            // Unpublished but not draft or completed
             categorized.UNPUBLISHED.push(mappedEvent);
           }
+        } else {
+          // All other unpublished events go to UNPUBLISHED
+          categorized.UNPUBLISHED.push(mappedEvent);
         }
-      } else {
-        // All other events go to UNPUBLISHED
-        categorized.UNPUBLISHED.push(mappedEvent);
       }
     });
 
@@ -205,6 +238,10 @@ const EventsManagementContainer = () => {
                   fetchSuccessful;
                 fetchSuccessful =
                   addEventsToMap(unpublishedResponse?.data || []) ||
+                  fetchSuccessful;
+                // Add archived events to the map - this was missing!
+                fetchSuccessful =
+                  addEventsToMap(archivedResponse?.data || []) ||
                   fetchSuccessful;
 
                 // Convert the map back to an array if we had any successful fetches
@@ -905,7 +942,10 @@ const EventsManagementContainer = () => {
       // For archived events, use permanent delete
       const event = findEventById(eventId);
 
-      if (event && event.visibility === "archived") {
+      if (
+        (event && event.visibility === "archived") ||
+        event.status === "draft"
+      ) {
         await eventService.events.delete(eventId);
       } else {
         // Otherwise, archive the event
@@ -1019,7 +1059,8 @@ const EventsManagementContainer = () => {
   };
 
   // Handler for publishing an event immediately
-  const handlePublishNow = async (eventId) => {
+  // Updated handlePublishNow function in EventManagementContainer.jsx
+  const handlePublishNow = async (eventId, isComingSoon = false) => {
     try {
       setLoading(true);
 
@@ -1031,6 +1072,34 @@ const EventsManagementContainer = () => {
         return false;
       }
 
+      // Special handling for Coming Soon events
+      if (isComingSoon && event.eventType === "coming_soon") {
+        // Prepare event data for PublishEvent page
+        const eventData = {
+          eventDetails: {
+            eventId: event.id, // Include the original event ID
+            eventName: event.eventName,
+            eventDescription: event.details,
+            eventDate: event.eventDate,
+            venue: event.venue,
+            startTime: event.startTime,
+            endTime: event.endTime,
+            eventCategory: event.eventCategory,
+            eventType: "ticketed", // Convert to ticketed event
+            imagePreview: event.imagePreview,
+            comingSoonConversion: true, // Flag to indicate this is a converted coming soon event
+          },
+        };
+
+        // Save the event data to localStorage for the publishing page to access
+        localStorage.setItem("comingSoonEventData", JSON.stringify(eventData));
+
+        // Navigate to the publish event page
+        navigate("/events/publish/convert");
+        return true;
+      }
+
+      // For non-Coming Soon events, continue with the original implementation
       // Get current date and time
       const now = new Date();
       const nowISODate = now.toISOString().split("T")[0];
@@ -1236,7 +1305,121 @@ const EventsManagementContainer = () => {
       setLoading(false);
     }
   };
-  // Handler for closing reservations
+
+  // In EventManagementContainer.jsx
+  const handleNavigateToEdit = async (eventId, isComingSoon = false) => {
+    try {
+      setLoading(true);
+      console.log(
+        `Starting navigation to edit for event: ${eventId}, isComingSoon: ${isComingSoon}`
+      );
+
+      // Get the event to check its current state
+      let event = findEventById(eventId);
+
+      if (!event) {
+        console.error(`Event with ID ${eventId} not found in local state`);
+        // Try to fetch it from API directly
+        try {
+          const eventResponse = await eventService.events.getById(eventId);
+          if (eventResponse && eventResponse.data) {
+            const eventData = eventResponse.data;
+            event = {
+              id: eventData.id,
+              eventName: eventData.name,
+              eventDescription: eventData.details || "",
+              eventDate: eventData.event_date,
+              startTime: eventData.event_time,
+              endTime: eventData.event_end_time,
+              venue: eventData.venue,
+              eventType: eventData.event_type,
+              eventCategory: eventData.category,
+              imagePreview: formatImageUrl(eventData.image),
+              status: eventData.status,
+              visibility: eventData.visibility,
+              // Additional fields for availability
+              display_start_date: eventData.display_start_date,
+              display_end_date: eventData.display_end_date,
+              display_start_time: eventData.display_start_time,
+              display_end_time: eventData.display_end_time,
+              reservation_start_date: eventData.reservation_start_date,
+              reservation_end_date: eventData.reservation_end_date,
+              reservation_start_time: eventData.reservation_start_time,
+              reservation_end_time: eventData.reservation_end_time,
+            };
+          } else {
+            toast.error("Could not find event details");
+            setLoading(false);
+            return false;
+          }
+        } catch (error) {
+          console.error("Error fetching event:", error);
+          toast.error("Could not find event details");
+          setLoading(false);
+          return false;
+        }
+      }
+
+      // Prepare a more complete event data structure for PublishEvent page
+      const eventData = {
+        eventDetails: {
+          eventId: event.id, // Include the original event ID
+          eventName: event.eventName,
+          eventDescription: event.details || event.eventDescription || "",
+          eventDate: event.eventDate,
+          venue: event.venue,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          eventCategory: event.eventCategory,
+          eventType: isComingSoon ? "ticketed" : event.eventType, // Convert to ticketed if coming soon
+          imagePreview: event.imagePreview,
+          comingSoonConversion: isComingSoon, // Flag to indicate if this is a coming soon conversion
+        },
+        // Add availability data if available
+        availabilityDetails: {
+          eventType: isComingSoon ? "ticketed" : event.eventType,
+          displayPeriod: {
+            startDate: event.display_start_date || "",
+            endDate: event.display_end_date || "",
+            startTime: event.display_start_time || "",
+            endTime: event.display_end_time || "",
+          },
+          ...(event.eventType === "ticketed" || isComingSoon
+            ? {
+                reservationPeriod: {
+                  startDate: event.reservation_start_date || "",
+                  endDate: event.reservation_end_date || "",
+                  startTime: event.reservation_start_time || "",
+                  endTime: event.reservation_end_time || "",
+                },
+              }
+            : {}),
+        },
+      };
+
+      console.log("Prepared event data:", JSON.stringify(eventData));
+
+      // Save the event data to localStorage BEFORE navigating
+      localStorage.setItem("comingSoonEventData", JSON.stringify(eventData));
+
+      // Navigate based on condition - IMPROVED: Include eventId in URL
+      if (isComingSoon) {
+        console.log(`Navigating to /events/publish/${eventId}?convert=true`);
+        navigate(`/events/publish/${eventId}?convert=true`);
+      } else {
+        console.log(`Navigating to /events/publish/${eventId}`);
+        navigate(`/events/publish/${eventId}`);
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Error navigating to edit event:", err);
+      toast.error("Failed to prepare event for editing. Please try again.");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleCloseReservation = async (eventId) => {
     try {
       setLoading(true);
@@ -1564,6 +1747,7 @@ const EventsManagementContainer = () => {
       onCloseReservation={handleCloseReservation}
       onRefreshEvents={handleManualRefresh}
       findEventById={findEventById}
+      onNavigateToEdit={handleNavigateToEdit} // Add this new prop
     />
   );
 };

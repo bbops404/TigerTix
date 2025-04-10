@@ -7,6 +7,7 @@ import Admin_EventManagementFilter from "./Admin_EventsManagementFilter";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 import EventCard from "../../components/Admin/Admin_EventCard";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 // Import popup components
 import EditEventDetailsPopup from "../../components/Admin/Popups/EditEventDetailsPopup";
@@ -210,6 +211,7 @@ const Admin_EventsManagement = ({
   onCloseReservation,
   onRefreshEvents,
   findEventById,
+  onNavigateToEdit,
 }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("published");
@@ -233,17 +235,14 @@ const Admin_EventsManagement = ({
       alert("Event has been published successfully!");
     }
   };
-  // Function to get events based on active tab
 
+  // Function to get events based on active tab
   const getEventsByTab = () => {
     switch (activeTab) {
       case "published":
         return {
-          "OPEN FOR RESERVATION": events.OPEN || [],
-          SCHEDULED:
-            events.SCHEDULED.filter(
-              (event) => event.visibility === "published"
-            ) || [],
+          OPEN: events.OPEN || [],
+          SCHEDULED: events.SCHEDULED || [],
           "COMING SOON": events["COMING SOON"] || [],
           COMPLETED:
             events.COMPLETED.filter(
@@ -260,31 +259,8 @@ const Admin_EventsManagement = ({
             ) || [],
         };
       case "archived":
-        // Debug logging
-        console.log("Events object in archived tab:", events);
-
-        const allEvents = [
-          ...(events.OPEN || []),
-          ...(events.SCHEDULED || []),
-          ...(events.COMPLETED || []),
-          ...(events.DRAFT || []),
-          ...(events.UNPUBLISHED || []),
-        ];
-
-        console.log("All events before filtering:", allEvents);
-
-        const archivedEvents = allEvents.filter((event) => {
-          console.log(`Event visibility check:`, {
-            eventId: event.id,
-            visibility: event.visibility,
-          });
-          return event.visibility === "archived";
-        });
-
-        console.log("Archived events:", archivedEvents);
-
         return {
-          ARCHIVED: archivedEvents,
+          ARCHIVED: events.ARCHIVED || [],
         };
       default:
         return events;
@@ -506,6 +482,21 @@ const Admin_EventsManagement = ({
     setSearchTerm(e.target.value);
   };
 
+  // Updated scroll functions for smoother scrolling
+  const scrollLeft = (containerId) => {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.scrollBy({ left: -300, behavior: "smooth" });
+    }
+  };
+
+  const scrollRight = (containerId) => {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.scrollBy({ left: 300, behavior: "smooth" });
+    }
+  };
+
   // Reset filters
   const handleResetFilters = () => {
     setSearchTerm("");
@@ -530,7 +521,7 @@ const Admin_EventsManagement = ({
         <Sidebar_Admin />
 
         {/* Main Content Wrapper */}
-        <div className="flex-1 px-10 py-10">
+        <div className="flex-1 px-10 py-10 w-screen overflow-hidden">
           {/* Tab Navigation */}
 
           {/* Error Message */}
@@ -601,50 +592,89 @@ const Admin_EventsManagement = ({
               </h3>
 
               {filteredEvents[category].length > 0 ? (
-                <div className="flex gap-4 overflow-x-auto pb-4">
-                  {filteredEvents[category].map((event) => (
-                    <div key={event.id} className="flex flex-col">
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        cardStyle={event.status.toLowerCase()}
-                        onEdit={handleEditEvent}
-                        onDelete={handleDeleteEvent}
-                        onUnpublish={handleUnpublishEvent}
-                        onPublishNow={handlePublishNow}
-                        onOpenReservation={handleOpenReservation}
-                        onCloseReservation={handleCloseReservation}
-                        onViewDetails={handleViewEventDetails}
-                      />
-                      {isFutureScheduledEvent(event) && (
-                        <div className="mt-2 bg-yellow-900/30 border border-yellow-600 rounded-md p-2 text-xs">
-                          <div className="flex items-center text-gray-300">
-                            <FaClock className="mr-1" />
-                            <span>
-                              Display scheduled in:{" "}
-                              {calculateTimeUntilDisplay(event)}
-                            </span>
-                          </div>
-                          <div className="text-gray-300 mt-1">
-                            Will display on: {formatDisplayDate(event)}
-                          </div>
-                        </div>
-                      )}
+                <div className="relative group overflow-hidden">
+                  {/* Left scroll button */}
+                  <button
+                    onClick={() => scrollLeft(`event-container-${category}`)}
+                    className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black text-white rounded-full p-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Scroll left"
+                  >
+                    <FaChevronLeft />
+                  </button>
 
-                      {/* Add status indicator for recently updated events */}
-                      {event.statusUpdatedAt && isRecentlyUpdated(event) && (
-                        <div className="mt-2 bg-blue-900/30 border border-blue-600 rounded-md p-2 text-xs">
-                          <div className="flex items-center text-blue-400">
-                            <FaSyncAlt className="mr-1" />
-                            <span>
-                              Status updated:{" "}
-                              {formatTimeAgo(event.statusUpdatedAt)}
-                            </span>
-                          </div>
+                  {/* Right scroll button */}
+                  <button
+                    onClick={() => scrollRight(`event-container-${category}`)}
+                    className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black text-white rounded-full p-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Scroll right"
+                  >
+                    <FaChevronRight />
+                  </button>
+
+                  {/* Scroll indicators */}
+                  <div className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-[#1E1E1E] to-transparent z-10 pointer-events-none"></div>
+                  <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#1E1E1E] to-transparent z-10 pointer-events-none"></div>
+
+                  {/* Scrollable container - with updated styling */}
+                  <div
+                    id={`event-container-${category}`}
+                    className="flex gap-6 overflow-x-auto pb-6 pt-2 px-2"
+                    style={{
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                      scrollBehavior: "smooth",
+                      WebkitOverflowScrolling: "touch",
+                      maxWidth: "100%",
+                    }}
+                  >
+                    {filteredEvents[category].map((event) => (
+                      <div key={event.id} className="flex-shrink-0">
+                        <div className="flex flex-col">
+                          <EventCard
+                            key={event.id}
+                            event={event}
+                            cardStyle={event.status.toLowerCase()}
+                            onEdit={handleEditEvent}
+                            onDelete={handleDeleteEvent}
+                            onUnpublish={handleUnpublishEvent}
+                            onPublishNow={handlePublishNow}
+                            onOpenReservation={handleOpenReservation}
+                            onCloseReservation={handleCloseReservation}
+                            onViewDetails={handleViewEventDetails}
+                            onNavigateToEdit={onNavigateToEdit}
+                          />
+                          {isFutureScheduledEvent(event) && (
+                            <div className="mt-2 bg-yellow-900/30 border border-yellow-600 rounded-md p-2 text-xs">
+                              <div className="flex items-center text-gray-300">
+                                <FaClock className="mr-1" />
+                                <span>
+                                  Display scheduled in:{" "}
+                                  {calculateTimeUntilDisplay(event)}
+                                </span>
+                              </div>
+                              <div className="text-gray-300 mt-1">
+                                Will display on: {formatDisplayDate(event)}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Status indicator for recently updated events */}
+                          {event.statusUpdatedAt &&
+                            isRecentlyUpdated(event) && (
+                              <div className="mt-2 bg-blue-900/30 border border-blue-600 rounded-md p-2 text-xs">
+                                <div className="flex items-center text-blue-400">
+                                  <FaSyncAlt className="mr-1" />
+                                  <span>
+                                    Status updated:{" "}
+                                    {formatTimeAgo(event.statusUpdatedAt)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="min-h-[100px] text-gray-400 flex items-center justify-center">
