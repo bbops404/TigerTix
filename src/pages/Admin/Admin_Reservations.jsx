@@ -5,6 +5,7 @@ import {
   FaSort,
   FaSortUp,
   FaSortDown,
+  FaArrowLeft,
 } from "react-icons/fa";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
@@ -21,10 +22,162 @@ import {
   createColumnHelper,
 } from "@tanstack/react-table";
 
+// Adding the ConfirmRestoreUnclaimedModal component
+const ConfirmRestoreUnclaimedModal = ({ isOpen, onClose, onConfirm }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-center">
+      <div className="bg-white rounded-xl p-6 w-[400px] max-w-full shadow-lg">
+        <h2 className="text-xl font-semibold text-[#3B3B3B] mb-4 text-center">
+          Confirm Restore
+        </h2>
+        <p className="text-sm text-gray-600 mb-6 text-center">
+          Are you sure you want to restore these unclaimed reservations?
+        </p>
+        <div className="flex justify-center gap-4">
+          <button
+            onClick={onClose}
+            className="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded-md"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="bg-[#C15454] hover:bg-[#B83333] text-white px-6 py-2 rounded-md"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Adding the RestoreUnclaimedModal component
+const RestoreUnclaimedModal = ({ reservations, onClose, onConfirm }) => {
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const handleRestoreUnclaimed = () => {
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmRestoreUnclaimed = () => {
+    // Call the parent's onConfirm handler to actually perform the API call
+    onConfirm();
+
+    // Toast will be shown from the parent component after the API call
+    setShowConfirmModal(false);
+    onClose(); // Close the RestoreUnclaimedModal
+  };
+
+  return (
+    <>
+      {!showConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-[#EFF3F0] rounded-xl p-6 w-[900px] max-w-full shadow-lg relative">
+            <button
+              onClick={onClose}
+              className="absolute top-4 left-4 text-[#F09C32] text-2xl hover:text-[#CD8428] transition duration-300"
+            >
+              <FaArrowLeft />
+            </button>
+            <h2 className="text-xl font-semibold text-[#3B3B3B] mb-2 text-left mt-8">
+              Restore Unclaimed Reservations
+            </h2>
+            <p className="text-sm text-gray-600 mb-4 text-left">
+              Below are the details of the reservations that will be restored:
+            </p>
+            <div className="overflow-y-auto max-h-[300px] border border-[#D6D3D3] rounded-md">
+              <table className="w-full text-sm bg-white">
+                <thead className="bg-[#F09C32] text-[#333333]">
+                  <tr>
+                    {[
+                      "Reservation ID",
+                      "Name",
+                      "Event Name",
+                      "Seat Type",
+                      "Ticket Tier",
+                      "Claiming Date",
+                      "Claiming Time",
+                      "Amount",
+                      "Claiming Status",
+                    ].map((header, index) => (
+                      <th
+                        key={index}
+                        className="py-2 px-3 border border-[#D6D3D3]"
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {reservations.map((reservation) => (
+                    <tr
+                      key={reservation.reservation_id}
+                      className="text-center text-black"
+                    >
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.reservation_id}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.name || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.event_name || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.seat_type || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.ticket_tier || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.claiming_date || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.claiming_time || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.amount || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        <span className="text-red-500 font-medium">
+                          {reservation.claiming_status || "N/A"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={handleRestoreUnclaimed}
+                className="bg-[#C15454] hover:bg-[#B83333] text-white px-6 py-2 rounded-md"
+              >
+                Confirm Restore
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showConfirmModal && (
+        <ConfirmRestoreUnclaimedModal
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          onConfirm={handleConfirmRestoreUnclaimed}
+        />
+      )}
+    </>
+  );
+};
+
 const Admin_Reservations = () => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false); // Add loading state for actions
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedReservations, setSelectedReservations] = useState([]);
   const [showFilter, setShowFilter] = useState(false);
@@ -32,6 +185,10 @@ const Admin_Reservations = () => {
   const [showQRPopup, setShowQRPopup] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState([]);
+  // Add state for RestoreUnclaimedModal
+  const [showRestoreUnclaimedModal, setShowRestoreUnclaimedModal] =
+    useState(false);
+  const [selectedReservationsData, setSelectedReservationsData] = useState([]);
 
   // Function to fetch all reservations
   const fetchReservations = async () => {
@@ -397,12 +554,11 @@ const Admin_Reservations = () => {
     }
   };
 
-  // Handle restore unclaimed action - UPDATED with real backend calls
+  // Updated handleRestoreUnclaimed function to show modal
   const handleRestoreUnclaimed = async () => {
     if (!hasUnclaimedSelected || actionLoading) return;
 
     try {
-      setActionLoading(true);
       // Filter only the unclaimed reservations
       const unclaimedIds = selectedReservations.filter((id) => {
         const reservation = reservations.find((r) => r.reservation_id === id);
@@ -417,6 +573,32 @@ const Admin_Reservations = () => {
         return;
       }
 
+      // Get the full reservation data for selected unclaimed reservations
+      const selectedReservationsFullData = unclaimedIds.map((id) =>
+        reservations.find((r) => r.reservation_id === id)
+      );
+
+      // Set the data for the modal
+      setSelectedReservationsData(selectedReservationsFullData);
+
+      // Show the modal
+      setShowRestoreUnclaimedModal(true);
+    } catch (err) {
+      console.error("Error preparing restore unclaimed:", err);
+      toast.error(
+        "An error occurred while preparing to restore unclaimed reservations."
+      );
+    }
+  };
+
+  // Function to actually restore unclaimed reservations after confirmation
+  const performRestoreUnclaimed = async () => {
+    try {
+      setActionLoading(true);
+      const unclaimedIds = selectedReservationsData.map(
+        (r) => r.reservation_id
+      );
+
       // Call the real backend endpoint to restore unclaimed tickets
       const response =
         await adminReservationService.restoreUnclaimedReservations(
@@ -424,9 +606,17 @@ const Admin_Reservations = () => {
         );
 
       if (response.success) {
-        toast.success(
-          `Successfully restored ${response.restored.length} reservation(s).`
-        );
+        toast.success("Selected reservations restored successfully!", {
+          style: {
+            backgroundColor: "#FFFFFF",
+            color: "#000",
+            fontWeight: "bold",
+            borderRadius: "8px",
+            padding: "10px",
+            marginTop: "70px",
+          },
+          autoClose: 2000,
+        });
         // Refresh data after successful action
         await fetchReservations();
       } else {
@@ -447,6 +637,7 @@ const Admin_Reservations = () => {
       );
     } finally {
       setActionLoading(false);
+      setShowRestoreUnclaimedModal(false);
     }
   };
 
@@ -659,20 +850,6 @@ const Admin_Reservations = () => {
             <div className="flex items-center gap-2">
               <button
                 className="px-2 py-1 bg-gray-700 text-white rounded"
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
-              >
-                {"<<"}
-              </button>
-              <button
-                className="px-2 py-1 bg-gray-700 text-white rounded"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                {"<"}
-              </button>
-              <button
-                className="px-2 py-1 bg-gray-700 text-white rounded"
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
               >
@@ -758,6 +935,17 @@ const Admin_Reservations = () => {
           showPopup={showQRPopup}
           togglePopup={() => setShowQRPopup(false)}
           onSuccessfulClaim={handleSuccessfulClaim}
+        />
+      )}
+
+      {/* RestoreUnclaimedModal */}
+      {showRestoreUnclaimedModal && (
+        <RestoreUnclaimedModal
+          reservations={selectedReservationsData}
+          onClose={() => {
+            setShowRestoreUnclaimedModal(false);
+          }}
+          onConfirm={performRestoreUnclaimed}
         />
       )}
     </div>

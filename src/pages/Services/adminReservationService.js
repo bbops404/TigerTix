@@ -36,6 +36,45 @@ const adminReservationService = {
       throw error;
     }
   },
+  getReservationsByEventId: async (eventId) => {
+    try {
+      // First try to get all reservations
+      const response = await apiClient.get("/reservations");
+
+      if (response.data && Array.isArray(response.data.data)) {
+        // Filter on client side if the backend doesn't support filtering
+        return response.data.data.filter((reservation) => {
+          // Try multiple property paths where event ID might be found
+          if (reservation.event_id === eventId) return true;
+          if (reservation.Event?.id === eventId) return true;
+
+          // Look at all properties for a match
+          for (const key in reservation) {
+            // Check if this property is an object that might contain the event ID
+            if (
+              typeof reservation[key] === "object" &&
+              reservation[key] !== null
+            ) {
+              // Check common ID field names in the nested object
+              if (
+                reservation[key].id === eventId ||
+                reservation[key].event_id === eventId
+              ) {
+                return true;
+              }
+            }
+          }
+
+          return false;
+        });
+      }
+
+      return [];
+    } catch (error) {
+      console.error(`Error fetching reservations for event ${eventId}:`, error);
+      throw error;
+    }
+  },
 
   // Mark a single reservation as claimed
   markAsClaimed: async (reservationId) => {
