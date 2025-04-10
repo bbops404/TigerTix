@@ -63,13 +63,14 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
         });
 
         toggleLoginPopup();
-
-        // ✅ Redirect based on user role
-        if (data.user.role === "admin") {
-          navigate("/admin-dashboard", { replace: true });
-        } else if (["student", "employee", "alumni"].includes(data.user.role)) {
-          navigate("/home", { replace: true }); // i just tested but this should redirected to home
-        }
+// ✅ Redirect based on user role
+if (data.user.role === "admin") {
+  navigate("/admin-dashboard", { replace: true });
+} else if (data.user.role === "support staff") {
+  navigate("/support-staff-dashboard", { replace: true });
+} else if (["student", "employee", "alumni"].includes(data.user.role)) {
+  navigate("/home", { replace: true });
+}
 
         // Debugging cookies
         console.log("Stored Cookies (frontend):", document.cookie);

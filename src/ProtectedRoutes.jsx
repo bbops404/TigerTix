@@ -16,7 +16,6 @@ const ProtectedRoutes = ({ role }) => {
     return <Navigate to="/" replace />;
   }
 
-    
 
   // ✅ Ensure `role` is always treated as an array
   const allowedRoles = Array.isArray(role) ? role : [role];
