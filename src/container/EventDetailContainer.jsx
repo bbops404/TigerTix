@@ -16,10 +16,11 @@ import {
   FaSortDown,
 } from "react-icons/fa";
 import eventService from "../pages/Services/eventService";
+import adminReservationService from "../pages/Services/adminReservationService"; // Import the adminReservationService
 import Header_Admin from "../components/Admin/Header_Admin";
 import Sidebar_Admin from "../components/Admin/SideBar_Admin";
 import { InfoIcon } from "lucide-react";
-import { formatImageUrl, handleImageError } from "../utils/imageUtils";
+import { formatImageUrl } from "../utils/imageUtils";
 
 const EventDetailContainer = () => {
   const { id } = useParams();
@@ -37,21 +38,39 @@ const EventDetailContainer = () => {
     pageSize: 10,
   });
 
-  // Sample reservations data - replace with actual API call
-  const sampleReservations = [
-    {
-      id: "RES-12345",
-      user: "John Doe",
-      email: "john.doe@example.com",
-      ticket_type: "General Admission",
-      quantity: 2,
-      total_price: "₱500.00",
-      claiming_date: "2023-10-15",
-      status: "confirmed",
-      created_at: "2023-09-30 14:25:36",
-    },
-    // ... other reservation data
-  ];
+  // Handle local image error for robust image loading
+  const handleLocalImageError = (e) => {
+    console.error("Image failed to load:", e.currentTarget.src);
+
+    // Try with a modified URL if it contains '/api/uploads/'
+    const originalSrc = e.currentTarget.src;
+    if (originalSrc.includes("/api/uploads/")) {
+      console.log("Attempting to fix image URL...");
+      const fixedSrc = originalSrc.replace("/api/uploads/", "/uploads/");
+      console.log("Modified URL:", fixedSrc);
+
+      // Only change the src if it's different
+      if (fixedSrc !== originalSrc) {
+        e.currentTarget.src = fixedSrc;
+        return; // Exit early to let the new src attempt to load
+      }
+    }
+
+    // If we get here, either the URL didn't need fixing or fixing didn't help
+    // Hide the broken image and show a placeholder
+    e.currentTarget.style.display = "none";
+
+    const container = e.currentTarget.parentNode;
+    if (!container.querySelector(".image-placeholder")) {
+      const placeholder = document.createElement("div");
+      placeholder.className =
+        "w-full h-full bg-[#333333] flex items-center justify-center text-white image-placeholder";
+      placeholder.innerHTML = `<span class="text-center">${
+        event?.eventName || "Image not available"
+      }</span>`;
+      container.appendChild(placeholder);
+    }
+  };
 
   useEffect(() => {
     const fetchEventDetails = async () => {
@@ -100,20 +119,86 @@ const EventDetailContainer = () => {
 
           setEvent(eventData);
 
-          // Set tickets from the API response
+          // Set tickets from the API response - improved handling
           if (
             eventResponse.data.tickets &&
             Array.isArray(eventResponse.data.tickets)
           ) {
+            console.log("Tickets from API:", eventResponse.data.tickets);
             setTickets(eventResponse.data.tickets);
+          } else {
+            console.log(
+              "No tickets array found in API response. Fetching tickets separately."
+            );
+            // Fetch tickets separately if not included in the event response
+            try {
+              const ticketsResponse = await eventService.tickets.getByEventId(
+                id
+              );
+              if (ticketsResponse && Array.isArray(ticketsResponse.data)) {
+                console.log(
+                  "Tickets fetched separately:",
+                  ticketsResponse.data
+                );
+                setTickets(ticketsResponse.data);
+              }
+            } catch (ticketErr) {
+              console.error("Error fetching tickets separately:", ticketErr);
+            }
           }
 
-          // Set claiming slots from the API response
-          if (
-            eventResponse.data.claimingSlots &&
-            Array.isArray(eventResponse.data.claimingSlots)
-          ) {
-            setClaimingSlots(eventResponse.data.claimingSlots);
+          // Fetch claiming slots if it's a ticketed event
+          if (eventResponse.data.event_type === "ticketed") {
+            try {
+              const claimingSlotsResponse =
+                await eventService.claimingSlots.getByEventId(id);
+              if (
+                claimingSlotsResponse &&
+                Array.isArray(claimingSlotsResponse.data)
+              ) {
+                setClaimingSlots(claimingSlotsResponse.data);
+              }
+            } catch (claimingErr) {
+              console.error("Error fetching claiming slots:", claimingErr);
+            }
+          }
+
+          // Fetch reservations using adminReservationService
+          // Fetch reservations using adminReservationService
+          try {
+            const eventReservations =
+              await adminReservationService.getReservationsByEventId(id);
+
+            if (eventReservations.length > 0) {
+              const formattedReservations = eventReservations.map(
+                (reservation) => ({
+                  id: reservation.reservation_id,
+                  user: reservation.name || "Anonymous",
+                  email: reservation.email || "N/A",
+                  ticket_type:
+                    reservation.seat_type ||
+                    reservation.ticket_tier ||
+                    "General Admission",
+                  quantity: reservation.quantity || 1,
+                  total_price: reservation.amount
+                    ? `₱${parseFloat(reservation.amount).toFixed(2)}`
+                    : "₱0.00",
+                  claiming_date:
+                    reservation.claiming_date || new Date().toISOString(),
+                  status: reservation.claiming_status || "pending",
+                  created_at: new Date(
+                    reservation.created_at || Date.now()
+                  ).toLocaleString(),
+                })
+              );
+
+              setReservations(formattedReservations);
+            } else {
+              setReservations([]);
+            }
+          } catch (error) {
+            console.error("Error fetching reservations:", error);
+            setReservations([]);
           }
         }
       } catch (err) {
@@ -128,7 +213,7 @@ const EventDetailContainer = () => {
       fetchEventDetails();
     }
   }, [id]);
-  // Calculate ticket information
+
   const getTicketDetails = () => {
     if (!tickets || tickets.length === 0) {
       return {
@@ -212,7 +297,13 @@ const EventDetailContainer = () => {
       {
         accessorKey: "claiming_date",
         header: "Claiming Date",
-        cell: (info) => new Date(info.getValue()).toLocaleDateString(),
+        cell: (info) => {
+          try {
+            return new Date(info.getValue()).toLocaleDateString();
+          } catch (err) {
+            return "N/A";
+          }
+        },
       },
       {
         accessorKey: "status",
@@ -309,6 +400,12 @@ const EventDetailContainer = () => {
   const ticketInfo = getTicketDetails();
   const availabilityDetails = getAvailabilityDetails();
 
+  // Debug logs
+  console.log("Event Type:", eventType);
+  console.log("Tickets:", tickets);
+  console.log("Ticket Info:", ticketInfo);
+  console.log("Reservations:", reservations);
+
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
       <Header_Admin />
@@ -367,9 +464,7 @@ const EventDetailContainer = () => {
                           src={event.imagePreview}
                           alt={event.eventName}
                           className="w-full aspect-video object-cover rounded-lg"
-                          onError={(e) =>
-                            handleImageError(e, "Image Load Error")
-                          }
+                          onError={handleLocalImageError}
                         />
                         {eventType === "coming_soon" && (
                           <div className="absolute top-2 left-2 bg-[#FFAB40] text-black px-2 py-1 rounded-md text-xs font-semibold">
@@ -429,7 +524,9 @@ const EventDetailContainer = () => {
                     </div>
 
                     <div className="flex">
-                      <p className="text-white text-sm font-semibold">Time:</p>
+                      <p className="text-white text-sm font-semibold">
+                        Date & Time:
+                      </p>
                       <p className="text-white text-sm font-light ml-2">
                         {event.eventDate
                           ? new Date(event.eventDate).toLocaleDateString(
@@ -494,7 +591,7 @@ const EventDetailContainer = () => {
               eventType === "free" ||
               (eventType === "coming_soon" && ticketInfo.hasTierInfo)) && (
               <div>
-                <h3 className="text-white text-base  font-semibold mb-2">
+                <h3 className="text-white text-base font-semibold mb-2">
                   TICKETS
                 </h3>
                 <div className="bg-[#1E1E1E] rounded-lg p-4 border border-gray-800">
@@ -567,31 +664,42 @@ const EventDetailContainer = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {tickets.map((ticket, index) => (
-                              <tr
-                                key={index}
-                                className="border-t border-[#333333]"
-                              >
-                                <td className="py-2 px-3 text-sm text-white">
-                                  {ticket.seat_type}
-                                </td>
-                                <td className="py-2 px-3 text-sm text-white">
-                                  {ticket.ticket_type}
-                                </td>
-                                <td className="py-2 px-3 text-sm text-white">
-                                  ₱{parseFloat(ticket.price).toFixed(2)}
-                                </td>
-                                <td className="py-2 px-3 text-sm text-white">
-                                  {ticket.total_quantity}
-                                </td>
-                                <td className="py-2 px-3 text-sm text-white">
-                                  {ticket.remaining_quantity}
-                                </td>
-                                <td className="py-2 px-3 text-sm text-white">
-                                  {ticket.max_per_user}
+                            {tickets.length > 0 ? (
+                              tickets.map((ticket, index) => (
+                                <tr
+                                  key={index}
+                                  className="border-t border-[#333333]"
+                                >
+                                  <td className="py-2 px-3 text-sm text-white">
+                                    {ticket.seat_type || "Standard"}
+                                  </td>
+                                  <td className="py-2 px-3 text-sm text-white">
+                                    {ticket.ticket_type || "General"}
+                                  </td>
+                                  <td className="py-2 px-3 text-sm text-white">
+                                    ₱{parseFloat(ticket.price || 0).toFixed(2)}
+                                  </td>
+                                  <td className="py-2 px-3 text-sm text-white">
+                                    {ticket.total_quantity || 0}
+                                  </td>
+                                  <td className="py-2 px-3 text-sm text-white">
+                                    {ticket.remaining_quantity || 0}
+                                  </td>
+                                  <td className="py-2 px-3 text-sm text-white">
+                                    {ticket.max_per_user || 1}
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr className="border-t border-[#333333]">
+                                <td
+                                  colSpan="6"
+                                  className="py-4 text-center text-gray-400"
+                                >
+                                  No ticket information available
                                 </td>
                               </tr>
-                            ))}
+                            )}
                           </tbody>
                         </table>
                       </div>
@@ -681,7 +789,7 @@ const EventDetailContainer = () => {
                                 {slot.max_claimers}
                               </td>
                               <td className="py-2 px-3 text-sm text-white">
-                                {slot.current_claimers}
+                                {slot.current_claimers || 0}
                               </td>
                             </tr>
                           ))}
@@ -967,127 +1075,142 @@ const EventDetailContainer = () => {
 
               {/* Table */}
               <div className="bg-[#1E1E1E] rounded-lg p-4 border border-gray-800 overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-custom_yellow text-custom_black">
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <th
-                            key={header.id}
-                            colSpan={header.colSpan}
-                            className="py-3 px-4 text-left text-sm font-semibold border-b border-gray-700"
-                          >
-                            {header.isPlaceholder ? null : (
-                              <div
-                                {...{
-                                  className: header.column.getCanSort()
-                                    ? "cursor-pointer select-none flex items-center"
-                                    : "",
-                                  onClick:
-                                    header.column.getToggleSortingHandler(),
-                                }}
-                              >
-                                {flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
-                                <span className="ml-1">
-                                  {{
-                                    asc: <FaSortUp className="inline" />,
-                                    desc: <FaSortDown className="inline" />,
-                                  }[header.column.getIsSorted()] ??
-                                    (header.column.getCanSort() ? (
-                                      <FaSort className="inline opacity-30" />
-                                    ) : null)}
-                                </span>
-                              </div>
-                            )}
-                          </th>
-                        ))}
-                      </tr>
-                    ))}
-                  </thead>
-                  <tbody>
-                    {table.getRowModel().rows.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="border-b border-gray-800 hover:bg-[#2A2A2A]"
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id} className="py-3 px-4 text-sm">
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {reservations.length > 0 ? (
+                  <table className="w-full">
+                    <thead className="bg-custom_yellow text-custom_black">
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id}>
+                          {headerGroup.headers.map((header) => (
+                            <th
+                              key={header.id}
+                              colSpan={header.colSpan}
+                              className="py-3 px-4 text-left text-sm font-semibold border-b border-gray-700"
+                            >
+                              {header.isPlaceholder ? null : (
+                                <div
+                                  {...{
+                                    className: header.column.getCanSort()
+                                      ? "cursor-pointer select-none flex items-center"
+                                      : "",
+                                    onClick:
+                                      header.column.getToggleSortingHandler(),
+                                  }}
+                                >
+                                  {flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
+                                  <span className="ml-1">
+                                    {{
+                                      asc: <FaSortUp className="inline" />,
+                                      desc: <FaSortDown className="inline" />,
+                                    }[header.column.getIsSorted()] ??
+                                      (header.column.getCanSort() ? (
+                                        <FaSort className="inline opacity-30" />
+                                      ) : null)}
+                                  </span>
+                                </div>
+                              )}
+                            </th>
+                          ))}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody>
+                      {table.getRowModel().rows.map((row) => (
+                        <tr
+                          key={row.id}
+                          className="border-b border-gray-800 hover:bg-[#2A2A2A]"
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <td key={cell.id} className="py-3 px-4 text-sm">
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="text-center py-8 text-[#B8B8B8]">
+                    <p className="text-lg mb-2">No reservations found</p>
+                    <p className="text-sm">
+                      {eventType === "ticketed"
+                        ? "No one has reserved tickets for this event yet."
+                        : eventType === "free"
+                        ? "Free events don't require reservations."
+                        : "Reservations will be available when this event is published."}
+                    </p>
+                  </div>
+                )}
 
-                {/* Pagination */}
-                <div className="pagination flex items-center justify-between mt-4 text-sm">
-                  <div>
-                    Showing {table.getRowModel().rows.length} of{" "}
-                    {reservations.length} results
+                {/* Pagination - Only show if there are reservations */}
+                {reservations.length > 0 && (
+                  <div className="pagination flex items-center justify-between mt-4 text-sm">
+                    <div>
+                      Showing {table.getRowModel().rows.length} of{" "}
+                      {reservations.length} results
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => table.setPageIndex(0)}
+                        disabled={!table.getCanPreviousPage()}
+                        className={`px-3 py-1 rounded ${
+                          !table.getCanPreviousPage()
+                            ? "bg-gray-700 text-gray-500"
+                            : "bg-[#2C2C2C] text-white hover:bg-[#FFAB40] hover:text-black"
+                        }`}
+                      >
+                        {"<<"}
+                      </button>
+                      <button
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                        className={`px-3 py-1 rounded ${
+                          !table.getCanPreviousPage()
+                            ? "bg-gray-700 text-gray-500"
+                            : "bg-[#2C2C2C] text-white hover:bg-[#FFAB40] hover:text-black"
+                        }`}
+                      >
+                        {"<"}
+                      </button>
+                      <span>
+                        Page{" "}
+                        <strong>
+                          {table.getState().pagination.pageIndex + 1} of{" "}
+                          {table.getPageCount()}
+                        </strong>
+                      </span>
+                      <button
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                        className={`px-3 py-1 rounded ${
+                          !table.getCanNextPage()
+                            ? "bg-gray-700 text-gray-500"
+                            : "bg-[#2C2C2C] text-white hover:bg-[#FFAB40] hover:text-black"
+                        }`}
+                      >
+                        {">"}
+                      </button>
+                      <button
+                        onClick={() =>
+                          table.setPageIndex(table.getPageCount() - 1)
+                        }
+                        disabled={!table.getCanNextPage()}
+                        className={`px-3 py-1 rounded ${
+                          !table.getCanNextPage()
+                            ? "bg-gray-700 text-gray-500"
+                            : "bg-[#2C2C2C] text-white hover:bg-[#FFAB40] hover:text-black"
+                        }`}
+                      >
+                        {">>"}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => table.setPageIndex(0)}
-                      disabled={!table.getCanPreviousPage()}
-                      className={`px-3 py-1 rounded ${
-                        !table.getCanPreviousPage()
-                          ? "bg-gray-700 text-gray-500"
-                          : "bg-[#2C2C2C] text-white hover:bg-[#FFAB40] hover:text-black"
-                      }`}
-                    >
-                      {"<<"}
-                    </button>
-                    <button
-                      onClick={() => table.previousPage()}
-                      disabled={!table.getCanPreviousPage()}
-                      className={`px-3 py-1 rounded ${
-                        !table.getCanPreviousPage()
-                          ? "bg-gray-700 text-gray-500"
-                          : "bg-[#2C2C2C] text-white hover:bg-[#FFAB40] hover:text-black"
-                      }`}
-                    >
-                      {"<"}
-                    </button>
-                    <span>
-                      Page{" "}
-                      <strong>
-                        {table.getState().pagination.pageIndex + 1} of{" "}
-                        {table.getPageCount()}
-                      </strong>
-                    </span>
-                    <button
-                      onClick={() => table.nextPage()}
-                      disabled={!table.getCanNextPage()}
-                      className={`px-3 py-1 rounded ${
-                        !table.getCanNextPage()
-                          ? "bg-gray-700 text-gray-500"
-                          : "bg-[#2C2C2C] text-white hover:bg-[#FFAB40] hover:text-black"
-                      }`}
-                    >
-                      {">"}
-                    </button>
-                    <button
-                      onClick={() =>
-                        table.setPageIndex(table.getPageCount() - 1)
-                      }
-                      disabled={!table.getCanNextPage()}
-                      className={`px-3 py-1 rounded ${
-                        !table.getCanNextPage()
-                          ? "bg-gray-700 text-gray-500"
-                          : "bg-[#2C2C2C] text-white hover:bg-[#FFAB40] hover:text-black"
-                      }`}
-                    >
-                      {">>"}
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

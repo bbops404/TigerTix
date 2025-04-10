@@ -291,12 +291,12 @@ const MyReservations = () => {
         {/* Profile container with avatar */}
         <div className="relative flex flex-col items-center mt-10">
           {/* Avatar circle - positioned relative to this container */}
-          <div className="absolute -top-16 w-32 h-32 md:w-40 md:h-40 lg:w-60 lg:h-60 border-4 border-[#FFAB40] bg-white rounded-full flex items-center justify-center shadow-lg z-10">
+          <div className="absolute -top-16 w-60 h-60 md:w-40 md:h-40 lg:w-60 lg:h-60 border-4 border-[#FFAB40] bg-white rounded-full flex items-center justify-center shadow-lg z-10">
             <VscAccount className="text-[#FFAB40]" size="70%" />
           </div>
 
           {/* Profile card with padding for avatar */}
-          <div className="w-full md:w-4/5 lg:w-2/3 mt-24 md:mt-28 lg:mt-32 bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="w-11/12 mt-32 bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="pt-6 md:pt-8 lg:pt-12 flex flex-col md:flex-row">
               {/* Left sidebar */}
               <div className="w-full md:w-[30%] px-3 py-4">

@@ -21,9 +21,8 @@ const Reservation = () => {
   const [apiError, setApiError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [ticketType, setTicketType] = useState("");
+  const [seatType, setSeatType] = useState("");
   const [ticketTypeId, setTicketTypeId] = useState(""); // To store the selected ticket ID
   const [claimingSlot, setClaimingSlot] = useState("");
   const [claimingSlotId, setClaimingSlotId] = useState(""); // To store the selected claiming slot ID
@@ -230,20 +229,20 @@ const Reservation = () => {
   useEffect(() => {
     if (
       formState &&
-      (ticketType !== formState.ticketType ||
+      (seatType !== formState.seatType ||
         ticketCount !== formState.ticketCount ||
         JSON.stringify(emails) !== JSON.stringify(formState.emails) ||
         claimingSlot !== formState.claimingSlot)
     ) {
       setShowSummary(false);
     }
-  }, [ticketType, ticketCount, emails, claimingSlot, formState]);
+  }, [seatType, ticketCount, emails, claimingSlot, formState]);
 
-  // Update max tickets per user when ticket type changes
+  // Update max tickets per user when seat type changes
   useEffect(() => {
     if (event && event.Tickets && event.Tickets.length > 0) {
       const selectedTicket = event.Tickets.find(
-        (ticket) => ticket.ticket_type === ticketType
+        (ticket) => ticket.seat_type === seatType
       );
       if (selectedTicket) {
         setTicketTypeId(selectedTicket.id);
@@ -255,7 +254,7 @@ const Reservation = () => {
         }
       }
     }
-  }, [ticketType, event]);
+  }, [seatType, event]);
 
   // Update claiming slot ID when time slot changes
   useEffect(() => {
@@ -291,7 +290,7 @@ const Reservation = () => {
 
     const prices = {};
     event.Tickets.forEach((ticket) => {
-      prices[ticket.ticket_type] = parseFloat(ticket.price);
+      prices[ticket.seat_type] = parseFloat(ticket.price);
     });
 
     return prices;
@@ -306,9 +305,9 @@ const Reservation = () => {
       return false;
     }
 
-    // Check if ticket type is selected
-    if (!ticketType || !ticketTypeId) {
-      setValidationError("Please select a ticket type");
+    // Check if seat type is selected
+    if (!seatType || !ticketTypeId) {
+      setValidationError("Please select a seat type");
       return false;
     }
 
@@ -379,7 +378,7 @@ const Reservation = () => {
     if (isValid) {
       // Store current form state to detect changes
       setFormState({
-        ticketType,
+        seatType,
         ticketCount,
         emails: [...emails],
         claimingSlot,
@@ -398,12 +397,9 @@ const Reservation = () => {
 
   const handleConfirmReservation = async () => {
     try {
-      // Set submission state to true to show loading indicators
-      setIsSubmitting(true);
-      setValidationError("Processing your reservation...");
+      setValidationError("");
 
       if (!user || !user.user_id) {
-        setIsSubmitting(false);
         setValidationError(
           "User information not available. Please log in again."
         );
@@ -416,7 +412,6 @@ const Reservation = () => {
         const emailValidation = await validateDatabaseEmails(emailsToValidate);
 
         if (!emailValidation.valid) {
-          setIsSubmitting(false);
           setValidationError(
             emailValidation.message ||
               "Some email addresses were not found in the system."
@@ -426,7 +421,7 @@ const Reservation = () => {
         }
       }
 
-      // Get user IDs from emails
+      // Get user IDs from emails, ensuring we're handling all errors properly
       let additionalUserIds = [];
       if (ticketCount > 1) {
         try {
@@ -439,7 +434,6 @@ const Reservation = () => {
 
             // Check if we got all the user IDs we needed
             if (additionalUserIds.length !== emailsToConvert.length) {
-              setIsSubmitting(false);
               setValidationError(
                 "Some users could not be found. Please check the email addresses."
               );
@@ -451,7 +445,6 @@ const Reservation = () => {
           }
         } catch (error) {
           console.error("Error getting user IDs:", error);
-          setIsSubmitting(false);
           setValidationError(
             "Error retrieving user details. Please try again."
           );
@@ -483,19 +476,14 @@ const Reservation = () => {
 
         // Store reservation data for receipt page
         const receiptData = {
-          ticketType,
+          ticketType: seatType,
           ticketCount,
           emails: emails.slice(0, ticketCount),
           timeSlot: claimingSlot,
           ticketPrices: getTicketPrices(),
-          ticketPrice: getTicketPrices()[ticketType] || 0,
           userEmail: user.email,
           firstName: user.first_name,
           lastName: user.last_name,
-          eventName: event.name,
-          eventDate: event.event_date,
-          eventTime: event.event_time,
-          eventVenue: event.venue,
           event: event,
           reservationId:
             response.data && response.data.length > 0
@@ -505,9 +493,6 @@ const Reservation = () => {
             claimingSlots.find((slot) => slot.id === claimingSlotId)?.venue ||
             "UST IPEA",
         };
-
-        // Store in localStorage as a backup
-        localStorage.setItem("reservationData", JSON.stringify(receiptData));
 
         // Navigate to the receipt page
         navigate("/reservation-receipt", { state: receiptData });
@@ -531,8 +516,32 @@ const Reservation = () => {
         "An unexpected error occurred while creating your reservation."
       );
       setShowConfirmModal(false);
-    } finally {
-      setIsSubmitting(false);
+    }
+  };
+
+  // Helper function to get user IDs from emails
+  const getUserIdsFromEmails = async (emails) => {
+    try {
+      // Filter out any empty or invalid emails
+      const validEmails = emails.filter((email) => email && email.trim());
+
+      if (validEmails.length === 0) {
+        return [];
+      }
+
+      // Call API to get user IDs from emails
+      const response = await getUserIdsByEmail(validEmails);
+
+      if (response.success && response.userIds) {
+        // Filter out any null values (emails that weren't found)
+        return response.userIds.filter((id) => id !== null);
+      } else {
+        console.error("Failed to get user IDs:", response.message);
+        throw new Error(response.message || "Failed to retrieve user IDs");
+      }
+    } catch (error) {
+      console.error("Error getting user IDs:", error);
+      throw error; // Re-throw to be handled by the calling function
     }
   };
 
@@ -582,8 +591,8 @@ const Reservation = () => {
             <ReservationEventCard
               event={event}
               ticketPrices={getTicketPrices()}
-              ticketType={ticketType}
-              setTicketType={setTicketType}
+              ticketType={seatType}
+              setTicketType={setSeatType}
               ticketCount={ticketCount}
               setTicketCount={setTicketCount}
               emails={emails}
@@ -595,7 +604,6 @@ const Reservation = () => {
               userEmail={user?.email || emails[0]}
               validationError={validationError}
               maxTickets={maxPerUser}
-              isSubmitting={isSubmitting}
             />
           </div>
         </div>
@@ -620,7 +628,7 @@ const Reservation = () => {
                       Sign up using your active UST email to access the
                       reservation system.
                     </li>
-                    <li>Select the event and preferred ticket type.</li>
+                    <li>Select the event and preferred seat type.</li>
                     <li>
                       Input the full names and UST emails of all ticket holders
                       for verification.
@@ -726,9 +734,9 @@ const Reservation = () => {
                             <td className="bg-gray-300 border border-white">
                               <span>
                                 ₱
-                                {ticketType && getTicketPrices()[ticketType]
+                                {seatType && getTicketPrices()[seatType]
                                   ? parseFloat(
-                                      getTicketPrices()[ticketType]
+                                      getTicketPrices()[seatType]
                                     ).toFixed(2)
                                   : "0.00"}
                               </span>
@@ -742,10 +750,9 @@ const Reservation = () => {
                             <td className="bg-gray-300 border border-white">
                               <span>
                                 ₱
-                                {ticketType && getTicketPrices()[ticketType]
+                                {seatType && getTicketPrices()[seatType]
                                   ? (
-                                      getTicketPrices()[ticketType] *
-                                      ticketCount
+                                      getTicketPrices()[seatType] * ticketCount
                                     ).toFixed(2)
                                   : "0.00"}
                               </span>
@@ -759,11 +766,10 @@ const Reservation = () => {
                   {/* Confirm Button */}
                   <div className="mt-8 text-center">
                     <button
-                      className="font-Poppins bg-black text-[#F09C32] font-bold text-lg py-3 px-7 w-full lg:min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600 disabled:opacity-50"
+                      className="font-Poppins bg-black text-[#F09C32] font-bold text-lg py-3 px-7 w-full lg:min-w-[300px] rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600"
                       onClick={handleSummaryConfirmation}
-                      disabled={isSubmitting}
                     >
-                      {isSubmitting ? "PROCESSING..." : "CONFIRM"}
+                      CONFIRM
                     </button>
                   </div>
                 </div>
@@ -776,16 +782,15 @@ const Reservation = () => {
       {/* Confirmation Modal - only shown when clicking CONFIRM in summary */}
       <ConfirmationEventModal
         isOpen={showConfirmModal}
-        onClose={() => !isSubmitting && setShowConfirmModal(false)}
+        onClose={() => setShowConfirmModal(false)}
         onConfirm={handleConfirmReservation}
-        ticketType={ticketType}
+        ticketType={seatType}
         ticketCount={ticketCount}
         emails={emails.slice(0, ticketCount)}
         timeSlot={claimingSlot}
         ticketPrices={getTicketPrices()}
         userEmail={user?.email || emails[0]}
         eventName={event?.name}
-        isSubmitting={isSubmitting}
       />
     </div>
   );

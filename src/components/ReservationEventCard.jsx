@@ -17,7 +17,6 @@ const ReservationEventCard = ({
   userEmail,
   validationError,
   maxTickets = 1,
-  isSubmitting = false,
 }) => {
   // Auto-select ticket type if there's only one option
   useEffect(() => {
@@ -78,7 +77,6 @@ const ReservationEventCard = ({
               event.image ||
               "https://via.placeholder.com/450x300?text=Event+Image"
             }')`,
-            backgroundSize: "cover",
           }}
         ></div>
       </div>
@@ -86,7 +84,7 @@ const ReservationEventCard = ({
       {/* Left Column 2 - EVENT DETAILS */}
       <div className="w-full lg:w-1/4 pl-2">
         {event && (
-          <div className="inline-block bg-[#F09C32] rounded-full px-3 py-1">
+          <div className="inline-block bg-custom_yellow rounded-full px-3 py-1">
             <h1 className="text-xl font-bold text-custom_black font-Poppins">
               {event.name}
             </h1>
@@ -141,10 +139,10 @@ const ReservationEventCard = ({
           </div>
         )}
 
-        {/* Only show ticket tier selection if there are multiple tiers */}
+        {/* Only show seat type selection if there are multiple tiers */}
         {!singleTicketTier ? (
           <div className="mt-4">
-            <h2 className="font-semibold">Choose a Ticket Tier</h2>
+            <h2 className="font-semibold">Choose a Seat Type</h2>
             <div className="flex flex-wrap gap-2 mt-2">
               {Object.keys(ticketPrices).map((type) => (
                 <button
@@ -155,7 +153,6 @@ const ReservationEventCard = ({
                       : "bg-black text-white"
                   }`}
                   onClick={() => setTicketType(type)}
-                  disabled={isSubmitting}
                 >
                   {type}
                 </button>
@@ -164,7 +161,7 @@ const ReservationEventCard = ({
           </div>
         ) : (
           <div className="mt-4">
-            <h2 className="font-semibold">Ticket Tier</h2>
+            <h2 className="font-semibold">Seat Type</h2>
             <div className="flex flex-wrap gap-2 mt-2">
               <div className="px-4 py-1 rounded-full font-Poppins text-sm bg-[#F09C32] text-black font-semibold">
                 {Object.keys(ticketPrices)[0]}
@@ -191,7 +188,6 @@ const ReservationEventCard = ({
               }
             }}
             className="w-1/4 p-2 border rounded-xl mt-2 text-black"
-            disabled={isSubmitting}
           />
         </div>
 
@@ -231,7 +227,6 @@ const ReservationEventCard = ({
                     newEmails[index + 1] = e.target.value;
                     setEmails(newEmails);
                   }}
-                  disabled={isSubmitting}
                 />
                 <p className="text-xs text-gray-400 mt-1">
                   User must exist in the system
@@ -249,7 +244,6 @@ const ReservationEventCard = ({
             value={timeSlot}
             onChange={(e) => setTimeSlot(e.target.value)}
             className="w-full p-2 border rounded-xl mt-2 text-black"
-            disabled={isSubmitting}
           >
             <option value="" disabled>
               Select your preferred time
@@ -271,36 +265,9 @@ const ReservationEventCard = ({
         <div className="flex justify-center mt-8">
           <button
             onClick={handleAddReservation}
-            disabled={isSubmitting}
-            className="w-1/2 bg-black text-[#F09C32] text-lg py-2 rounded-xl font-bold cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600 disabled:opacity-50 flex items-center justify-center"
+            className="w-1/2 bg-black text-[#F09C32] text-lg py-2 rounded-xl font-bold cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600"
           >
-            {isSubmitting ? (
-              <>
-                <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                PROCESSING...
-              </>
-            ) : (
-              "ADD"
-            )}
+            ADD
           </button>
         </div>
       </div>
