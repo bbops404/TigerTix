@@ -322,7 +322,7 @@ const Event_Ticketed_EndUser = () => {
                       <p className="font-bold">
                         ₱{parseFloat(ticket.price).toLocaleString()}
                       </p>
-                      <p>{ticket.ticket_type}</p>
+                      <p>{ticket.seat_type}</p>
                       <p className="text-xs text-gray-400">
                         {ticket.remaining_quantity} of {ticket.total_quantity}{" "}
                         remaining

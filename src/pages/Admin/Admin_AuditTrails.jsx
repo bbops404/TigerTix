@@ -19,13 +19,16 @@ const AuditTrails = () => {
       try {
         const token = sessionStorage.getItem("authToken"); // Get the token from session storage
         setLoading(true); // Set loading to true before fetching
-        const response = await axios.get("http://localhost:5002/api/audit-trails", {
-          withCredentials: true, // Ensures cookies are sent (if applicable)
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+        const response = await axios.get(
+          "http://localhost:5002/api/audit-trails",
+          {
+            withCredentials: true, // Ensures cookies are sent (if applicable)
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
         setLogs(response.data.data); // Set logs from the response
         setLoading(false); // Set loading to false after fetching
       } catch (err) {
@@ -43,10 +46,10 @@ const AuditTrails = () => {
     return auditId ? auditId.slice(0, 8).toUpperCase() : "N/A"; // Show the first 8 characters in uppercase
   };
 
-    // Function to format the user ID
-    const formatUserId = (userId) => {
-      return userId ? userId.slice(0, 8).toUpperCase() : "N/A"; // Show the first 8 characters in uppercase
-    };
+  // Function to format the user ID
+  const formatUserId = (userId) => {
+    return userId ? userId.slice(0, 8).toUpperCase() : "N/A"; // Show the first 8 characters in uppercase
+  };
 
   // Function to format the timestamp
   const formatTimestamp = (timestamp) => {
@@ -59,7 +62,7 @@ const AuditTrails = () => {
   };
 
   return (
-    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
+    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
       {/* Header */}
       <Header_Admin />
 
@@ -95,7 +98,12 @@ const AuditTrails = () => {
           </div>
 
           {/* Filter Component */}
-          {showFilter && <Admin_AuditTrailsFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
+          {showFilter && (
+            <Admin_AuditTrailsFilter
+              showFilter={showFilter}
+              setShowFilter={setShowFilter}
+            />
+          )}
 
           {/* Audit Trails Table */}
           <div className="overflow-x-auto rounded-md shadow-md">
@@ -132,16 +140,37 @@ const AuditTrails = () => {
                   </thead>
                   <tbody>
                     {logs.map((log) => (
-                      <tr key={log.audit_id} className="border border-[#D6D3D3] text-center text-white">
-                        <td className="px-4 py-2 border border-[#D6D3D3]">{formatAuditId(log.audit_id)}</td>
-                        <td className="px-4 py-2 border border-[#D6D3D3]">{formatTimestamp(log.timestamp)}</td>
-                        <td className="px-4 py-2 border border-[#D6D3D3]">{formatUserId(log.user_id)}</td>
-                        <td className="px-4 py-2 border border-[#D6D3D3]">{log.username}</td>
-                        <td className="px-4 py-2 border border-[#D6D3D3]">{log.role}</td>
-                        <td className="px-4 py-2 border border-[#D6D3D3]">{log.action}</td>
-                        <td className="px-4 py-2 border border-[#D6D3D3]">{log.affectedEntity }</td>
-                        <td className="px-4 py-2 border border-[#D6D3D3]">{log.message}</td>
-                        <td className="px-4 py-2 border border-[#D6D3D3]">{log.status}</td>
+                      <tr
+                        key={log.audit_id}
+                        className="border border-[#D6D3D3] text-center text-white"
+                      >
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {formatAuditId(log.audit_id)}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {formatTimestamp(log.timestamp)}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {formatUserId(log.user_id)}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {log.username}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {log.role}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {log.action}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {log.affectedEntity}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {log.message}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {log.status}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

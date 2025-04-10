@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header_User";
 import { useLocation } from "react-router-dom";
-import QRCode from "react-qr-code"; // You'll need to install this package
+import QRCode from "react-qr-code";
 
 const Label = ({ label, value }) => {
   return (
-    <div className="w-full grid grid-cols-[20%_70%] items-start text-sm py-1">
+    <div className="w-full grid grid-cols-[30%_70%] items-start text-sm py-1">
       <label className="block text-gray-700 text-left font-bold mb-1">
         {label}
       </label>
@@ -21,97 +21,100 @@ const ReservationReceipt = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Get reservation data from navigation state or localStorage fallback
-  const [reservationData, setReservationData] = useState(null);
-  const [currentDate, setCurrentDate] = useState("");
+  // State for reservation data and current date
+  const [receiptData, setReceiptData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
 
     // Set current date for the receipt
-    const date = new Date();
-    setCurrentDate(
-      date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    );
+
+    // Set loading state
+    setIsLoading(true);
 
     // Get data from location state if available, otherwise try localStorage
     if (location.state) {
-      setReservationData(location.state);
-
-      // Also save to localStorage as backup
-      localStorage.setItem("reservationData", JSON.stringify(location.state));
+      setReceiptData(location.state);
+      setIsLoading(false);
     } else {
       // Try to retrieve from localStorage as fallback
-      const savedData = localStorage.getItem("reservationData");
-      if (savedData) {
-        setReservationData(JSON.parse(savedData));
-      } else {
-        // No data available, redirect back to reservation page
+      try {
+        const savedData = localStorage.getItem("reservationData");
+        if (savedData) {
+          setReceiptData(JSON.parse(savedData));
+        } else {
+          // No data available, redirect back to reservation page
+          navigate("/reservation", { replace: true });
+        }
+      } catch (error) {
+        console.error("Error retrieving reservation data:", error);
         navigate("/reservation", { replace: true });
+      } finally {
+        setIsLoading(false);
       }
     }
   }, [location, navigate]);
 
   // Handle download receipt functionality
   const handleDownload = () => {
-    window.print(); // Simple print for now, could be replaced with proper PDF generation
+    window.print();
   };
 
-  // If data is still loading or not available
-  if (!reservationData) {
+  // Loading state
+  if (isLoading) {
     return (
       <div className="flex flex-col min-h-screen bg-[#202020]">
         <Header showSearch={false} showAuthButtons={false} />
         <div className="flex flex-col justify-center items-center flex-grow text-white">
-          Loading receipt data...
+          <div className="animate-pulse">Loading receipt data...</div>
         </div>
       </div>
     );
   }
 
+  // Handle missing data case
+  if (!receiptData) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#202020]">
+        <Header showSearch={false} showAuthButtons={false} />
+        <div className="flex flex-col justify-center items-center flex-grow text-white">
+          <div className="text-red-500 mb-4">Receipt data not found</div>
+          <button
+            onClick={() => navigate("/home")}
+            className="px-6 py-2 bg-[#F09C32] text-black rounded-lg font-bold"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Destructure data with defaults to prevent errors
   const {
-    ticketType,
-    ticketCount,
-    ticketPrices,
-    emails,
-    timeSlot,
-    userEmail,
-    event,
-    reservationId,
-    claimingVenue,
-    firstName,
-    lastName,
-  } = reservationData;
+    ticketType = "",
+    ticketCount = 1,
+    ticketPrice = 0,
+    emails = [],
+    timeSlot = "N/A",
+    userEmail = "",
+    eventName = "Event",
+    eventDate = "",
+    eventTime = "",
+    eventVenue = "",
+    reservationId = "N/A",
+    claimingVenue = "UST IPEA",
+    firstName = "",
+    lastName = "",
+  } = receiptData;
 
   // Calculate total price
-  const totalPrice =
-    ticketType && ticketPrices ? ticketPrices[ticketType] * ticketCount : 0;
-
-  // Format dates
-  const formatDate = (dateString) => {
-    if (!dateString) return "TBA";
-
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    } catch (e) {
-      return dateString;
-    }
-  };
+  const totalPrice = ticketPrice * ticketCount;
 
   // Format QR code value
-  const qrValue = `UST-TICKET-${reservationId || "ID"}-${
-    event?.id || "EVENT"
-  }-${ticketType || "TYPE"}-${ticketCount || "1"}`;
+  const qrValue = `UST-TICKET-${reservationId}-${eventName}-${ticketType}-${ticketCount}`;
 
   // Get user's name for display
   const displayName = `${firstName || ""} ${lastName || ""}`.trim() || "N/A";
@@ -131,10 +134,7 @@ const ReservationReceipt = () => {
               </div>
               <div className="mt-2">
                 RESERVATION ID:{" "}
-                <span className="text-[#F09C32]">
-                  {reservationId ||
-                    "UST-" + Math.floor(100000 + Math.random() * 900000)}
-                </span>
+                <span className="text-[#F09C32]">{reservationId}</span>
               </div>
               <div className="mt-4 text-xs text-gray-600 font-normal">
                 Please present this QR code when claiming your ticket(s)
@@ -148,19 +148,13 @@ const ReservationReceipt = () => {
                 label="Email:"
                 value={userEmail || emails?.[0] || "email@ust.edu.ph"}
               />
-              <Label label="Date Reserved:" value={currentDate} />
+
+              <Label label="Event:" value={eventName} />
+              <Label label="Event Date:" value={eventDate} />
+              <Label label="Event Time:" value={eventTime || "TBA"} />
+              <Label label="Venue:" value={eventVenue || "TBA"} />
               <Label
-                label="Event:"
-                value={event?.name || "UAAP Season 87 Men's Basketball"}
-              />
-              <Label
-                label="Event Date:"
-                value={formatDate(event?.event_date)}
-              />
-              <Label label="Event Time:" value={event?.event_time || "TBA"} />
-              <Label label="Venue:" value={event?.venue || "TBA"} />
-              <Label
-                label="Ticket Tier:"
+                label="Ticket Type:"
                 value={ticketType || "Not specified"}
               />
               <Label
@@ -184,11 +178,7 @@ const ReservationReceipt = () => {
               />
               <Label
                 label="Price Per Person:"
-                value={`₱${
-                  ticketType && ticketPrices
-                    ? parseFloat(ticketPrices[ticketType]).toFixed(2)
-                    : "0.00"
-                }`}
+                value={`₱${parseFloat(ticketPrice).toFixed(2)}`}
               />
               <Label
                 label="Total Amount:"
@@ -223,10 +213,6 @@ const ReservationReceipt = () => {
             <li>
               Unclaimed tickets may result in account restrictions for future
               events.
-            </li>
-            <li>
-              For questions or concerns, please contact the event organizers at
-              events@ust.edu.ph
             </li>
           </ul>
         </div>

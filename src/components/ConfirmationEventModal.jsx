@@ -12,10 +12,10 @@ const ConfirmationEventModal = ({
   ticketPrices,
   userEmail,
   eventName,
+  isSubmitting = false,
 }) => {
   const [isAgreed, setIsAgreed] = useState(false);
   const [showError, setShowError] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -26,21 +26,16 @@ const ConfirmationEventModal = ({
     }
 
     setShowError(false);
-    setIsSubmitting(true);
 
     try {
-      // Add a timeout to prevent UI freezing
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
       // Call the onConfirm function passed from parent
       await onConfirm();
     } catch (error) {
       console.error("Error during confirmation:", error);
       // The parent component will handle the error display
-    } finally {
-      setIsSubmitting(false);
     }
   };
+
   const calculateTotal = () => {
     if (!ticketType || !ticketPrices) return 0;
     return ticketPrices[ticketType] * ticketCount;
@@ -48,12 +43,12 @@ const ConfirmationEventModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 font-Poppins">
-      <div className="bg-custom_yellow text-custom_black rounded-lg w-11/12 max-w-md md:max-w-lg p-5 relative animate-fadeIn">
+      <div className="bg-[#F09C32] text-custom_black rounded-lg w-11/12 max-w-md md:max-w-lg p-5 relative animate-fadeIn">
         {/* Close button */}
         <button
           onClick={onClose}
           disabled={isSubmitting}
-          className="absolute top-3 right-3 text-gray-400 hover:text-white"
+          className="absolute top-3 right-3 text-gray-700 hover:text-black disabled:opacity-50"
         >
           <IoCloseOutline className="text-2xl" />
         </button>
@@ -73,7 +68,6 @@ const ConfirmationEventModal = ({
         </div>
 
         {/* Reservation details */}
-        {/* Reservation details in confirmation modal */}
         <div className="bg-white p-3 rounded-lg mb-5">
           <h3 className="font-semibold mb-2 text-center underline">
             {eventName || "Event Reservation"}
@@ -107,10 +101,10 @@ const ConfirmationEventModal = ({
               </>
             )}
 
-            <div className="font-medium text-custom_black border-t border-gray-700 pt-2 mt-2">
+            <div className="font-medium text-custom_black border-t border-gray-300 pt-2 mt-2">
               Price Per Person:
             </div>
-            <div className="font-medium text-[#F09C32] border-t border-gray-700 pt-2 mt-2">
+            <div className="font-medium text-[#F09C32] border-t border-gray-300 pt-2 mt-2">
               ₱
               {ticketType && ticketPrices
                 ? parseFloat(ticketPrices[ticketType]).toFixed(2)
