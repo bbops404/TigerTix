@@ -33,23 +33,32 @@ const FAQs = () => {
   const faqs = [
     {
       question: "How do I claim my tickets?",
-      answer:
-        "You can claim your tickets by presenting your reservation confirmation at the event entrance.",
+      answer: "Tickets can be claimed at the IPEA Office located at the Quadricentennial Pavilion (QPAV).",
     },
     {
       question: "How do I reserve as an alumni?",
-      answer:
-        "Alumni can reserve tickets by logging in with their alumni credentials and following the reservation process.",
+      answer: (
+        <>
+          Alumni may reserve tickets by filling out the designated{" "}
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSemF-A6DSbVljP1H9orzG484Ip9ZlBYEIf1mPibLBpt6XhRUA/viewform?usp=sharing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 underline"
+          >
+            Google Form
+          </a>{" "}
+          and presenting a valid alumni card.
+        </>
+      ),
     },
     {
       question: "What to do when my account is restricted?",
-      answer:
-        "If your account is restricted, please contact support for assistance in resolving the issue.",
+      answer: "If your account has been restricted, please reach out to us through the Contact Us section for further assistance.",
     },
     {
       question: "How do I recover my banned account?",
-      answer:
-        "To recover a banned account, submit an appeal through the support page, stating your case for reactivation.",
+      answer: "To recover a banned account, kindly contact us via the Contact Us section to initiate the recovery process.",
     },
   ];
 
