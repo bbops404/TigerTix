@@ -18,9 +18,8 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [user, setUser] = useState(null);
-  const [errorMessage, setErrorMessage] = useState("");
 
-  // New state for error handling
+  // Consolidated error handling
   const [error, setError] = useState({
     type: null,
     message: "",
@@ -84,12 +83,10 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
         // Store token securely in sessionStorage
         sessionStorage.setItem("authToken", data.token);
         sessionStorage.setItem("userRole", data.user.role);
-
         sessionStorage.setItem("username", data.user.username);
         sessionStorage.setItem("userId", data.user.user_id);
 
-
-        // Store COMPLETE user object in localStorage (this is what's missing)
+        // Store COMPLETE user object in localStorage
         localStorage.setItem("user", JSON.stringify(data.user));
 
         // Store user details in state
@@ -100,7 +97,6 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
         });
 
         toggleLoginPopup();
-
 
         // Redirect based on user role
         if (data.user.role === "admin") {
@@ -119,16 +115,10 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
           // Generic login error
           setError({
             type: "login",
-            message: data.message || "Invalid login credentials",
+            message: data.message || "Wrong username or password",
           });
         }
-
       }
-
-      else {
-        setErrorMessage("Wrong username or password");
-      }
-
     } catch (error) {
       console.error("Login error:", error);
       setError({
@@ -166,7 +156,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
             error.type === "login" ||
             error.type === "network" ? (
               <div
-                className=" text-sm w-[300px] bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded relative mb-2"
+                className="text-sm w-[300px] bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded relative mb-2"
                 role="alert"
               >
                 <span className="block sm:inline">{error.message}</span>
@@ -251,11 +241,6 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
               {error.type === "password" && (
                 <p className="text-red-500 text-xs mt-1">{error.message}</p>
               )}
-            </div>
-
-            <div>
-            {/* Error Message */}
-            {errorMessage && (<p className="text-red-500 text-xs mt-0.5">{errorMessage}</p>)}
             </div>
 
             {/* Forgot Password */}
