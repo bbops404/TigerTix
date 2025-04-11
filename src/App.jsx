@@ -45,7 +45,6 @@ import AdminEventReports from "./pages/Admin/Admin_EventReports";
 import PublishEventContainer from "./container/PublishEventContainer";
 import EventsManagementContainer from "./container/EventManagementContainer";
 
-
 // ========================== SUPPORT STAFF PAGES ==========================
 import SupportStaffDashboard from "./pages/SupportStaff/SupportStaff_Dashboard";
 import SupportStaffProfile from "./pages/SupportStaff/SupportStaff_ProfilePage";
@@ -54,7 +53,6 @@ import SupportStaffEventReports from "./pages/SupportStaff/SupportStaff_EventRep
 import SupportStaffUser from "./pages/SupportStaff/SupportStaff_UserPage";
 import SupportStaffEventManagement from "./pages/SupportStaff/SupportStaff_EventsManagement";
 import SupportStaffEventDetailContainer from "./container/SupportStaffEventDetailContainer";
-
 
 // (Add support staff routes here when available)
 import AdminPublishEvent from "./pages/Admin/Admin_PublishEvent";
@@ -73,7 +71,7 @@ const Layout = ({ children }) => {
     "/sign-up",
     "/verify",
     "/forget-password",
-    "/change-password"
+    "/change-password",
   ];
   const shouldShowFooter = !hideFooterRoutes.some((route) =>
     location.pathname.startsWith(route)
@@ -161,20 +159,37 @@ function App() {
               <Route path="/event-report" element={<AdminEventReports />} />
             </Route>
 
-
-            <Route element={<ProtectedRoutes role="support staff" />}>
-              <Route  path="/support-staff-dashboard" element={<SupportStaffDashboard />} />
-              <Route path="/support-staff-events" element={<SupportStaffEventManagement />} />
+            {/* ========================== SUPPORT STAFF PAGES ========================== */}
+            <Route element={<ProtectedRoutes role="support_staff" />}>
+              <Route
+                path="/support-staff-dashboard"
+                element={<SupportStaffDashboard />}
+              />
+              <Route
+                path="/support-staff-events"
+                element={<SupportStaffEventManagement />}
+              />
               <Route
                 path="/support-staff-events/detail/:id"
                 element={<SupportStaffEventDetailContainer />}
               />
-              <Route path="/support-staff-reservations" element={<SupportStaffReservations/>} />
-              <Route path="/support-staff-users" element={<SupportStaffUser />} />
-              <Route path="/support-staff-profile" element={<SupportStaffProfile />} />
-              <Route path="/support-staff-event-report" element={<SupportStaffEventReports />} />
-
-              </Route>
+              <Route
+                path="/support-staff-reservations"
+                element={<SupportStaffReservations />}
+              />
+              <Route
+                path="/support-staff-users"
+                element={<SupportStaffUser />}
+              />
+              <Route
+                path="/support-staff-profile"
+                element={<SupportStaffProfile />}
+              />
+              <Route
+                path="/support-staff-event-report"
+                element={<SupportStaffEventReports />}
+              />
+            </Route>
 
             {/* ========================== FOOTER PAGES ========================== */}
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
