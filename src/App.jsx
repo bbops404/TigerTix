@@ -160,7 +160,7 @@ function App() {
             </Route>
 
             {/* ========================== SUPPORT STAFF PAGES ========================== */}
-            <Route element={<ProtectedRoutes role="support_staff" />}>
+            <Route element={<ProtectedRoutes role="support staff" />}>
               <Route
                 path="/support-staff-dashboard"
                 element={<SupportStaffDashboard />}

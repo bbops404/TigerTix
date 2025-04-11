@@ -200,7 +200,7 @@ exports.login = async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "7h" }
     );
 
     // ✅ Store token in Redis with expiration (1 hour)
@@ -211,7 +211,7 @@ exports.login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // Only send over HTTPS
       sameSite: "Lax",
-      maxAge: 3600000, // 1 hour
+      maxAge: 24 * 60 * 60 * 1000, 
     });
 
     console.log("✅ Cookie set successfully:", req.cookies); // Debug log
