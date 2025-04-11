@@ -22,17 +22,6 @@ import Admin_EventReportGenerateReport from "./Admin_EventReportGenerateReport";
 import Admin_EventReportsFilter from "./Admin_EventReportsFilter";
 import Admin_EventReportGenerateSummary from "./Admin_EventReportGenerateSummaryPopUp";
 
-const eventData = [
-  { id: 1, image: eventPlaceholder, name: "UAAP CDC" },
-  { id: 2, image: eventPlaceholder, name: "UST Homecoming" },
-  { id: 3, image: eventPlaceholder, name: "Tigers Championship" },
-  { id: 4, image: eventPlaceholder, name: "UST Men's Volleyball" },
-  { id: 5, image: eventPlaceholder, name: "Paskuhan 2024" },
-  { id: 6, image: eventPlaceholder, name: "Freshmen Welcome Walk" },
-  { id: 7, image: eventPlaceholder, name: "Thomasian Gala Night" },
-  { id: 8, image: eventPlaceholder, name: "Intramurals 2024" },
-];
-
 const Admin_EventReports = () => {
   const [showGenerateSummaryPopup, setShowGenerateSummaryPopup] =
     useState(false);
@@ -40,7 +29,11 @@ const Admin_EventReports = () => {
   const closeGenerateSummaryPopup = () => setShowGenerateSummaryPopup(false);
 
   const [showGenerateReport, setShowGenerateReport] = useState(false);
-  const openGenerateReport = () => setShowGenerateReport(true);
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const openGenerateReport = (eventId) => {
+    setSelectedEventId(eventId);
+    setShowGenerateReport(true);
+  };
   const closeGenerateReport = () => setShowGenerateReport(false);
 
   const [showFilter, setShowFilter] = useState(false);
@@ -53,35 +46,91 @@ const Admin_EventReports = () => {
   };
 
   const nextSlide = () => {
-    if (currentIndex + visibleEvents < eventData.length) {
+    if (currentIndex + visibleEvents < ticketedEvents.length) {
       setCurrentIndex((prevIndex) => prevIndex + 1);
     }
   };
 
-  // Event Summary Table Logic
-  const [eventSummaryData, setEventSummaryData] = useState([]); // Event data from the backend
-  const [loading, setLoading] = useState(false); // Loading state
-  const [error, setError] = useState(""); // Error state
-  const [globalFilter, setGlobalFilter] = useState(""); // Global search filter
+  // Ticketed Events for Carousel
+  const [ticketedEvents, setTicketedEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState("");
+  const [eventSearchQuery, setEventSearchQuery] = useState("");
 
+  // Event Summary Table Logic
+  const [eventSummaryData, setEventSummaryData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [globalFilter, setGlobalFilter] = useState("");
+
+  // Fetch ticketed events for the carousel
+  useEffect(() => {
+    const fetchTicketedEvents = async () => {
+      try {
+        setEventsLoading(true);
+        // Updated to the correct endpoint
+        const response = await axios.get(
+          "http://localhost:5002/admin/ticketed-events",
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${sessionStorage.getItem("authToken")}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.data && response.data.data) {
+          setTicketedEvents(response.data.data);
+        } else {
+          console.error("Unexpected response structure:", response.data);
+          setEventsError(
+            "Unexpected response structure. Please contact support."
+          );
+        }
+      } catch (err) {
+        console.error(
+          "Error fetching ticketed events:",
+          err.response || err.message || err
+        );
+        setEventsError(
+          "Failed to fetch ticketed events. Please try again later."
+        );
+      } finally {
+        setEventsLoading(false);
+      }
+    };
+
+    fetchTicketedEvents();
+  }, []);
+
+  // Fetch event summary data for the table
   useEffect(() => {
     const fetchEventSummaryData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("http://localhost:5002/api/events-summary", {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${sessionStorage.getItem("authToken")}`,
-            "Content-Type": "application/json",
-          },
-        });
+        const response = await axios.get(
+          "http://localhost:5002/api/events-summary",
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${sessionStorage.getItem("authToken")}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
-        if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        if (
+          response.data &&
+          response.data.success &&
+          Array.isArray(response.data.data)
+        ) {
           const formattedData = response.data.data.map((event) => ({
             ...event,
             event_date: event.event_date || "TBD",
             remaining_tickets:
-              event.remaining_tickets === null || event.remaining_tickets === "FREE"
+              event.remaining_tickets === null ||
+              event.remaining_tickets === "FREE"
                 ? "N/A"
                 : event.remaining_tickets,
           }));
@@ -91,7 +140,10 @@ const Admin_EventReports = () => {
           setError("Unexpected response structure. Please contact support.");
         }
       } catch (err) {
-        console.error("Error fetching event data:", err.response || err.message || err);
+        console.error(
+          "Error fetching event data:",
+          err.response || err.message || err
+        );
         setError("Failed to fetch event data. Please try again later.");
       } finally {
         setLoading(false);
@@ -100,6 +152,21 @@ const Admin_EventReports = () => {
 
     fetchEventSummaryData();
   }, []);
+
+  // Filter ticketed events based on search query
+  const filteredTicketedEvents = useMemo(() => {
+    if (!eventSearchQuery) return ticketedEvents;
+    return ticketedEvents.filter((event) =>
+      event.name.toLowerCase().includes(eventSearchQuery.toLowerCase())
+    );
+  }, [ticketedEvents, eventSearchQuery]);
+
+  // Reset search and filters
+  const resetSearchAndFilters = () => {
+    setEventSearchQuery("");
+    setGlobalFilter("");
+    // Any other filter states you might add in the future
+  };
 
   const columnHelper = createColumnHelper();
   const columns = useMemo(
@@ -134,7 +201,7 @@ const Admin_EventReports = () => {
       }),
       columnHelper.accessor("revenue", {
         header: "Revenue",
-        cell: (info) => `₱${parseFloat(info.getValue()).toLocaleString()}`,
+        cell: (info) => `₱${parseFloat(info.getValue() || 0).toLocaleString()}`,
       }),
       columnHelper.accessor("remaining_tickets", {
         header: "Remaining Tickets",
@@ -155,7 +222,86 @@ const Admin_EventReports = () => {
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 10,
+      },
+    },
   });
+
+  // Render the events carousel section
+  const renderEventsSection = () => {
+    if (eventsLoading) {
+      return <div className="text-center py-10">Loading events...</div>;
+    }
+
+    if (eventsError) {
+      return (
+        <div className="text-center py-10 text-red-500">{eventsError}</div>
+      );
+    }
+
+    if (filteredTicketedEvents.length === 0) {
+      return (
+        <div className="text-center py-10">No ticketed events available</div>
+      );
+    }
+
+    // Calculate visible events - handle case where filtered events changes
+    const maxIndex = Math.max(0, filteredTicketedEvents.length - visibleEvents);
+    const safeCurrentIndex = Math.min(currentIndex, maxIndex);
+
+    const visibleTicketedEvents = filteredTicketedEvents.slice(
+      safeCurrentIndex,
+      safeCurrentIndex + visibleEvents
+    );
+
+    return (
+      <div className="relative flex items-center justify-center mb-10">
+        <button
+          onClick={prevSlide}
+          className="absolute left-0 bg-black/50 p-2 rounded-full"
+          disabled={safeCurrentIndex === 0}
+        >
+          <FaChevronLeft size={20} />
+        </button>
+
+        <div className="w-full flex justify-center overflow-hidden space-x-2">
+          {visibleTicketedEvents.map((event) => (
+            <div
+              key={event.id}
+              className="transition-opacity duration-1000 opacity-100 transform hover:scale-105"
+            >
+              <div className="p-2 rounded-lg">
+                <img
+                  src={eventPlaceholder}
+                  alt={event.name}
+                  className="w-[200px] h-[250px] object-cover rounded-lg mx-auto"
+                />
+                <p className="text-center mt-2 font-semibold">{event.name}</p>
+                <button
+                  className="mt-2 w-full px-4 py-2 text-white font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105"
+                  onClick={() => openGenerateReport(event.id)}
+                >
+                  Generate Report
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={nextSlide}
+          className="absolute right-0 bg-black/50 p-2 rounded-full"
+          disabled={
+            safeCurrentIndex + visibleEvents >= filteredTicketedEvents.length
+          }
+        >
+          <FaChevronRight size={20} />
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
@@ -168,7 +314,7 @@ const Admin_EventReports = () => {
           {/* Events List */}
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
-              <h2 className="text-xl font-bold"> List of Events</h2>
+              <h2 className="text-xl font-bold">List of Ticketed Events</h2>
             </div>
             <div className="flex gap-2">
               <div className="relative flex-grow mr-4">
@@ -176,11 +322,16 @@ const Admin_EventReports = () => {
                 <input
                   type="text"
                   placeholder="Search events..."
+                  value={eventSearchQuery}
+                  onChange={(e) => setEventSearchQuery(e.target.value)}
                   className="w-full pl-12 pr-4 py-2 rounded-full bg-gray-500 text-white outline-none"
                 />
               </div>
 
-              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
+              <button
+                className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                onClick={resetSearchAndFilters}
+              >
                 Reset
               </button>
               <button
@@ -195,7 +346,8 @@ const Admin_EventReports = () => {
           {/* Prompt for Admin */}
           <div className="mb-4">
             <p className="text-sm text-gray-400">
-            Generate a reservation report for each event by clicking the "Generate Report" button.
+              Generate a reservation report for each ticketed event by clicking
+              the "Generate Report" button.
             </p>
           </div>
 
@@ -207,62 +359,19 @@ const Admin_EventReports = () => {
             />
           )}
 
-          {/* Events */}
-          <div className="relative flex items-center justify-center mb-10">
-            <button
-              onClick={prevSlide}
-              className="absolute left-0 bg-black/50 p-2 rounded-full"
-              disabled={currentIndex === 0}
-            >
-              <FaChevronLeft size={20} />
-            </button>
-
-            <div className="w-full flex justify-center overflow-hidden space-x-2">
-              {eventData
-                .slice(currentIndex, currentIndex + visibleEvents)
-                .map((event) => (
-                  <div
-                    key={event.id}
-                    className="transition-opacity duration-1000 opacity-100 transform hover:scale-105"
-                  >
-                    <div className="p-2 rounded-lg">
-                      <img
-                        src={event.image}
-                        alt={event.name}
-                        className="w-[200px] h-[250px] object-cover rounded-lg mx-auto"
-                      />
-                      <p className="text-center mt-2 font-semibold">
-                        {event.name}
-                      </p>
-                      <button
-                        className="mt-2 w-full px-4 py-2 text-white font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105"
-                        onClick={openGenerateReport}
-                      >
-                        Generate Report
-                      </button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-
-            <button
-              onClick={nextSlide}
-              className="absolute right-0 bg-black/50 p-2 rounded-full"
-              disabled={currentIndex + visibleEvents >= eventData.length}
-            >
-              <FaChevronRight size={20} />
-            </button>
-          </div>
+          {/* Render Ticketed Events Carousel */}
+          {renderEventsSection()}
 
           {/* Event Summary Table */}
           <div className="mt-10">
             <h2 className="text-xl font-bold mb-4">Event Summary</h2>
-                 {/* Prompt for Admin */}
-          <div className="mb-4">
-            <p className="text-sm text-gray-400">
-            Generate a summary of events report by clicking the "Generate Summary Report" button.
-            </p>
-          </div>
+            {/* Prompt for Admin */}
+            <div className="mb-4">
+              <p className="text-sm text-gray-400">
+                Generate a summary of events report by clicking the "Generate
+                Summary Report" button.
+              </p>
+            </div>
             <div className="flex items-center mb-4">
               <FaSearch className="mr-2 text-white" />
               <input
@@ -343,7 +452,6 @@ const Admin_EventReports = () => {
               </button>
             </div>
 
-            
             {/* Generate Summary Button */}
             <div className="flex justify-end mt-4">
               <button
@@ -355,12 +463,15 @@ const Admin_EventReports = () => {
             </div>
           </div>
 
+          {/* Modals */}
           {showGenerateReport && (
             <Admin_EventReportGenerateReport
               isOpen={showGenerateReport}
               onClose={closeGenerateReport}
+              selectedEventId={selectedEventId}
             />
           )}
+
           {showGenerateSummaryPopup && (
             <Admin_EventReportGenerateSummary
               isOpen={showGenerateSummaryPopup}

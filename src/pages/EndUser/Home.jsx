@@ -1,10 +1,69 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import _ from "lodash";
 import Header_User from "../../components/Header_User";
 import { IoChevronForward, IoChevronBack } from "react-icons/io5";
 import EventCard from "../../components/EventCardEndUser";
 import axios from "axios";
+import { AlertTriangle } from "lucide-react";
 
+// Violation Warning Modal Component
+const ViolationWarningModal = ({ violationCount, onClose }) => {
+  if (!violationCount || violationCount < 1) return null;
+
+  const handleDontShowAgain = () => {
+    localStorage.setItem("violationWarningDismissed", "true");
+    onClose();
+  };
+
+  const handleRemindMeLater = () => {
+    // simply close; key stays untouched
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm font-Poppins">
+      <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-screen-lg w-full text-center border-2 border-yellow-500/20 transform transition-all hover:scale-[1.02]">
+        <div className="flex justify-center mb-6">
+          <AlertTriangle
+            className="text-custom_yellow"
+            size={64}
+            strokeWidth={1.5}
+          />
+        </div>
+        <h2 className="text-3xl font-semibold text-gray-800 mb-4">
+          Violation Warning
+        </h2>
+        <p className="text-gray-600 mb-6 text-lg">
+          You currently have{" "}
+          <span className="font-bold text-custom_yellow">{violationCount}</span>{" "}
+          violation{violationCount > 1 ? "s" : ""} in the system.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={handleRemindMeLater}
+            className="flex-1 px-6 py-3 bg-neutral-200 text-gray-700 rounded-xl 
+            hover:bg-gray-200 transition duration-300 ease-in-out 
+            border border-gray-200 shadow-sm hover:shadow-md"
+          >
+            Remind Me Later
+          </button>
+          <button
+            onClick={handleDontShowAgain}
+            className="flex-1 px-6 py-3 bg-custom_yellow text-white rounded-xl 
+            hover:bg-custom_yellow transition duration-300 ease-in-out 
+            shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-custom_yellow focus:ring-opacity-50"
+          >
+            Don't Show Again
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 mt-4">
+          Please review your account status to prevent further restrictions.
+        </p>
+      </div>
+    </div>
+  );
+};
 // Empty state illustration component for when no events are available
 const EmptyStateIllustration = ({ message = "No events available" }) => (
   <div className="flex flex-col items-center justify-center py-16 px-4">
@@ -293,6 +352,9 @@ function Home() {
   const [ticketedEvents, setTicketedEvents] = useState([]);
   const [freeEvents, setFreeEvents] = useState([]);
   const [comingSoonEvents, setComingSoonEvents] = useState([]);
+  // New state for user and violation warning
+  const [user, setUser] = useState(null);
+  const [showViolationWarning, setShowViolationWarning] = useState(false);
 
   // State for loading and error handling
   const [loading, setLoading] = useState({
@@ -301,6 +363,34 @@ function Home() {
     comingSoon: true,
   });
   const [error, setError] = useState("");
+  useEffect(() => {
+    try {
+      const data = localStorage.getItem("user");
+      if (!data) return;
+
+      const parsed = JSON.parse(data);
+      console.log("User data from localStorage:", parsed); // Debug log
+
+      setUser(parsed);
+
+      const dismissed = localStorage.getItem("violationWarningDismissed");
+      console.log("Violation dismissed status:", dismissed); // Debug log
+      console.log("User violation count:", parsed.violation_count); // Debug log
+
+      if (parsed && parsed.violation_count >= 1 && dismissed !== "true") {
+        console.log("Should show violation warning"); // Debug log
+        setShowViolationWarning(true);
+      } else {
+        console.log("Not showing violation warning because:", {
+          hasUser: !!parsed,
+          violationCount: parsed?.violation_count,
+          isDismissed: dismissed === "true",
+        });
+      }
+    } catch (error) {
+      console.error("Error processing user data:", error);
+    }
+  }, []);
 
   useEffect(() => {
     // Create a fixed-size wrapper to prevent layout shifts
@@ -359,7 +449,10 @@ function Home() {
 
     fetchEvents();
   }, []);
-
+  // Handler for closing violation warning
+  const handleViolationWarningClose = () => {
+    setShowViolationWarning(false);
+  };
   // Map event data for each section
   const mapEventData = (events, buttonText, linkPrefix) => {
     return events.map((event) => ({
@@ -376,6 +469,12 @@ function Home() {
   return (
     <div className="bg-[#121212] text-white min-h-screen">
       <Header_User />
+      {showViolationWarning && user && (
+        <ViolationWarningModal
+          violationCount={user.violation_count}
+          onClose={handleViolationWarningClose}
+        />
+      )}
 
       {/* Hero Carousel */}
       <Carousel />

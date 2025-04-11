@@ -34,5 +34,11 @@ router.get(
   authenticate,
   userController.getUserReservations
 );
+// NEW: Get user restriction status
+router.get(
+  "/restriction-status",
+  authenticate,
+  userController.getUserRestrictionStatus
+);
 
 module.exports = router;

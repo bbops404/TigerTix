@@ -166,6 +166,20 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "User not found" });
     }
 
+    // ✅ Check if user account is suspended (FIRST THING AFTER USER LOOKUP)
+    if (user.status === "suspended") {
+      console.log("User account is suspended");
+      return res.status(403).json({
+        message:
+          "Your account has been suspended. Please contact support for assistance.",
+        suspended: true,
+        details: {
+          status: user.status,
+          violationCount: user.violation_count,
+        },
+      });
+    }
+
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
     console.log("Password match:", passwordMatch);
 
@@ -173,11 +187,10 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // ✅ Generate JWT token with CONSISTENT key naming
-    // Use user_id as the key in the token to match the database field name
+    // Generate JWT token with CONSISTENT key naming
     const token = jwt.sign(
       {
-        user_id: user.user_id, // Use user_id consistently
+        user_id: user.user_id,
         email: user.email,
         username: user.username,
         role: user.role,
@@ -186,7 +199,7 @@ exports.login = async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    // ✅ Store token in Redis with expiration (1 hour)
+    // Store token in Redis with expiration (1 hour)
     await redis.set(`session:${user.user_id}`, token, "EX", 3600);
     console.log(`✅ Token stored in Redis for session:${user.user_id}`);
 
@@ -207,6 +220,9 @@ exports.login = async (req, res) => {
         email: user.email,
         username: user.username,
         role: user.role,
+        status: user.status,
+        violation_count: user.violation_count,
+        restriction_end_date: user.restriction_end_date,
       },
     });
   } catch (error) {

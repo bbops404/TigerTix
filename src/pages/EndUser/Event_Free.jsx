@@ -18,11 +18,18 @@ const EventFree = () => {
         const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
 
         // Fetch event details by ID
-        const response = await axios.get(`${API_BASE_URL}/api/user/events/free-events/${id}`, {
-          withCredentials: true, // Include cookies for authentication
-        });
+        const response = await axios.get(
+          `${API_BASE_URL}/api/user/events/free-events/${id}`,
+          {
+            withCredentials: true, // Include cookies for authentication
+          }
+        );
         if (response.data.success) {
           setEvent(response.data.data);
+          console.log(
+            "Free Event data fetched successfully:",
+            response.data.data
+          );
         } else {
           setError("Failed to fetch event details.");
         }
@@ -37,12 +44,79 @@ const EventFree = () => {
     fetchEvent();
   }, [id]);
 
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "TBA";
+
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  // Format time to show AM/PM
+  const formatTime = (timeString) => {
+    if (!timeString) return "TBA";
+
+    try {
+      if (
+        timeString.toLowerCase().includes("am") ||
+        timeString.toLowerCase().includes("pm")
+      ) {
+        return timeString;
+      }
+
+      if (timeString.includes(":")) {
+        const [hours, minutes] = timeString
+          .split(":")
+          .map((num) => parseInt(num, 10));
+        const period = hours >= 12 ? "PM" : "AM";
+        const formattedHours = hours % 12 || 12;
+        return `${formattedHours}:${minutes
+          .toString()
+          .padStart(2, "0")} ${period}`;
+      }
+
+      const hours = parseInt(timeString, 10);
+      if (!isNaN(hours)) {
+        const period = hours >= 12 ? "PM" : "AM";
+        const formattedHours = hours % 12 || 12;
+        return `${formattedHours}:00 ${period}`;
+      }
+
+      return timeString;
+    } catch (e) {
+      console.error("Error formatting time:", e);
+      return timeString;
+    }
+  };
+
   if (loading) {
-    return <div className="text-center text-white">Loading event details...</div>;
+    return (
+      <div className="bg-[#121212] text-white min-h-screen">
+        <Header_User />
+        <div className="flex justify-center items-center h-[calc(100vh-100px)]">
+          <div className="text-xl">Loading event details...</div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-center text-red-500">{error}</div>;
+    return (
+      <div className="bg-[#121212] text-white min-h-screen">
+        <Header_User />
+        <div className="flex justify-center items-center h-[calc(100vh-100px)]">
+          <div className="text-xl text-red-500">{error}</div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -51,29 +125,60 @@ const EventFree = () => {
 
       {/* Back Button (Upper Left) */}
       <button
-        onClick={() => navigate(-1)}
+        onClick={() => navigate("/home")}
         className="absolute top-[100px] left-4 text-white font-Poppins font-bold"
       >
         <IoChevronBackOutline className="text-3xl" />
       </button>
 
-      <div className="flex justify-center items-center p-4 mt-16">
-        <div className="text-white p-6 flex max-w-7xl w-full rounded-lg">
+      <div className="flex justify-center items-center p-5 mt-10">
+        <div className="text-white p-6 flex flex-col md:flex-row max-w-7xl w-full rounded-lg">
           {/* Left Image */}
-          <div
-            className="min-w-[300px] max-w-[300px] min-h-[450px] max-h-[450px] rounded-lg ml-[50px] bg-cover bg-center"
-            style={{
-              backgroundImage: `url('${event.image || "https://via.placeholder.com/300"}')`,
-            }}
-          ></div>
+          <div className="min-w-[300px] max-w-[300px] min-h-[450px] max-h-[450px] rounded-lg mx-auto md:ml-[50px] mb-6 md:mb-0 overflow-hidden bg-gray-800">
+            {event.image ? (
+              <img
+                src={
+                  event.image.startsWith("http")
+                    ? event.image
+                    : `http://localhost:5002${
+                        event.image.startsWith("/") ? "" : "/"
+                      }${event.image}`
+                }
+                alt={event.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  console.error("Image failed to load:", e.target.src);
+                  e.target.style.display = "none";
+                  const container = e.target.parentNode;
+                  if (!container.querySelector(".image-fallback")) {
+                    const fallback = document.createElement("div");
+                    fallback.className =
+                      "w-full h-full flex items-center justify-center image-fallback";
+                    fallback.innerHTML = `<span class="text-white text-center p-4 font-Poppins">${
+                      event.name || "Event image unavailable"
+                    }</span>`;
+                    container.appendChild(fallback);
+                  }
+                }}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-white text-center p-4">
+                  {event.name || "No image available"}
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* Right Content */}
-          <div className="w-2/3 pl-6">
-            <div className="bg-[#F09C32] text-black font-Poppins font-bold px-4 py-2 rounded-full inline-block mb-4">
+          <div className="w-full pl-8">
+            <div className="bg-[#F09C32] text-black font-Poppins font-bold px-4 py-2 rounded-lg inline-block mb-4">
               {event.name}
             </div>
 
-            <h2 className="font-bold font-Poppins text-lg mb-2">EVENT DETAILS:</h2>
+            <h2 className="font-bold font-Poppins text-sm mb-2">
+              EVENT DETAILS:
+            </h2>
             <p className="font-Poppins text-justify text-sm text-gray-300 mb-4">
               {event.details}
             </p>
@@ -82,25 +187,39 @@ const EventFree = () => {
               <strong>Location:</strong> {event.venue}
             </p>
             <p className="text-sm mb-2 font-Poppins">
-              <strong>Date:</strong> {event.event_date || "TBA"}
+              <strong>Date:</strong> {formatDate(event.event_date)}
             </p>
             <p className="text-sm mb-2 font-Poppins">
-              <strong>Time:</strong> {event.event_time || "TBA"}
+              <strong>Time:</strong> {formatTime(event.event_time)}
             </p>
+
             <p className="text-sm mb-2 font-Poppins">
               <strong>Event Category:</strong> {event.category || "N/A"}
             </p>
 
+            <hr className="border-t border-gray-400 my-4" />
+
+            {/* Free Event Information */}
+            <div className="bg-[#2a2a2a] p-4 rounded-lg mt-4">
+              <p className="font-Poppins text-center text-sm mb-2">
+                <strong>
+                  This is a free event - no ticket or reservation required!
+                </strong>
+              </p>
+              <p className="font-Poppins text-center text-xs text-gray-400">
+                Simply show up at the venue on the specified date and time. No
+                reservation needed.
+              </p>
+            </div>
+
             {/* Be Notified Button */}
-            <div className="flex justify-center mt-9">
+            <div className="flex justify-end mt-6">
               <button
-                className="font-Poppins bg-black text-[#F09C32] font-bold py-3 px-7 min-w-[300px] 
-                rounded-lg inline-block mb-4 uppercase cursor-pointer transition-all transform 
-                hover:scale-105 hover:bg-black-600 items-center justify-center"
-                onClick={() => alert("You will be notified about this event!")} // Placeholder action
+                className="font-Poppins font-bold py-3 px-7 min-w-[300px] rounded-lg inline-block mb-2 uppercase transition-all transform hover:scale-105 bg-black text-[#F09C32] flex items-center justify-center space-x-2"
+                onClick={() => alert("You will be notified about this event!")}
               >
-                Be notified!
-                <IoNotifications className="text-2xl ml-2 bg-white p-1 rounded-full" />
+                <span>Be notified!</span>
+                <IoNotifications className="text-2xl bg-white p-1 rounded-full" />
               </button>
             </div>
           </div>

@@ -6,7 +6,74 @@ const { Op } = require("sequelize");
 const bcrypt = require("bcryptjs");
 
 const userController = {
-  // Get current authenticated user profile
+  // Get user's restriction status
+  getUserRestrictionStatus: async (req, res) => {
+    try {
+      // Get the authenticated user's ID
+      const userId = req.user.user_id;
+
+      // Find the user in the database
+      const user = await User.findByPk(userId);
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      // Check restriction status
+      let restrictionStatus = "none";
+      let message = "You have no active restrictions.";
+      let daysRemaining = 0;
+
+      if (user.status === "suspended") {
+        restrictionStatus = "suspended";
+        message =
+          "Your account has been suspended due to multiple violations. Please contact support for assistance.";
+      } else if (user.status === "restricted" && user.restriction_end_date) {
+        const now = new Date();
+        const endDate = new Date(user.restriction_end_date);
+
+        if (now < endDate) {
+          restrictionStatus = "restricted";
+
+          // Calculate days remaining
+          const diffTime = Math.abs(endDate - now);
+          daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          message = `Your account is currently restricted from making reservations. This restriction will be lifted in ${daysRemaining} day(s).`;
+        } else {
+          // If restriction has ended but status not updated
+          await user.update({
+            status: "active",
+            restriction_end_date: null,
+          });
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          username: user.username,
+          violation_count: user.violation_count,
+          status: user.status,
+          restriction_status: restrictionStatus,
+          message: message,
+          days_remaining: daysRemaining,
+          restriction_end_date: user.restriction_end_date,
+        },
+      });
+    } catch (error) {
+      console.error("Error getting user restriction status:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+  // Get current authenticated user profile// Get current authenticated user profile
   getCurrentUser: async (req, res) => {
     try {
       // Detailed debug logs
@@ -49,11 +116,47 @@ const userController = {
         });
       }
 
+      // Check if there's a restriction and add relevant info
+      let restrictionInfo = null;
+
+      if (user.status === "restricted" && user.restriction_end_date) {
+        const now = new Date();
+        const endDate = new Date(user.restriction_end_date);
+
+        if (now < endDate) {
+          // Calculate days remaining
+          const diffTime = Math.abs(endDate - now);
+          const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          restrictionInfo = {
+            status: "restricted",
+            end_date: user.restriction_end_date,
+            days_remaining: daysRemaining,
+            message: `Your account is restricted from making reservations for ${daysRemaining} more day(s)`,
+          };
+        } else {
+          // If restriction has ended but status not updated, update it now
+          await user.update({
+            status: "active",
+            restriction_end_date: null,
+          });
+        }
+      } else if (user.status === "suspended") {
+        restrictionInfo = {
+          status: "suspended",
+          message:
+            "Your account has been suspended due to multiple violations. Please contact support.",
+        };
+      }
+
       // Return success with user data
       console.log("Returning user data successfully");
       return res.status(200).json({
         success: true,
-        data: user,
+        data: {
+          ...user.toJSON(),
+          restriction: restrictionInfo,
+        },
       });
     } catch (error) {
       console.error("Error getting current user:", error);

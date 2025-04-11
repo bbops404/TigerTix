@@ -37,6 +37,14 @@ const AdminDashboard = () => {
           }));
         console.log("Processed Ticketed Events:", events); // Debug log
         setTicketedEvents(events); // Update state
+
+        // Automatically select the first event if available
+        if (events.length > 0) {
+          const firstEventId = events[0].id;
+          setSelectedEventId(firstEventId);
+          // Fetch claiming status for the first event
+          fetchEventClaimingStatus(firstEventId);
+        }
       } else {
         console.error(
           "Failed to fetch ticketed events:",
@@ -314,7 +322,7 @@ const AdminDashboard = () => {
                     console.log("Selected Event ID:", eventId); // Debug log
                     setSelectedEventId(eventId);
                   }}
-                  defaultValue=""
+                  value={selectedEventId || ""}
                 >
                   <option value="" disabled>
                     {ticketedEvents.length === 0

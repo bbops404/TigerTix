@@ -381,6 +381,7 @@ const EventDetails = ({ onNext, initialData }) => {
 };
 
 // Modified TicketDetails component with validation
+
 const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
   useEffect(() => {
     console.log("TicketDetails component received initialData:", initialData);
@@ -436,6 +437,7 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
       }
     }
   }, [initialData, eventType]);
+
   const [totalTickets, setTotalTickets] = useState(0);
   const [tierType, setTierType] = useState(
     initialData?.tierType || "freeSeating"
@@ -620,11 +622,13 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
     setTotalTickets(total);
   };
 
+  // FIXED FUNCTIONS FOR TIER NAME EDITING
   const startEditingTierName = (tier) => {
     const updatedTiers = { ...ticketTiers };
     updatedTiers[tier].isEditing = true;
-    setEditingTierName(tier);
     setTicketTiers(updatedTiers);
+    // Initialize the editing name field with the current tier name
+    setEditingTierName(tier);
   };
 
   const saveNewTierName = () => {
@@ -636,16 +640,20 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
 
     if (!oldTierName) return;
 
+    // Create a copy of the tier data
     const updatedTiers = { ...ticketTiers };
-    const oldTierData = updatedTiers[oldTierName];
+    const oldTierData = { ...updatedTiers[oldTierName] };
 
-    // Remove old tier and add new one with same data
+    // Remove the old tier entry
     delete updatedTiers[oldTierName];
+
+    // Add a new entry with the updated name, preserving all other data
     updatedTiers[editingTierName.trim()] = {
       ...oldTierData,
       isEditing: false,
     };
 
+    // Update the state
     setTicketTiers(updatedTiers);
     setEditingTierName("");
   };
@@ -1529,12 +1537,14 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
   );
 };
 // Updated ClaimingDetails component that skips for free and coming soon events
+// Enhanced ClaimingDetails component with validation for total slots
 const ClaimingDetails = ({
   onBack,
   onNext,
   eventType,
   initialData,
   eventDate,
+  ticketDetails,
 }) => {
   useEffect(() => {
     console.log("ClaimingDetails component received initialData:", initialData);
@@ -1582,6 +1592,56 @@ const ClaimingDetails = ({
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState({});
 
+  // Calculate total tickets from ticketDetails
+  const getTotalTickets = () => {
+    if (!ticketDetails) return 0;
+
+    if (eventType === "free") {
+      return ticketDetails.freeSeating?.numberOfTickets || 0;
+    }
+
+    if (ticketDetails.tierType === "freeSeating") {
+      return ticketDetails.freeSeating?.numberOfTickets || 0;
+    } else {
+      let total = 0;
+      if (ticketDetails.ticketTiers) {
+        Object.entries(ticketDetails.ticketTiers)
+          .filter(([_, tierData]) => tierData.checked)
+          .forEach(([_, tierData]) => {
+            total += tierData.number || 0;
+          });
+      }
+      return total;
+    }
+  };
+
+  // Calculate total claiming slots from claiming summaries
+  const getTotalClaimingSlots = () => {
+    return claimingSummaries.reduce((total, summary) => {
+      return total + (summary.maxReservations || 0);
+    }, 0);
+  };
+
+  // Calculate remaining slots that need to be assigned
+  const calculateRemainingSlots = () => {
+    const totalTickets = getTotalTickets();
+    const currentClaimingSlots = getTotalClaimingSlots();
+
+    if (currentClaimingSlots >= totalTickets) {
+      return 0; // Don't suggest adding more if we already have enough or too many
+    }
+
+    return totalTickets - currentClaimingSlots;
+  };
+
+  // Helper function to auto-fill the max reservations field with the remaining slots
+  const autoFillRemainingSlots = () => {
+    const remaining = calculateRemainingSlots();
+    if (remaining > 0) {
+      setMaxReservations(remaining.toString());
+    }
+  };
+
   const validateClaimingDate = (claimingDate) => {
     if (!claimingDate || !eventDate) return true; // Skip validation if either date is missing
 
@@ -1620,6 +1680,7 @@ const ClaimingDetails = ({
 
     return null;
   };
+
   // Sync dates from summaries to datelist
   const syncDateListWithSummaries = (summaries) => {
     const uniqueDates = [...new Set(summaries.map((summary) => summary.date))];
@@ -1633,7 +1694,10 @@ const ClaimingDetails = ({
     if (claimingDate && !dateList.includes(claimingDate)) {
       // Check if claiming date is valid
       if (!validateClaimingDate(claimingDate)) {
-        alert("Claiming date must be before the event date");
+        setErrors({
+          ...errors,
+          claimingDate: "Claiming date must be before the event date",
+        });
         return;
       }
 
@@ -1652,6 +1716,17 @@ const ClaimingDetails = ({
       month: "long",
       day: "numeric",
     });
+  };
+
+  // Check if there's already a claiming schedule with the same date and time
+  const isDuplicateSchedule = (date, startTime, endTime) => {
+    return claimingSummaries.some(
+      (summary) =>
+        summary.date === date &&
+        summary.startTime === startTime &&
+        summary.endTime === endTime &&
+        (!selectedSummary || summary.id !== selectedSummary.id)
+    );
   };
 
   // Handle max reservations change - only allow positive numbers
@@ -1684,7 +1759,8 @@ const ClaimingDetails = ({
     setIsEditing(false);
   };
 
-  // Validate the claiming details
+  // Updated validation function to ensure claiming slots match tickets before proceeding
+  // Updated claiming validation to ensure total slots match tickets before proceeding
   const validate = () => {
     const newErrors = {};
 
@@ -1705,11 +1781,25 @@ const ClaimingDetails = ({
             "All claiming dates must be before the event date";
         }
       }
+
+      // Validate total claiming slots equals total tickets
+      const totalTickets = getTotalTickets();
+      const totalClaimingSlots = getTotalClaimingSlots();
+
+      if (totalClaimingSlots !== totalTickets) {
+        newErrors.totalSlots = `Total claiming slots (${totalClaimingSlots}) must match total tickets (${totalTickets})`;
+      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  // Add a function to automatically calculate the remaining slots needed
+
+  // Helper function to auto-fill the max reservations field with the remaining slots
+
+  // Updated handleSubmit function to ensure validation
   const handleSubmit = () => {
     // For free or promotional events - skip this step
     if (eventType === "free") {
@@ -1732,58 +1822,36 @@ const ClaimingDetails = ({
       return;
     }
 
-    // For regular ticketed events
+    // For regular ticketed events, validate first
     if (!validate()) {
       // Scroll to the top to show errors
       window.scrollTo(0, 0);
       return;
     }
 
-    // Sync dates from summaries to datelist
-    syncDateListWithSummaries(claimingSummaries);
+    // Create copy of summaries and synchronize dates
+    const finalSummaries = [...claimingSummaries];
+    const uniqueDates = [
+      ...new Set(finalSummaries.map((summary) => summary.date)),
+    ];
 
-    // Check if there's unsaved data
-    if (
-      (claimingDate || selectedDate) &&
-      claimingStartTime &&
-      claimingEndTime &&
-      claimingVenue &&
-      !isEditing
-    ) {
-      const confirmAdd = window.confirm(
-        "You have unsaved claiming details. Would you like to add them to the schedule before continuing?"
-      );
+    // Ensure total claiming slots match the total tickets one last time
+    const totalTickets = getTotalTickets();
+    const totalClaimingSlots = getTotalClaimingSlots();
 
-      if (confirmAdd) {
-        const summaryData = {
-          id: Date.now(),
-          date: selectedDate || claimingDate,
-          venue: claimingVenue,
-          startTime: claimingStartTime,
-          endTime: claimingEndTime,
-          maxReservations:
-            maxReservations === "" ? 0 : parseInt(maxReservations),
-        };
-
-        const updatedSummaries = [...claimingSummaries, summaryData];
-        setClaimingSummaries(updatedSummaries);
-        syncDateListWithSummaries(updatedSummaries);
-
-        setTimeout(() => {
-          onNext({
-            eventType: "ticketed",
-            claimingSummaries: updatedSummaries,
-            availableDates: dateList,
-          });
-        }, 100);
-        return;
-      }
+    if (totalClaimingSlots !== totalTickets) {
+      setErrors({
+        totalSlots: `Total claiming slots (${totalClaimingSlots}) must exactly match total tickets (${totalTickets}) before proceeding.`,
+      });
+      window.scrollTo(0, 0);
+      return;
     }
 
+    // If all validations pass, proceed to next step
     onNext({
       eventType: "ticketed",
-      claimingSummaries: claimingSummaries,
-      availableDates: dateList,
+      claimingSummaries: finalSummaries,
+      availableDates: uniqueDates,
     });
   };
 
@@ -1875,9 +1943,7 @@ const ClaimingDetails = ({
           details are clear for a smooth claiming process.
         </p>
       </div>
-
       <hr className="border-t border-gray-600 my-3" />
-
       {Object.keys(errors).length > 0 && (
         <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
           <div className="flex items-center text-red-500 mb-2">
@@ -1891,7 +1957,6 @@ const ClaimingDetails = ({
           </ul>
         </div>
       )}
-
       <div className="flex flex-col space-y-3">
         {eventDate && (
           <div className="mb-4 p-3 bg-[#1E1E1E] border-l-4 border-[#FFAB40] rounded-r">
@@ -1909,6 +1974,35 @@ const ClaimingDetails = ({
             </p>
           </div>
         )}
+
+        {/* Total tickets information */}
+        <div className="mb-4 p-3 bg-[#1E1E1E] border-l-4 border-green-500 rounded-r">
+          <p className="flex items-center text-sm">
+            <InfoIcon className="h-4 w-4 mr-2 text-green-500" />
+            <span className="text-white">
+              Total Tickets:{" "}
+              <span className="text-green-500">{getTotalTickets()}</span>
+            </span>
+          </p>
+          <p className="flex items-center text-sm mt-1">
+            <InfoIcon className="h-4 w-4 mr-2 text-[#FFAB40]" />
+            <span className="text-white">
+              Total Claiming Slots:{" "}
+              <span
+                className={`${
+                  getTotalClaimingSlots() === getTotalTickets()
+                    ? "text-green-500"
+                    : "text-red-500"
+                }`}
+              >
+                {getTotalClaimingSlots()}
+              </span>
+            </span>
+          </p>
+          <p className="text-xs text-[#B8B8B8] ml-6 mt-1">
+            Total claiming slots must match total tickets
+          </p>
+        </div>
 
         {/* When adding claiming date, show notification if needed */}
         {!isEditing && (
@@ -1972,72 +2066,94 @@ const ClaimingDetails = ({
                         <th className="py-1 px-3 text-left text-sm text-black font-semibold">
                           Date
                         </th>
+                        <th className="py-1 px-3 text-left text-sm text-black font-semibold">
+                          Schedules
+                        </th>
                         <th className="py-1 px-2 w-8"></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {dateList.map((date, index) => (
-                        <tr
-                          key={index}
-                          className={`border-t border-[#333333] cursor-pointer ${
-                            selectedDate === date
-                              ? "bg-[#FFAB40]/70"
-                              : "hover:bg-[#2A2A2A]"
-                          }`}
-                          onClick={() => {
-                            setSelectedDate(date);
-                            setClaimingDate(date);
+                      {dateList.map((date, index) => {
+                        // Count schedules for this date
+                        const schedulesForDate = claimingSummaries.filter(
+                          (summary) => summary.date === date
+                        ).length;
 
-                            const relatedSummary = claimingSummaries.find(
-                              (summary) => summary.date === date
-                            );
-
-                            if (relatedSummary) {
-                              setClaimingStartTime(relatedSummary.startTime);
-                              setClaimingEndTime(relatedSummary.endTime);
-                              setClaimingVenue(relatedSummary.venue);
-                              setMaxReservations(
-                                relatedSummary.maxReservations.toString()
-                              );
-                              setSelectedSummary(relatedSummary);
-                              setIsEditing(true);
-                            } else {
+                        return (
+                          <tr
+                            key={index}
+                            className={`border-t border-[#333333] cursor-pointer ${
+                              selectedDate === date
+                                ? "bg-[#FFAB40]/70"
+                                : "hover:bg-[#2A2A2A]"
+                            }`}
+                            onClick={() => {
+                              setSelectedDate(date);
+                              setClaimingDate(date);
                               setClaimingStartTime("");
                               setClaimingEndTime("");
                               setClaimingVenue("");
                               setMaxReservations("");
                               setSelectedSummary(null);
                               setIsEditing(false);
-                            }
-                          }}
-                        >
-                          <td
-                            className={`py-1 px-3 text-sm ${
-                              selectedDate === date
-                                ? "text-black"
-                                : "text-white"
-                            }`}
+                            }}
                           >
-                            {formatDate(date)}
-                          </td>
-                          <td className="py-1 px-2 text-right w-8">
-                            {selectedDate === date && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDateList(
-                                    dateList.filter((d) => d !== date)
-                                  );
-                                  setSelectedDate(null);
-                                }}
-                                className="text-red-500 hover:text-red-700 transition-colors"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                            <td
+                              className={`py-1 px-3 text-sm ${
+                                selectedDate === date
+                                  ? "text-black"
+                                  : "text-white"
+                              }`}
+                            >
+                              {formatDate(date)}
+                            </td>
+                            <td
+                              className={`py-1 px-3 text-sm ${
+                                selectedDate === date
+                                  ? "text-black"
+                                  : "text-white"
+                              }`}
+                            >
+                              {schedulesForDate} schedule
+                              {schedulesForDate !== 1 ? "s" : ""}
+                            </td>
+                            <td className="py-1 px-2 text-right w-8">
+                              {selectedDate === date && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+
+                                    // Check if there are claiming summaries for this date
+                                    const hasClaimingSchedules =
+                                      claimingSummaries.some(
+                                        (summary) => summary.date === date
+                                      );
+
+                                    if (hasClaimingSchedules) {
+                                      // Cannot remove date with existing schedules
+                                      setErrors({
+                                        ...errors,
+                                        dateRemoval:
+                                          "Cannot remove a date with existing claiming schedules",
+                                      });
+                                      window.scrollTo(0, 0);
+                                    } else {
+                                      // Safe to remove
+                                      setDateList(
+                                        dateList.filter((d) => d !== date)
+                                      );
+                                      setSelectedDate(null);
+                                    }
+                                  }}
+                                  className="text-red-500 hover:text-red-700 transition-colors"
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 ) : (
@@ -2081,8 +2197,19 @@ const ClaimingDetails = ({
               />
             </div>
 
+            {/* Max Reservations with Auto-fill button */}
             <div className="flex flex-col">
-              <p className="text-[#FFAB40] text-sm mb-1">Max Reservations:</p>
+              <div className="flex justify-between items-center mb-1">
+                <p className="text-[#FFAB40] text-sm">Max Reservations:</p>
+                {calculateRemainingSlots() > 0 && !isEditing && (
+                  <button
+                    onClick={autoFillRemainingSlots}
+                    className="text-xs text-[#FFAB40] hover:text-[#FFC661] underline"
+                  >
+                    Auto-fill remaining ({calculateRemainingSlots()})
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 placeholder="Enter max number of reservations"
@@ -2091,10 +2218,14 @@ const ClaimingDetails = ({
                 className="w-full bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
               />
               <p className="text-[#B8B8B8] text-xs mt-1">
-                Maximum allowed for this claiming date.
+                Maximum allowed for this claiming schedule.
+                {calculateRemainingSlots() > 0 && (
+                  <span className="ml-1 text-yellow-400">
+                    ({calculateRemainingSlots()} slots still needed)
+                  </span>
+                )}
               </p>
             </div>
-
             {/* Add/Update Button */}
             <div className="flex justify-between mt-1">
               {isEditing && (
@@ -2115,6 +2246,25 @@ const ClaimingDetails = ({
                       claimingStartTime &&
                       claimingEndTime
                     ) {
+                      // Check for duplicate schedules when editing
+                      const isDuplicate = claimingSummaries.some(
+                        (summary) =>
+                          summary.id !== selectedSummary.id &&
+                          summary.date === claimingDate &&
+                          summary.startTime === claimingStartTime &&
+                          summary.endTime === claimingEndTime
+                      );
+
+                      if (isDuplicate) {
+                        setErrors({
+                          ...errors,
+                          duplicateSchedule:
+                            "A claiming schedule with the same date and time already exists",
+                        });
+                        window.scrollTo(0, 0);
+                        return;
+                      }
+
                       const summaryData = {
                         id: selectedSummary.id,
                         date: claimingDate,
@@ -2130,13 +2280,25 @@ const ClaimingDetails = ({
                       const updatedSummaries = claimingSummaries.map((s) =>
                         s.id === selectedSummary.id ? summaryData : s
                       );
+
+                      // Check if total slots match total tickets
+                      const totalTickets = getTotalTickets();
+                      const newTotalClaimingSlots = updatedSummaries.reduce(
+                        (total, summary) =>
+                          total + (summary.maxReservations || 0),
+                        0
+                      );
+
                       setClaimingSummaries(updatedSummaries);
                       syncDateListWithSummaries(updatedSummaries);
                       clearForm();
                     } else {
-                      alert(
-                        "Please provide all required information (date, venue, and time)"
-                      );
+                      setErrors({
+                        ...errors,
+                        incompleteForm:
+                          "Please provide all required information (date, venue, and time)",
+                      });
+                      window.scrollTo(0, 0);
                     }
                   } else {
                     const dateToUse = claimingDate || selectedDate;
@@ -2149,6 +2311,23 @@ const ClaimingDetails = ({
                     ) {
                       if (claimingDate && !dateList.includes(claimingDate)) {
                         setDateList([...dateList, claimingDate]);
+                      }
+
+                      // Check for duplicate schedules
+                      const isDuplicate = isDuplicateSchedule(
+                        dateToUse,
+                        claimingStartTime,
+                        claimingEndTime
+                      );
+
+                      if (isDuplicate) {
+                        setErrors({
+                          ...errors,
+                          duplicateSchedule:
+                            "A claiming schedule with the same date and time already exists",
+                        });
+                        window.scrollTo(0, 0);
+                        return;
                       }
 
                       const summaryData = {
@@ -2167,13 +2346,17 @@ const ClaimingDetails = ({
                         ...claimingSummaries,
                         summaryData,
                       ];
+
                       setClaimingSummaries(updatedSummaries);
                       syncDateListWithSummaries(updatedSummaries);
                       clearForm();
                     } else {
-                      alert(
-                        "Please provide all required information (date, venue, and time)"
-                      );
+                      setErrors({
+                        ...errors,
+                        incompleteForm:
+                          "Please provide all required information (date, venue, and time)",
+                      });
+                      window.scrollTo(0, 0);
                     }
                   }
                 }}
@@ -2197,17 +2380,20 @@ const ClaimingDetails = ({
             </div>
           </div>
         </div>
-
-        {/* Claiming Schedule Summary Table */}
-        <div className="mt-4">
-          <p className="text-[#FFAB40] text-sm mb-1">
+      </div>
+      {/* Enhanced claiming schedule summary section with ticket count validation */}
+      <div className="mt-4">
+        <div className="flex justify-between items-center mb-2">
+          <p className="text-[#FFAB40] text-sm">
             Claiming Schedule Summary:
             <span className="text-[#B8B8B8] text-xs ml-2">
               (Click a row to edit)
             </span>
           </p>
+        </div>
 
-          {claimingSummaries.length > 0 ? (
+        {claimingSummaries.length > 0 ? (
+          <div>
             <table className="w-full bg-[#1E1E1E] rounded overflow-hidden">
               <thead className="bg-[#FFAB40]">
                 <tr>
@@ -2279,6 +2465,26 @@ const ClaimingDetails = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+
+                              // Check if this deletion would cause total slots to not match total tickets
+                              const totalTickets = getTotalTickets();
+                              const newTotalClaimingSlots = claimingSummaries
+                                .filter((s) => s.id !== summary.id)
+                                .reduce(
+                                  (total, s) =>
+                                    total + (s.maxReservations || 0),
+                                  0
+                                );
+
+                              if (newTotalClaimingSlots !== totalTickets) {
+                                setErrors({
+                                  ...errors,
+                                  totalSlotsAfterDeletion: `Deleting this schedule would make total claiming slots (${newTotalClaimingSlots}) not match total tickets (${totalTickets})`,
+                                });
+                                window.scrollTo(0, 0);
+                                return;
+                              }
+
                               const updatedSummaries = claimingSummaries.filter(
                                 (s) => s.id !== summary.id
                               );
@@ -2297,16 +2503,15 @@ const ClaimingDetails = ({
                 ))}
               </tbody>
             </table>
-          ) : (
-            <div className="w-full bg-[#1E1E1E] rounded p-3 h-16 flex items-center justify-center">
-              <p className="text-sm text-gray-400 italic">
-                No claiming schedules added yet.
-              </p>
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="w-full bg-[#1E1E1E] rounded p-3 h-16 flex items-center justify-center">
+            <p className="text-sm text-gray-400 italic">
+              No claiming schedules added yet.
+            </p>
+          </div>
+        )}
       </div>
-
       {/* Hidden button for parent component to trigger submit */}
       <button
         className="hidden claiming-submit-button"
@@ -2322,35 +2527,9 @@ const AvailabilityDetails = ({
   eventType,
   initialData,
   eventDate,
+  eventDetails, // Added eventDetails prop to access the image
 }) => {
-  useEffect(() => {
-    console.log(
-      "AvailabilityDetails component received initialData:",
-      initialData
-    );
-
-    // Only initialize the event type from initialData
-    if (initialData && initialData.eventType) {
-      // Keep eventType if it exists in initialData
-      // This is important for the form to know what fields to display
-      // but we'll leave all date/time fields empty
-    }
-
-    // Explicitly set all date and time fields to empty
-    setDisplayStartDate("");
-    setDisplayEndDate("");
-    setDisplayStartTime("");
-    setDisplayEndTime("");
-
-    if (eventType === "ticketed") {
-      setReservationStartDate("");
-      setReservationEndDate("");
-      setReservationStartTime("");
-      setReservationEndTime("");
-    }
-  }, [initialData, eventType]);
-  // Initialize with existing data if available
-  // Display period state
+  // Initialize state with initialData values if they exist
   const [displayStartDate, setDisplayStartDate] = useState(
     initialData?.displayPeriod?.startDate || ""
   );
@@ -2382,6 +2561,14 @@ const AvailabilityDetails = ({
   const [errors, setErrors] = useState({});
   // Warnings for date issues that don't block submission but should be noted
   const [warnings, setWarnings] = useState({});
+
+  // Log initialData but don't reset form values
+  useEffect(() => {
+    console.log(
+      "AvailabilityDetails component received initialData:",
+      initialData
+    );
+  }, []);
 
   // Validate the availability details
   const validate = () => {
@@ -2533,6 +2720,7 @@ const AvailabilityDetails = ({
     // Pass the data to the parent component
     onNext(availabilityData);
   };
+
   // For free events, show a simplified form with only display period
   if (eventType === "free") {
     return (
@@ -2584,14 +2772,27 @@ const AvailabilityDetails = ({
           <div className="w-1/3">
             <p className="text-[#FFAB40] text-sm mb-2">Event Preview</p>
             <div className="w-full aspect-square bg-[#1E1E1E] border-2 border-dashed border-[#FFAB40] rounded-lg flex items-center justify-center overflow-hidden">
-              <div className="text-center p-4">
-                <span className="bg-[#FFAB40] text-black px-2 py-1 rounded text-xs font-medium mb-2 inline-block">
-                  FREE
-                </span>
-                <div className="text-[#B8B8B8] text-sm mt-2">
-                  Event Image Preview
+              {eventDetails?.imagePreview ? (
+                <div className="relative w-full h-full">
+                  <img
+                    src={eventDetails.imagePreview}
+                    alt="Event"
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute top-2 left-2 bg-[#FFAB40] text-black px-2 py-1 rounded text-xs font-medium">
+                    FREE
+                  </span>
                 </div>
-              </div>
+              ) : (
+                <div className="text-center p-4">
+                  <span className="bg-[#FFAB40] text-black px-2 py-1 rounded text-xs font-medium mb-2 inline-block">
+                    FREE
+                  </span>
+                  <div className="text-[#B8B8B8] text-sm mt-2">
+                    Event Image Preview
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Display event date reference */}
@@ -2760,14 +2961,27 @@ const AvailabilityDetails = ({
           <div className="w-1/3">
             <p className="text-[#FFAB40] text-sm mb-2">Event Preview</p>
             <div className="w-full aspect-square bg-[#1E1E1E] border-2 border-dashed border-[#FFAB40] rounded-lg flex items-center justify-center overflow-hidden">
-              <div className="text-center p-4">
-                <span className="bg-[#FFAB40] text-black px-2 py-1 rounded text-xs font-medium mb-2 inline-block">
-                  COMING SOON
-                </span>
-                <div className="text-[#B8B8B8] text-sm mt-2">
-                  Event Image Preview
+              {eventDetails?.imagePreview ? (
+                <div className="relative w-full h-full">
+                  <img
+                    src={eventDetails.imagePreview}
+                    alt="Event"
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute top-2 left-2 bg-[#FFAB40] text-black px-2 py-1 rounded text-xs font-medium">
+                    COMING SOON
+                  </span>
                 </div>
-              </div>
+              ) : (
+                <div className="text-center p-4">
+                  <span className="bg-[#FFAB40] text-black px-2 py-1 rounded text-xs font-medium mb-2 inline-block">
+                    COMING SOON
+                  </span>
+                  <div className="text-[#B8B8B8] text-sm mt-2">
+                    Event Image Preview
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -2924,7 +3138,15 @@ const AvailabilityDetails = ({
         <div className="w-1/3">
           <p className="text-[#FFAB40] text-sm mb-2">Event Preview</p>
           <div className="w-full aspect-square bg-[#1E1E1E] border-2 border-dashed border-[#FFAB40] rounded-lg flex items-center justify-center overflow-hidden">
-            <div className="text-[#B8B8B8] text-sm">Event Image Preview</div>
+            {eventDetails?.imagePreview ? (
+              <img
+                src={eventDetails.imagePreview}
+                alt="Event"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="text-[#B8B8B8] text-sm">Event Image Preview</div>
+            )}
           </div>
 
           {/* Display event date reference */}
@@ -4075,6 +4297,7 @@ const Admin_PublishEvent = ({
                 onNext={handleClaimingDetailsNext}
                 initialData={claimingDetails}
                 eventDate={eventDetails?.eventDate}
+                ticketDetails={ticketDetails} // Pass ticketDetails for validation
               />
             )}
 
@@ -4085,6 +4308,7 @@ const Admin_PublishEvent = ({
                 onNext={handleAvailabilityDetailsNext}
                 initialData={availabilityDetails}
                 eventDate={eventDetails?.eventDate}
+                eventDetails={eventDetails} // Pass eventDetails to display image
               />
             )}
 

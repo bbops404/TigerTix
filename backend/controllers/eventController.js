@@ -206,54 +206,53 @@ const eventController = {
       );
 
       // Log user data for debugging
-    console.log("User data for audit log:", req.user);
+      console.log("User data for audit log:", req.user);
 
+      // Inside createEvent (after transaction.commit())
+      await createAuditTrail({
+        user_id: req.user.user_id, // Assuming `req.user` contains authenticated user details
+        username: req.user.username,
+        role: req.user.role,
+        action: "Create Event",
+        affectedEntity: "Event",
+        message: `Created event "${newEvent.name}" with ID ${newEvent.id}.`,
+        status: "Successful",
+      });
 
-// Inside createEvent (after transaction.commit())
-await createAuditTrail({
-  user_id: req.user.user_id, // Assuming `req.user` contains authenticated user details
-  username: req.user.username,
-  role: req.user.role,
-  action: "Create Event",
-  affectedEntity: "Event",
-  message: `Created event "${newEvent.name}" with ID ${newEvent.id}.`,
-  status: "Successful",
-});
+      await transaction.commit();
 
-await transaction.commit();
+      return res.status(201).json({
+        success: true,
+        message: "Event created successfully",
+        data: {
+          event_id: newEvent.id,
+          event: newEvent,
+        },
+      });
+    } catch (error) {
+      // Rollback the transaction in case of an error
+      if (transaction) await transaction.rollback();
 
-    return res.status(201).json({
-      success: true,
-      message: "Event created successfully",
-      data: {
-        event_id: newEvent.id,
-        event: newEvent,
-      },
-    });
-  } catch (error) {
-    // Rollback the transaction in case of an error
-    if (transaction) await transaction.rollback();
+      console.error("Error creating event:", error);
 
-    console.error("Error creating event:", error);
+      // Add audit log for failure
+      await createAuditTrail({
+        user_id: req.user?.user_id || "Unknown",
+        username: req.user?.username || "Unknown",
+        role: req.user?.role || "Unknown",
+        action: "Create Event",
+        affectedEntity: "Event",
+        message: `Failed to create event. Error: ${error.message}`,
+        status: "Failed",
+      });
 
-    // Add audit log for failure
-    await createAuditTrail({
-      user_id: req.user?.user_id || "Unknown",
-      username: req.user?.username || "Unknown",
-      role: req.user?.role || "Unknown",
-      action: "Create Event",
-      affectedEntity: "Event",
-      message: `Failed to create event. Error: ${error.message}`,
-      status: "Failed",
-    });
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error.message,
-    });
-  }
-},
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
 
   // Create a draft event
   createDraftEvent: async (req, res) => {
@@ -413,15 +412,15 @@ await transaction.commit();
         });
       }
 
-await createAuditTrail({
-  user_id: req.user.user_id,
-  username: req.user.username,
-  role: req.user.role,
-  action: "Update Event",
-  affectedEntity: "Event",
-  message: `Updated event "${event.name}" with ID ${event.id}.`,
-  status: "Successful",
-});
+      await createAuditTrail({
+        user_id: req.user.user_id,
+        username: req.user.username,
+        role: req.user.role,
+        action: "Update Event",
+        affectedEntity: "Event",
+        message: `Updated event "${event.name}" with ID ${event.id}.`,
+        status: "Successful",
+      });
       return res.status(200).json({
         success: true,
         message: "Event updated successfully",
@@ -479,24 +478,22 @@ await createAuditTrail({
           }
         );
         // Add audit log for each published event
-  for (const event of eventsToUpdateVisibility) {
-    await createAuditTrail({
-      user_id: "system", // Use "system" for automated updates
-      username: "system",
-      role: "system",
-      action: "Publish Event",
-      affectedEntity: "Event",
-      message: `Automatically published event "${event.name}" with ID ${event.id}.`,
-      status: "Successful",
-    });
-  }
-
+        for (const event of eventsToUpdateVisibility) {
+          await createAuditTrail({
+            user_id: "system", // Use "system" for automated updates
+            username: "system",
+            role: "system",
+            action: "Publish Event",
+            affectedEntity: "Event",
+            message: `Automatically published event "${event.name}" with ID ${event.id}.`,
+            status: "Successful",
+          });
+        }
 
         console.log(
           `Updated visibility to 'unpublished' for ${eventsToUpdateVisibility.length} events`
         );
       }
-  
 
       // Find scheduled events to open
       const ticketedEventsToOpen = await Event.findAll({
@@ -542,18 +539,17 @@ await createAuditTrail({
         );
 
         // Add audit log for each event
-  for (const event of ticketedEventsToOpen) {
-    await createAuditTrail({
-      user_id: "system",
-      username: "system",
-      role: "system",
-      action: "Open Reservation",
-      affectedEntity: "Event",
-      message: `Automatically opened reservation for event "${event.name}" with ID ${event.id}.`,
-      status: "Successful",
-    });
-  }
-
+        for (const event of ticketedEventsToOpen) {
+          await createAuditTrail({
+            user_id: "system",
+            username: "system",
+            role: "system",
+            action: "Open Reservation",
+            affectedEntity: "Event",
+            message: `Automatically opened reservation for event "${event.name}" with ID ${event.id}.`,
+            status: "Successful",
+          });
+        }
 
         console.log(
           `Updated status to 'open' for ${ticketedEventsToOpen.length} events`
@@ -592,18 +588,17 @@ await createAuditTrail({
         );
 
         // Add audit log for each event
-  for (const event of ticketedEventsToClose) {
-    await createAuditTrail({
-      user_id: "system",
-      username: "system",
-      role: "system",
-      action: "Close Reservation",
-      affectedEntity: "Event",
-      message: `Automatically closed reservation for event "${event.name}" with ID ${event.id}.`,
-      status: "Successful",
-    });
-  }
-
+        for (const event of ticketedEventsToClose) {
+          await createAuditTrail({
+            user_id: "system",
+            username: "system",
+            role: "system",
+            action: "Close Reservation",
+            affectedEntity: "Event",
+            message: `Automatically closed reservation for event "${event.name}" with ID ${event.id}.`,
+            status: "Successful",
+          });
+        }
 
         console.log(
           `Updated status to 'closed' for ${ticketedEventsToClose.length} events`
@@ -707,18 +702,18 @@ await createAuditTrail({
         visibility: updatedVisibility,
       });
 
-    // Add audit log if the event is published
-if (updatedVisibility === "published") {
-  await createAuditTrail({
-    user_id: req.user.user_id,
-    username: req.user.username,
-    role: req.user.role,
-    action: "Publish Event",
-    affectedEntity: "Event",
-    message: `Published event "${event.name}" with ID ${event.id}.`,
-    status: "Successful",
-  });
-}
+      // Add audit log if the event is published
+      if (updatedVisibility === "published") {
+        await createAuditTrail({
+          user_id: req.user.user_id,
+          username: req.user.username,
+          role: req.user.role,
+          action: "Publish Event",
+          affectedEntity: "Event",
+          message: `Published event "${event.name}" with ID ${event.id}.`,
+          status: "Successful",
+        });
+      }
 
       return res.status(200).json({
         success: true,
@@ -761,15 +756,15 @@ if (updatedVisibility === "published") {
         status: "cancelled",
       });
 
-await createAuditTrail({
-  user_id: req.user.user_id,
-  username: req.user.username,
-  role: req.user.role,
-  action: "Cancel Event",
-  affectedEntity: "Event",
-  message: `Cancelled event "${event.name}" with ID ${event.id}.`,
-  status: "Successful",
-});
+      await createAuditTrail({
+        user_id: req.user.user_id,
+        username: req.user.username,
+        role: req.user.role,
+        action: "Cancel Event",
+        affectedEntity: "Event",
+        message: `Cancelled event "${event.name}" with ID ${event.id}.`,
+        status: "Successful",
+      });
 
       return res.status(200).json({
         success: true,
@@ -813,15 +808,15 @@ await createAuditTrail({
       });
 
       // Inside archiveEvent (after event.update())
-await createAuditTrail({
-  user_id: req.user.user_id,
-  username: req.user.username,
-  role: req.user.role,
-  action: "Archive Event",
-  affectedEntity: "Event",
-  message: `Archived event "${event.name}" with ID ${event.id}.`,
-  status: "Successful",
-});
+      await createAuditTrail({
+        user_id: req.user.user_id,
+        username: req.user.username,
+        role: req.user.role,
+        action: "Archive Event",
+        affectedEntity: "Event",
+        message: `Archived event "${event.name}" with ID ${event.id}.`,
+        status: "Successful",
+      });
 
       return res.status(200).json({
         success: true,
@@ -924,15 +919,15 @@ await createAuditTrail({
       await event.destroy({ force: true });
 
       // Inside permanentlyDeleteEvent (after event.destroy())
-await createAuditTrail({
-  user_id: req.user.user_id,
-  username: req.user.username,
-  role: req.user.role,
-  action: "Delete Event",
-  affectedEntity: "Event",
-  message: `Permanently deleted event "${event.name}" with ID ${event.id}.`,
-  status: "Successful",
-});
+      await createAuditTrail({
+        user_id: req.user.user_id,
+        username: req.user.username,
+        role: req.user.role,
+        action: "Delete Event",
+        affectedEntity: "Event",
+        message: `Permanently deleted event "${event.name}" with ID ${event.id}.`,
+        status: "Successful",
+      });
       return res.status(200).json({
         success: true,
         message: "Event permanently deleted",
@@ -950,8 +945,21 @@ await createAuditTrail({
   // Upload event image
   uploadEventImage: (req, res) => {
     upload(req, res, function (err) {
-      if (err) {
+      if (err instanceof multer.MulterError) {
+        // A Multer error occurred when uploading.
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({
+            success: false,
+            message: "File too large. Maximum file size is 5MB.",
+          });
+        }
         return res.status(400).json({
+          success: false,
+          message: err.message,
+        });
+      } else if (err) {
+        // An unknown error occurred when uploading.
+        return res.status(500).json({
           success: false,
           message: err.message,
         });
@@ -969,7 +977,7 @@ await createAuditTrail({
       return res.status(200).json({
         success: true,
         message: "Image uploaded successfully",
-        imageUrl: imageUrl, // Notice the leading slas
+        imageUrl: imageUrl,
       });
     });
   },
@@ -1374,7 +1382,7 @@ await createAuditTrail({
   getTicketedEventsByIdForUser: async (req, res) => {
     try {
       const { id } = req.params;
-  
+
       const event = await Event.findByPk(id, {
         include: [
           {
@@ -1383,14 +1391,14 @@ await createAuditTrail({
           },
         ],
       });
-  
+
       if (!event) {
         return res.status(404).json({
           success: false,
           message: "Event not found",
         });
       }
-  
+
       return res.status(200).json({
         success: true,
         data: event,
@@ -1408,7 +1416,7 @@ await createAuditTrail({
   getComingSoonEventsByIdForUser: async (req, res) => {
     try {
       const { id } = req.params;
-  
+
       const event = await Event.findByPk(id, {
         include: [
           {
@@ -1417,14 +1425,14 @@ await createAuditTrail({
           },
         ],
       });
-  
+
       if (!event) {
         return res.status(404).json({
           success: false,
           message: "Event not found",
         });
       }
-  
+
       return res.status(200).json({
         success: true,
         data: event,
@@ -1442,7 +1450,7 @@ await createAuditTrail({
   getFreeEventsByIdForUser: async (req, res) => {
     try {
       const { id } = req.params;
-  
+
       const event = await Event.findByPk(id, {
         include: [
           {
@@ -1451,14 +1459,14 @@ await createAuditTrail({
           },
         ],
       });
-  
+
       if (!event) {
         return res.status(404).json({
           success: false,
           message: "Event not found",
         });
       }
-  
+
       return res.status(200).json({
         success: true,
         data: event,
@@ -1533,7 +1541,13 @@ await createAuditTrail({
           "category", // Event Category
           "event_type", // Event Type
           "status", // Event Availability
-          [db.sequelize.fn("COUNT", db.sequelize.col("Reservations.reservation_id")), "total_reservations"],
+          [
+            db.sequelize.fn(
+              "COUNT",
+              db.sequelize.col("Reservations.reservation_id")
+            ),
+            "total_reservations",
+          ],
           [
             db.sequelize.literal(`
               CASE
@@ -1543,14 +1557,15 @@ await createAuditTrail({
             `),
             "revenue",
           ],
-          [db.sequelize.literal(`
+          [
+            db.sequelize.literal(`
             CASE
               WHEN "Event"."event_type" = 'free' THEN 'FREE'
               ELSE CAST("Tickets"."remaining_quantity" AS TEXT)
             END
           `),
-          "remaining_tickets",
-        ],
+            "remaining_tickets",
+          ],
         ],
         include: [
           {
@@ -1581,7 +1596,6 @@ await createAuditTrail({
       });
     }
   },
-
 };
 
 module.exports = eventController;

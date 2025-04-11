@@ -350,6 +350,59 @@ const PublishEventContainer = () => {
     setInitialData(completeData);
     console.log("Initial data set to:", completeData);
   };
+  const compressImage = async (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+
+          // Set maximum dimensions
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          // Scale down if larger than max dimensions
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          // Draw the image with new dimensions
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert to blob with reduced quality
+          canvas.toBlob(
+            (blob) => {
+              const compressedFile = new File([blob], file.name, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            },
+            "image/jpeg",
+            0.7
+          ); // 0.7 is the quality (70%)
+        };
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
   const handlePublishEvent = async (eventData) => {
     try {
@@ -365,26 +418,84 @@ const PublishEventContainer = () => {
         `${isEditing ? "UPDATING" : "CREATING"} event. Event ID: ${eventId}`
       );
 
-      // Process image if it exists (only if present)
+      // Handle image upload first and capture the URL
+      let imageUrl = null;
+
       if (eventData.eventDetails.eventImage) {
-        console.log(
-          "Uploading event image:",
-          eventData.eventDetails.eventImage
-        );
-        const imageResponse = await eventService.uploadEventImage(
-          eventData.eventDetails.eventImage
-        );
-        if (imageResponse && imageResponse.imageUrl) {
-          eventData.eventDetails.imageUrl = imageResponse.imageUrl;
+        console.log("Preparing to upload image...");
+        if (eventData.eventDetails.eventImage.size > 5 * 1024 * 1024) {
+          console.log("Image too large, compressing...");
+          eventData.eventDetails.eventImage = await compressImage(
+            eventData.eventDetails.eventImage
+          );
+        }
+
+        // Check if we have a valid File object
+        if (eventData.eventDetails.eventImage instanceof File) {
+          try {
+            console.log(
+              "Valid File object detected, uploading:",
+              eventData.eventDetails.eventImage.name
+            );
+
+            // The uploadEventImage function expects a raw File object, not FormData
+            const imageResponse = await eventService.uploadEventImage(
+              eventData.eventDetails.eventImage
+            );
+
+            // Log the complete response
+            console.log("Image upload response:", imageResponse);
+
+            if (imageResponse && imageResponse.imageUrl) {
+              console.log(
+                "Image uploaded successfully, got URL:",
+                imageResponse.imageUrl
+              );
+              // Set the imageUrl directly from the response - don't modify it
+              imageUrl = imageResponse.imageUrl;
+            } else {
+              console.warn(
+                "Image upload response missing imageUrl:",
+                imageResponse
+              );
+            }
+          } catch (imageError) {
+            console.error("Image upload failed:", imageError);
+            if (imageError.response) {
+              console.error("Server response:", imageError.response.data);
+              console.error("Status code:", imageError.response.status);
+            }
+            // Continue without image
+            toast.warning("Could not upload image. Proceeding without it.");
+          }
+        } else {
+          console.warn(
+            "Image is not a valid File object:",
+            typeof eventData.eventDetails.eventImage
+          );
         }
       } else if (
         eventData.eventDetails.imagePreview &&
         !eventData.eventDetails.imageUrl
       ) {
-        // For coming soon conversion, use the existing image
-        eventData.eventDetails.imageUrl = eventData.eventDetails.imagePreview;
-      }
+        // For coming soon conversion or editing, use the existing image
+        console.log(
+          "Using existing image URL from preview:",
+          eventData.eventDetails.imagePreview
+        );
 
+        // Extract path portion if it's a full URL
+        imageUrl = eventData.eventDetails.imagePreview;
+
+        // If it's an absolute URL with our domain, extract just the path
+        if (imageUrl.includes("/uploads/")) {
+          const pathMatch = imageUrl.match(/\/uploads\/[^?#]+/);
+          if (pathMatch) {
+            imageUrl = pathMatch[0];
+            console.log("Extracted path from URL:", imageUrl);
+          }
+        }
+      }
       // Check if this is a coming soon conversion
       const isComingSoonConversion =
         eventData.eventDetails.comingSoonConversion;
@@ -431,8 +542,13 @@ const PublishEventContainer = () => {
       let eventStatus, eventVisibility;
 
       if (isDisplayInFuture) {
-        // Future display date - should be unpublished for all event types
-        eventStatus = "scheduled";
+        // Future display date - should be unpubl
+        // ifished for all event types
+        if (eventData.eventDetails.eventType == "free") {
+          eventStatus = "open";
+        } else {
+          eventStatus = "scheduled";
+        }
         eventVisibility = "unpublished";
       } else {
         // Current or past display date
@@ -454,6 +570,7 @@ const PublishEventContainer = () => {
             eventVisibility = "unpublished";
         }
       }
+
       // Transform data to match backend expectations
       const eventPayload = {
         name: eventData.eventDetails.eventName,
@@ -467,10 +584,8 @@ const PublishEventContainer = () => {
         venue: eventData.eventDetails.venue,
         category: eventData.eventDetails.eventCategory,
         event_type: eventData.eventDetails.eventType,
-        // Only include image if imageUrl exists
-        ...(eventData.eventDetails.imageUrl
-          ? { image: eventData.eventDetails.imageUrl }
-          : {}),
+        // Add the image URL to the payload if we have one
+        ...(imageUrl ? { image: imageUrl } : {}),
         status: eventStatus,
         visibility: eventVisibility,
         display_start_date:
@@ -504,23 +619,48 @@ const PublishEventContainer = () => {
       let response;
       let finalEventId; // Store the event ID for later use
 
-      // MOST IMPORTANT FIX: Choose the correct method based on whether we're editing or creating
+      // Choose the correct method based on whether we're editing or creating
       if (isEditing || isComingSoonConversion) {
         // Either normal edit or coming soon conversion - update the event
         const updateId = isComingSoonConversion ? originalEventId : eventId;
         console.log(`Updating existing event with ID: ${updateId}`);
-        response = await eventService.events.update(updateId, eventPayload);
 
-        // Store the ID we're working with
-        finalEventId = updateId;
+        try {
+          response = await eventService.events.update(updateId, eventPayload);
+          // Store the ID we're working with
+          finalEventId = updateId;
+        } catch (updateError) {
+          console.error("Error updating event:", updateError);
+          // More detailed error for debugging
+          if (updateError.response) {
+            console.error("Update response data:", updateError.response.data);
+            console.error(
+              "Update response status:",
+              updateError.response.status
+            );
+          }
+          throw updateError; // Re-throw to be caught by outer catch
+        }
       } else {
         // Brand new event - create it
         console.log("Creating new event");
-        response = await eventService.events.create(eventPayload);
-
-        // For a newly created event, get the ID from the response
-        if (response && response.data) {
-          finalEventId = response.data.event_id || response.data.id;
+        try {
+          response = await eventService.events.create(eventPayload);
+          // For a newly created event, get the ID from the response
+          if (response && response.data) {
+            finalEventId = response.data.event_id || response.data.id;
+          }
+        } catch (createError) {
+          console.error("Error creating event:", createError);
+          // More detailed error for debugging
+          if (createError.response) {
+            console.error("Create response data:", createError.response.data);
+            console.error(
+              "Create response status:",
+              createError.response.status
+            );
+          }
+          throw createError; // Re-throw to be caught by outer catch
         }
       }
 
@@ -557,11 +697,15 @@ const PublishEventContainer = () => {
                 {
                   seat_type: "Free Seating",
                   ticket_type: "Free Seating",
-                  price: eventData.ticketDetails.freeSeating.price,
-                  total_quantity:
-                    eventData.ticketDetails.freeSeating.numberOfTickets,
-                  max_per_user:
-                    eventData.ticketDetails.freeSeating.maxPerPerson,
+                  price: parseFloat(
+                    eventData.ticketDetails.freeSeating.price || 0
+                  ),
+                  total_quantity: parseInt(
+                    eventData.ticketDetails.freeSeating.numberOfTickets || 0
+                  ),
+                  max_per_user: parseInt(
+                    eventData.ticketDetails.freeSeating.maxPerPerson || 1
+                  ),
                 },
               ]);
             } else if (eventData.ticketDetails.ticketTiers) {
@@ -572,9 +716,9 @@ const PublishEventContainer = () => {
                 .map(([tierName, tierData]) => ({
                   seat_type: tierName,
                   ticket_type: "Reserved",
-                  price: tierData.price,
-                  total_quantity: tierData.number,
-                  max_per_user: tierData.maxPerPerson,
+                  price: parseFloat(tierData.price || 0),
+                  total_quantity: parseInt(tierData.number || 0),
+                  max_per_user: parseInt(tierData.maxPerPerson || 1),
                 }));
 
               if (ticketsData.length > 0) {
@@ -586,6 +730,9 @@ const PublishEventContainer = () => {
             }
           } catch (error) {
             console.error("Error updating tickets:", error);
+            toast.warning(
+              "Event created but there was an issue setting up tickets"
+            );
             // Continue despite errors with tickets
           }
         }
@@ -611,7 +758,7 @@ const PublishEventContainer = () => {
                 start_time: summary.startTime,
                 end_time: summary.endTime,
                 venue: summary.venue,
-                max_claimers: summary.maxReservations,
+                max_claimers: parseInt(summary.maxReservations || 0),
               }));
 
             await eventService.claimingSlots.createBulk(
@@ -620,6 +767,9 @@ const PublishEventContainer = () => {
             );
           } catch (error) {
             console.error("Error updating claiming slots:", error);
+            toast.warning(
+              "Event created but there was an issue setting up claiming slots"
+            );
             // Continue despite errors with claiming slots
           }
         }
@@ -654,7 +804,12 @@ const PublishEventContainer = () => {
 
       // Refresh the event's status if we have a final event ID
       if (finalEventId) {
-        await eventService.refreshEventStatus(finalEventId);
+        try {
+          await eventService.refreshEventStatus(finalEventId);
+        } catch (refreshError) {
+          console.warn("Error refreshing event status:", refreshError);
+          // Don't show error to user, this is non-critical
+        }
       }
 
       // Remove the data from localStorage after successful submission
@@ -665,7 +820,7 @@ const PublishEventContainer = () => {
       return response;
     } catch (error) {
       console.error("Error publishing event:", error);
-      // Error handling remains the same
+      // Error handling
       if (error.response && error.response.data) {
         console.error("Server response:", error.response.data);
         toast.error(

@@ -6,20 +6,52 @@ const adminController = require("../controllers/adminController"); // Admin cont
 const adminDashboardController = require("../controllers/adminDashboardController"); // Admin controller
 
 // Routes for Admin Dashboard
-router.get("/dashboard/metrics", authenticate, authorizeAdmin, adminDashboardController.getDashboardMetrics);
-router.get("/upcoming-events", authenticate, authorizeAdmin, adminDashboardController.getUpcomingEvents);
-router.get("/recent-reservations", authenticate, authorizeAdmin, adminDashboardController.getRecentReservations);
+router.get(
+  "/dashboard/metrics",
+  authenticate,
+  authorizeAdmin,
+  adminDashboardController.getDashboardMetrics
+);
+router.get(
+  "/upcoming-events",
+  authenticate,
+  authorizeAdmin,
+  adminDashboardController.getUpcomingEvents
+);
+router.get(
+  "/recent-reservations",
+  authenticate,
+  authorizeAdmin,
+  adminDashboardController.getRecentReservations
+);
 // Get ticketed events
-router.get("/ticketed-events", authenticate, authorizeAdmin,adminDashboardController.getTicketedEvents);
-router.get("/event-claiming-status/:eventId",authenticate,authorizeAdmin, adminDashboardController.getEventClaimingStatus);
-
-
-
+router.get(
+  "/ticketed-events",
+  authenticate,
+  authorizeAdmin,
+  adminDashboardController.getTicketedEvents
+);
+router.get(
+  "/event-claiming-status/:eventId",
+  authenticate,
+  authorizeAdmin,
+  adminDashboardController.getEventClaimingStatus
+);
 
 // ✅ Protected route: Get all users (only for admin)
 router.get("/users", authenticate, authorizeAdmin, adminController.getAllUsers);
-router.post("/generate-user-report",authenticate, authorizeAdmin, adminController.generateUserReport);
-router.post("/generate-event-report",authenticate, authorizeAdmin, adminController.generateEventReport);
+router.post(
+  "/generate-user-report",
+  authenticate,
+  authorizeAdmin,
+  adminController.generateUserReport
+);
+router.post(
+  "/generate-event-report",
+  authenticate,
+  authorizeAdmin,
+  adminController.generateEventReport
+);
 
 // ✅ Protected route: Update user status (only for admin)
 router.put(
@@ -51,6 +83,27 @@ router.post(
   authenticate,
   authorizeAdmin,
   adminController.addUser
+);
+//  Check user restriction status
+router.get(
+  "/users/:id/restriction-status",
+  authenticate,
+  authorizeAdmin,
+  adminController.checkUserRestrictions
+);
+
+// Reset user violations (amnesty function)
+router.post(
+  "/users/:id/reset-violations",
+  authenticate,
+  authorizeAdmin,
+  adminController.resetUserViolations
+);
+router.post(
+  "/users/update-all-restrictions",
+  authenticate,
+  authorizeAdmin,
+  adminController.updateAllUserRestrictions
 );
 
 module.exports = router;
