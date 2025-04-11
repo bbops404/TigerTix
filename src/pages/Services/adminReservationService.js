@@ -26,7 +26,8 @@ apiClient.interceptors.request.use(
 );
 
 const adminReservationService = {
-  // Get all reservations (with pagination and filtering)
+  // Get all reservations (with pagina
+  // tion and filtering)
   getAllReservations: async () => {
     try {
       const response = await apiClient.get("/reservations");
@@ -36,43 +37,135 @@ const adminReservationService = {
       throw error;
     }
   },
-  getReservationsByEventId: async (eventId) => {
+
+  // New method to get reservation image
+  getReservationImage: async (reservationId) => {
     try {
-      // First try to get all reservations
-      const response = await apiClient.get("/reservations");
+      // Assuming the backend has an endpoint to fetch reservation image
+      const response = await apiClient.get(
+        `/reservations/${reservationId}/image`,
+        {
+          responseType: "blob", // Important for handling image data
+        }
+      );
 
-      if (response.data && Array.isArray(response.data.data)) {
-        // Filter on client side if the backend doesn't support filtering
-        return response.data.data.filter((reservation) => {
-          // Try multiple property paths where event ID might be found
-          if (reservation.event_id === eventId) return true;
-          if (reservation.Event?.id === eventId) return true;
-
-          // Look at all properties for a match
-          for (const key in reservation) {
-            // Check if this property is an object that might contain the event ID
-            if (
-              typeof reservation[key] === "object" &&
-              reservation[key] !== null
-            ) {
-              // Check common ID field names in the nested object
-              if (
-                reservation[key].id === eventId ||
-                reservation[key].event_id === eventId
-              ) {
-                return true;
-              }
-            }
-          }
-
-          return false;
-        });
+      // If no image found, return null or a default placeholder
+      if (response.data.size === 0) {
+        return null;
       }
 
-      return [];
+      // Create a URL for the image blob
+      return URL.createObjectURL(response.data);
     } catch (error) {
-      console.error(`Error fetching reservations for event ${eventId}:`, error);
-      throw error;
+      console.error(
+        `Error fetching reservation image for ID ${reservationId}:`,
+        error
+      );
+
+      // Return null or a default image path if fetch fails
+      return null;
+    }
+  },
+
+  // Method to get multiple reservation images
+  getReservationImages: async (reservationIds) => {
+    try {
+      // Fetch images for multiple reservations concurrently
+      const imagePromises = reservationIds.map(async (reservationId) => {
+        try {
+          const imageUrl = await adminReservationService.getReservationImage(
+            reservationId
+          );
+          return {
+            reservationId,
+            imageUrl,
+          };
+        } catch (error) {
+          console.error(
+            `Error fetching image for reservation ${reservationId}:`,
+            error
+          );
+          return {
+            reservationId,
+            imageUrl: null,
+          };
+        }
+      });
+
+      // Wait for all image fetches to complete
+      return await Promise.all(imagePromises);
+    } catch (error) {
+      console.error("Error fetching multiple reservation images:", error);
+      return [];
+    }
+  },
+
+  // Clean up image URLs to prevent memory leaks
+  cleanupReservationImageUrl: (imageUrl) => {
+    if (imageUrl) {
+      URL.revokeObjectURL(imageUrl);
+    }
+  },
+
+  getReservationsByEventName: async (eventName) => {
+    try {
+      const response = await apiClient.get("/reservations");
+
+      if (
+        !response.data ||
+        !response.data.data ||
+        !Array.isArray(response.data.data)
+      ) {
+        return [];
+      }
+
+      const allReservations = response.data.data;
+      console.log(
+        `Searching ${allReservations.length} reservations for event name: "${eventName}"`
+      );
+
+      // Filter by event name
+      const matchingReservations = allReservations.filter(
+        (res) =>
+          res.event_name &&
+          res.event_name.toLowerCase().includes(eventName.toLowerCase())
+      );
+
+      console.log(
+        `Found ${matchingReservations.length} matching reservations for "${eventName}"`
+      );
+
+      // Try to get user data for these reservations if they have user_id
+      const reservationsWithEnhancedData = await Promise.all(
+        matchingReservations.map(async (reservation) => {
+          // If there's a user_id field, try to get detailed user info (for email)
+          if (reservation.user_id) {
+            try {
+              // This endpoint is based on userController.getCurrentUser and validates auth
+              const userResponse = await apiClient.get(`/users/me`);
+              if (
+                userResponse.data &&
+                userResponse.data.success &&
+                userResponse.data.data
+              ) {
+                // Add user info to reservation
+                reservation.email = userResponse.data.data.email;
+              }
+            } catch (userError) {
+              console.log(
+                `Could not fetch user details for reservation ${reservation.reservation_id}`
+              );
+              // Don't throw, just continue without user details
+            }
+          }
+          return reservation;
+        })
+      );
+
+      return reservationsWithEnhancedData;
+    } catch (error) {
+      console.error("Error fetching reservations by name:", error);
+      return [];
     }
   },
 

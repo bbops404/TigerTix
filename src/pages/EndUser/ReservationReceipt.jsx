@@ -141,7 +141,6 @@ const ReservationReceipt = () => {
               </div>
             </div>
 
-            {/* Receipt details section */}
             <div className="mt-4 md:mt-0">
               <Label label="Name:" value={displayName} />
               <Label
@@ -149,8 +148,8 @@ const ReservationReceipt = () => {
                 value={userEmail || emails?.[0] || "email@ust.edu.ph"}
               />
 
-              <Label label="Event:" value={eventName} />
-              <Label label="Event Date:" value={eventDate} />
+              <Label label="Event:" value={eventName || "N/A"} />
+              <Label label="Event Date:" value={eventDate || "TBA"} />
               <Label label="Event Time:" value={eventTime || "TBA"} />
               <Label label="Venue:" value={eventVenue || "TBA"} />
               <Label
@@ -178,11 +177,13 @@ const ReservationReceipt = () => {
               />
               <Label
                 label="Price Per Person:"
-                value={`₱${parseFloat(ticketPrice).toFixed(2)}`}
+                value={`₱${parseFloat(ticketPrice || 0).toFixed(2)}`}
               />
               <Label
                 label="Total Amount:"
-                value={`₱${totalPrice.toFixed(2)}`}
+                value={`₱${(
+                  parseFloat(ticketPrice || 0) * (ticketCount || 1)
+                ).toFixed(2)}`}
               />
             </div>
           </div>

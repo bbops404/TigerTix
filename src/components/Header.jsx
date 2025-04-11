@@ -9,6 +9,7 @@ const Header = ({ toggleLoginPopup, showAuthButtons = true, showDropdown = true 
   const navigate = useNavigate();
   const [publishedEvents, setPublishedEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
+  const [isRedirecting, setIsRedirecting] = useState(false); // State to prevent multiple clicks
 
   useEffect(() => {
     const fetchPublishedEvents = async () => {
@@ -31,15 +32,56 @@ const Header = ({ toggleLoginPopup, showAuthButtons = true, showDropdown = true 
     fetchPublishedEvents();
   }, []);
 
-  const handleEventChange = (event) => {
+  const handleEventChange = async (event) => {
     const eventId = event.target.value;
-    setSelectedEvent(eventId);
+    if (!eventId) return;
 
-    if (eventId) {
-      // Add a slight delay before navigation for smoother experience
-      setTimeout(() => {
+    setSelectedEvent(eventId);
+    setIsRedirecting(true);
+
+    try {
+      // We need to get the full event details from any endpoint that will return them
+      // Since we know from the controller code that any of the endpoints will return the event
+      // regardless of its actual type, we can just use one endpoint
+      const API_BASE_URL = "http://localhost:5002";
+
+      const response = await axios.get(
+        `${API_BASE_URL}/api/events/ticketed/${eventId}`
+      );
+
+      if (response.data.success) {
+        // Now we check the actual event_type from the response
+        const eventType = response.data.data.event_type;
+        console.log("Detected event type:", eventType);
+
+        // Navigate based on the actual event type
+        switch (eventType) {
+          case "ticketed":
+            navigate(`/event-ticketed/${eventId}`);
+            break;
+          case "free":
+            navigate(`/event-free/${eventId}`);
+            break;
+          case "coming_soon":
+            navigate(`/event-coming-soon/${eventId}`);
+            break;
+          default:
+            // Default fallback
+            navigate(`/event-ticketed/${eventId}`);
+        }
+      } else {
+        // If we somehow didn't get a successful response, default to ticketed
         navigate(`/event-ticketed/${eventId}`);
-      }, 300); // 300ms delay gives visual feedback that selection was made
+      }
+    } catch (error) {
+      console.error("Error determining event type:", error);
+      // Default fallback in case of error
+      navigate(`/event-ticketed/${eventId}`);
+    } finally {
+      // Reset after a short delay
+      setTimeout(() => {
+        setIsRedirecting(false);
+      }, 500);
     }
   };
 
@@ -53,6 +95,7 @@ const Header = ({ toggleLoginPopup, showAuthButtons = true, showDropdown = true 
             alt="Tigertix Logo"
           />
         </Link>
+
 
         {/* Conditionally render the dropdown */}
         {showDropdown && (
@@ -82,6 +125,7 @@ const Header = ({ toggleLoginPopup, showAuthButtons = true, showDropdown = true 
             </select>
           </div>
         )}
+
 
         {showAuthButtons && (
           <div className="flex gap-5">

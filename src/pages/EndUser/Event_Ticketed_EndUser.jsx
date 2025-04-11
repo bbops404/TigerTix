@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import Header_User from "../../components/Header_User";
 import TigerTicket from "../../assets/TigerTicket.svg";
 import { IoChevronBackOutline } from "react-icons/io5";
-import axios from "axios";
 
 const Event_Ticketed_EndUser = () => {
   const { id } = useParams();
@@ -12,6 +11,7 @@ const Event_Ticketed_EndUser = () => {
   const [error, setError] = useState("");
   const [hasReservation, setHasReservation] = useState(false);
   const [reservationChecked, setReservationChecked] = useState(false);
+  const [userStatus, setUserStatus] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,79 +21,46 @@ const Event_Ticketed_EndUser = () => {
         const API_BASE_URL = "http://localhost:5002";
 
         // Fetch event details
-        const eventResponse = await axios.get(
+        const eventResponse = await fetch(
           `${API_BASE_URL}/api/user/events/ticketed/${id}`,
           {
-            withCredentials: true,
+            credentials: "include",
           }
         );
+        const eventData = await eventResponse.json();
 
-        if (eventResponse.data.success) {
-          setEvent(eventResponse.data.data);
-          console.log(
-            "Event data fetched successfully:",
-            eventResponse.data.data
-          );
+        if (eventData.success) {
+          setEvent(eventData.data);
 
-          // Check user's reservations for this event
-          try {
-            // Get current user details first to get user ID
-            const userResponse = await axios.get(
-              `${API_BASE_URL}/api/users/me`,
+          // Get current user details
+          const userResponse = await fetch(`${API_BASE_URL}/api/users/me`, {
+            credentials: "include",
+          });
+          const userData = await userResponse.json();
+
+          if (userData.success && userData.data) {
+            const userId = userData.data.user_id;
+            const status = userData.data.status;
+            setUserStatus(status);
+
+            // Get user's reservations
+            const reservationsResponse = await fetch(
+              `${API_BASE_URL}/api/reservations/user/${userId}`,
               {
-                withCredentials: true,
+                credentials: "include",
               }
             );
+            const reservationsData = await reservationsResponse.json();
 
-            if (userResponse.data.success && userResponse.data.data) {
-              const userId = userResponse.data.data.user_id;
-              console.log("Current user ID:", userId);
+            if (reservationsData.success) {
+              const userReservations = reservationsData.data || [];
 
-              // Get user's reservations - using the proper endpoint
-              const reservationsResponse = await axios.get(
-                `${API_BASE_URL}/api/reservations/user/${userId}`,
-                {
-                  withCredentials: true,
-                }
+              const hasExistingReservation = userReservations.some(
+                (reservation) => reservation.event_id === id
               );
 
-              console.log("Reservations response:", reservationsResponse.data);
-
-              if (reservationsResponse.data.success) {
-                // Check if user has reservation for this event
-                const userReservations = reservationsResponse.data.data || [];
-
-                // Enhanced check that works regardless of string or UUID format
-                const hasExistingReservation = userReservations.some(
-                  (reservation) => {
-                    const reservationEventId = reservation.event_id;
-                    const currentEventId = id;
-                    const match = reservationEventId === currentEventId;
-
-                    if (match) {
-                      console.log("Found matching reservation:", reservation);
-                    }
-
-                    return match;
-                  }
-                );
-
-                console.log("Reservation check result:", {
-                  eventId: id,
-                  hasReservation: hasExistingReservation,
-                  reservationsCount: userReservations.length,
-                });
-
-                setHasReservation(hasExistingReservation);
-              }
-            } else {
-              console.warn("Could not get user details:", userResponse.data);
+              setHasReservation(hasExistingReservation);
             }
-          } catch (reservationError) {
-            console.error("Error checking reservations:", reservationError);
-            // Don't set error state here - it's better to show the event and handle reservation error gracefully
-          } finally {
-            setReservationChecked(true);
           }
         } else {
           setError("Failed to fetch event details.");
@@ -102,6 +69,7 @@ const Event_Ticketed_EndUser = () => {
         console.error("Error fetching event:", err);
         setError("Failed to fetch event details. Please try again later.");
       } finally {
+        setReservationChecked(true);
         setLoading(false);
       }
     };
@@ -110,37 +78,20 @@ const Event_Ticketed_EndUser = () => {
   }, [id]);
 
   const handleReserveClick = () => {
+    // Check user status before allowing reservation
+    if (userStatus === "restricted") {
+      alert(
+        "Your account is currently restricted. You cannot make reservations."
+      );
+      return;
+    }
+
+    if (userStatus === "suspended") {
+      alert("Your account is suspended. You cannot make reservations.");
+      return;
+    }
+
     navigate(`/reservation?eventId=${id}`, { state: { eventId: id } });
-  };
-
-  const handleViewReservationsClick = () => {
-    navigate("/my-reservations");
-  };
-
-  // Check if the event is open for reservations
-  const isReservationOpen = () => {
-    if (!event) return false;
-    return event.status === "open" && event.event_type === "ticketed";
-  };
-
-  // Check if the event has available tickets
-  const hasAvailableTickets = () => {
-    if (!event || !event.Tickets || event.Tickets.length === 0) return false;
-    return event.Tickets.some((ticket) => ticket.remaining_quantity > 0);
-  };
-
-  // Get status message for the reserve button
-  const getReservationStatus = () => {
-    if (!event) return "Loading...";
-
-    if (hasReservation) return "Reserved";
-    if (event.status === "closed") return "Reservation Closed";
-    if (event.status === "cancelled") return "Event Cancelled";
-    if (event.status === "draft") return "Coming Soon";
-    if (event.status === "scheduled") return "Not Open Yet";
-    if (!hasAvailableTickets()) return "Sold Out";
-
-    return "RESERVE";
   };
 
   // Format date for display
@@ -196,6 +147,40 @@ const Event_Ticketed_EndUser = () => {
     }
   };
 
+  // Check if the event is open for reservations
+  const isReservationOpen = () => {
+    if (!event) return false;
+    return (
+      event.status === "open" &&
+      event.event_type === "ticketed" &&
+      userStatus === "active"
+    );
+  };
+
+  // Check if the event has available tickets
+  const hasAvailableTickets = () => {
+    if (!event || !event.Tickets || event.Tickets.length === 0) return false;
+    return event.Tickets.some((ticket) => ticket.remaining_quantity > 0);
+  };
+
+  // Get status message for the reserve button
+  const getReservationStatus = () => {
+    if (!event) return "Loading...";
+
+    if (userStatus === "restricted") return "Restricted";
+    if (userStatus === "suspended") return "Suspended";
+
+    if (hasReservation) return "Reserved";
+    if (event.status === "closed") return "Reservation Closed";
+    if (event.status === "cancelled") return "Event Cancelled";
+    if (event.status === "draft") return "Coming Soon";
+    if (event.status === "scheduled") return "Not Open Yet";
+    if (!hasAvailableTickets()) return "Sold Out";
+
+    return "RESERVE";
+  };
+
+  // Render loading state
   if (loading) {
     return (
       <div className="bg-[#121212] text-white min-h-screen">
@@ -207,6 +192,7 @@ const Event_Ticketed_EndUser = () => {
     );
   }
 
+  // Render error state
   if (error) {
     return (
       <div className="bg-[#121212] text-white min-h-screen">
@@ -253,7 +239,7 @@ const Event_Ticketed_EndUser = () => {
                     const fallback = document.createElement("div");
                     fallback.className =
                       "w-full h-full flex items-center justify-center image-fallback";
-                    fallback.innerHTML = `<span class="text-white text-center p-4">${
+                    fallback.innerHTML = `<span class="text-white text-center p-4 font-Poppins">${
                       event.name || "Event image unavailable"
                     }</span>`;
                     container.appendChild(fallback);
@@ -355,18 +341,18 @@ const Event_Ticketed_EndUser = () => {
               </div>
             )}
 
-            {/* Reserve Button */}
+            {/* Reserve Button Section */}
             <div className="flex flex-col items-end mt-6">
               {reservationChecked ? (
                 <button
                   className={`font-Poppins font-bold py-3 px-7 min-w-[300px] rounded-lg inline-block mb-2 uppercase transition-all transform hover:scale-105 
-                  ${
-                    isReservationOpen() &&
-                    hasAvailableTickets() &&
-                    !hasReservation
-                      ? "text-[#F09C32] outline outline-1 outline-[#F09C32] cursor-pointer"
-                      : "bg-neutral-700 text-gray-400 cursor-not-allowed"
-                  }`}
+                ${
+                  isReservationOpen() &&
+                  hasAvailableTickets() &&
+                  !hasReservation
+                    ? "text-[#F09C32] outline outline-1 outline-[#F09C32] cursor-pointer"
+                    : "bg-neutral-700 text-gray-400 cursor-not-allowed"
+                }`}
                   onClick={
                     isReservationOpen() &&
                     hasAvailableTickets() &&
@@ -391,7 +377,7 @@ const Event_Ticketed_EndUser = () => {
               {/* Show view reservations button below reserve button */}
               {hasReservation && (
                 <button
-                  onClick={handleViewReservationsClick}
+                  onClick={() => navigate("/my-reservations")}
                   className="text-custom_yellow font-Poppins text-sm hover:underline"
                 >
                   Click here to view your reservations

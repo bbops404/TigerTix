@@ -6,6 +6,7 @@ import {
   FaSortUp,
   FaSortDown,
   FaArrowLeft,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
@@ -21,6 +22,156 @@ import {
   flexRender,
   createColumnHelper,
 } from "@tanstack/react-table";
+
+// Confirmation Modal for Reinstating reservations
+const ConfirmReinstateModal = ({ isOpen, onClose, onConfirm }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className="bg-white p-6 rounded-xl w-[500px] h-[200px] shadow-lg">
+        <div className="flex items-center gap-2">
+          <FaExclamationTriangle className="text-[#C15454] text-xl" />
+          <h2 className="text-2xl text-black font-bold">
+            Reinstate Reservations
+          </h2>
+        </div>
+        <p className="text-black mt-2">
+          Are you sure you want to reinstate the selected reservations? This
+          action cannot be undone.
+        </p>
+        <p className="text-gray-600 text-sm">Please confirm your action.</p>
+        <div className="flex justify-end gap-2 mt-6">
+          <button
+            onClick={onClose}
+            className="px-8 py-1 bg-gray-700 text-white rounded-2xl hover:scale-105"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-8 py-1 bg-[#C15454] text-white rounded-2xl hover:scale-105"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Reinstate Modal to display selected reservations
+const ReinstateModal = ({ reservations, onClose, onConfirm }) => {
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const handleReinstate = () => {
+    setShowConfirmModal(true); // Show the confirmation modal
+  };
+
+  const handleConfirmReinstate = () => {
+    setShowConfirmModal(false);
+    onConfirm(); // Call the parent's onConfirm to handle the API call
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black bg-opacity-50 flex justify-center items-center">
+        <div className="bg-[#EFF3F0] rounded-xl p-6 w-[900px] max-w-full shadow-lg relative">
+          <button
+            onClick={onClose}
+            className="absolute top-4 left-4 text-[#F09C32] text-2xl hover:text-[#CD8428] transition duration-300"
+          >
+            <FaArrowLeft />
+          </button>
+          <h2 className="text-xl font-semibold text-[#3B3B3B] mb-2 text-left mt-8">
+            Reinstate Reservations
+          </h2>
+          <p className="text-sm text-gray-600 mb-4 text-left">
+            Below are the details of the reservations that will be reinstated:
+          </p>
+          <div className="overflow-y-auto max-h-[300px] border border-[#D6D3D3] rounded-md">
+            <table className="w-full text-sm bg-white">
+              <thead className="bg-[#F09C32] text-[#333333]">
+                <tr>
+                  {[
+                    "Reservation ID",
+                    "Name",
+                    "Event Name",
+                    "Seat Type",
+                    "Ticket Tier",
+                    "Claiming Date",
+                    "Claiming Time",
+                    "Amount",
+                    "Claiming Status",
+                  ].map((header, index) => (
+                    <th
+                      key={index}
+                      className="py-2 px-3 border border-[#D6D3D3]"
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {reservations.map((reservation) => (
+                  <tr
+                    key={reservation.reservation_id}
+                    className="text-center text-black"
+                  >
+                    <td className="py-2 px-3 border border-[#D6D3D3]">
+                      {reservation.reservation_id}
+                    </td>
+                    <td className="py-2 px-3 border border-[#D6D3D3]">
+                      {reservation.name || "N/A"}
+                    </td>
+                    <td className="py-2 px-3 border border-[#D6D3D3]">
+                      {reservation.event_name || "N/A"}
+                    </td>
+                    <td className="py-2 px-3 border border-[#D6D3D3]">
+                      {reservation.seat_type || "N/A"}
+                    </td>
+                    <td className="py-2 px-3 border border-[#D6D3D3]">
+                      {reservation.ticket_tier || "N/A"}
+                    </td>
+                    <td className="py-2 px-3 border border-[#D6D3D3]">
+                      {reservation.claiming_date || "N/A"}
+                    </td>
+                    <td className="py-2 px-3 border border-[#D6D3D3]">
+                      {reservation.claiming_time || "N/A"}
+                    </td>
+                    <td className="py-2 px-3 border border-[#D6D3D3]">
+                      {reservation.amount || "N/A"}
+                    </td>
+                    <td className="py-2 px-3 border border-[#D6D3D3]">
+                      <span className="text-red-500 font-medium">
+                        {reservation.claiming_status || "N/A"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={handleReinstate}
+              className="bg-[#C15454] hover:bg-[#B83333] text-white px-6 py-2 rounded-md"
+            >
+              Confirm Reinstate
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmReinstateModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmReinstate}
+      />
+    </>
+  );
+};
 
 // Adding the ConfirmRestoreUnclaimedModal component
 const ConfirmRestoreUnclaimedModal = ({ isOpen, onClose, onConfirm }) => {
@@ -173,6 +324,172 @@ const RestoreUnclaimedModal = ({ reservations, onClose, onConfirm }) => {
     </>
   );
 };
+const ConfirmMarkAsClaimedModal = ({ isOpen, onClose, onConfirm }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className="bg-white p-6 rounded-xl w-[500px] h-[200px] shadow-lg">
+        <div className="flex items-center gap-2">
+          <FaExclamationTriangle className="text-green-600 text-xl" />
+          <h2 className="text-2xl text-black font-bold">Mark as Claimed</h2>
+        </div>
+        <p className="text-black mt-2">
+          Are you sure you want to mark the selected reservations as claimed?
+          This action cannot be undone.
+        </p>
+        <p className="text-gray-600 text-sm">Please confirm your action.</p>
+        <div className="flex justify-end gap-2 mt-6">
+          <button
+            onClick={onClose}
+            className="px-8 py-1 bg-gray-700 text-white rounded-2xl hover:scale-105"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-8 py-1 bg-green-600 text-white rounded-2xl hover:scale-105"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Add Admin_ClaimedReservationModal component
+const Admin_ClaimedReservationModal = ({
+  reservations,
+  onClose,
+  onConfirm,
+}) => {
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const handleMarkAsClaimed = () => {
+    // Open the confirmation modal
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmMarkAsClaimed = () => {
+    onConfirm(); // Execute the parent's confirm function to handle API call
+    setShowConfirmModal(false);
+  };
+
+  return (
+    <>
+      {/* Only render the parent modal if the confirmation modal is not open */}
+      {!showConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-[#EFF3F0] rounded-xl p-6 w-[900px] max-w-full shadow-lg relative">
+            {/* Back Icon */}
+            <button
+              onClick={onClose}
+              className="absolute top-4 left-4 text-[#F09C32] text-2xl hover:text-[#CD8428] transition duration-300"
+            >
+              <FaArrowLeft />
+            </button>
+
+            {/* Title */}
+            <h2 className="text-xl font-semibold text-[#3B3B3B] mb-2 text-left mt-8">
+              ✅ Reservations to be Marked as Claimed
+            </h2>
+
+            {/* Subtitle */}
+            <p className="text-sm text-gray-600 mb-4 text-left">
+              Below are the details of the reservations that will be marked as
+              claimed:
+            </p>
+
+            {/* Scrollable Table */}
+            <div className="overflow-y-auto max-h-[300px] border border-[#D6D3D3] rounded-md">
+              <table className="w-full text-sm bg-white">
+                <thead className="bg-[#F09C32] text-[#333333]">
+                  <tr>
+                    {[
+                      "Reservation ID",
+                      "Name",
+                      "Event Name",
+                      "Seat Type",
+                      "Ticket Tier",
+                      "Claiming Date",
+                      "Claiming Time",
+                      "Amount",
+                      "Claiming Status",
+                    ].map((header, index) => (
+                      <th
+                        key={index}
+                        className="py-2 px-3 border border-[#D6D3D3]"
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {reservations.map((reservation) => (
+                    <tr
+                      key={reservation.reservation_id}
+                      className="text-center text-black"
+                    >
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.reservation_id}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.name || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.event_name || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.seat_type || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.ticket_tier || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.claiming_date || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.claiming_time || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        {reservation.amount || "N/A"}
+                      </td>
+                      <td className="py-2 px-3 border border-[#D6D3D3]">
+                        <span className="text-blue-500 font-medium">
+                          {reservation.claiming_status || "N/A"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Action Button */}
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={handleMarkAsClaimed}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md"
+              >
+                Mark as Claimed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <ConfirmMarkAsClaimedModal
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          onConfirm={handleConfirmMarkAsClaimed}
+        />
+      )}
+    </>
+  );
+};
 
 const Admin_Reservations = () => {
   const [reservations, setReservations] = useState([]);
@@ -185,10 +502,16 @@ const Admin_Reservations = () => {
   const [showQRPopup, setShowQRPopup] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState([]);
-  // Add state for RestoreUnclaimedModal
+  // State for Restore Unclaimed Modal
   const [showRestoreUnclaimedModal, setShowRestoreUnclaimedModal] =
     useState(false);
   const [selectedReservationsData, setSelectedReservationsData] = useState([]);
+  // Add state for Reinstate Modal
+  const [showReinstateModal, setShowReinstateModal] = useState(false);
+  const [selectedReinstateData, setSelectedReinstateData] = useState([]);
+  // Add state for Claim Modal
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [selectedClaimData, setSelectedClaimData] = useState([]);
 
   // Function to fetch all reservations
   const fetchReservations = async () => {
@@ -314,18 +637,6 @@ const Admin_Reservations = () => {
           >
             Seat Type
             {renderSortIcon("seat_type")}
-          </div>
-        ),
-        cell: (info) => info.getValue() || "N/A",
-      }),
-      columnHelper.accessor("ticket_tier", {
-        header: ({ column }) => (
-          <div
-            className="cursor-pointer select-none flex items-center justify-center gap-1"
-            onClick={() => handleSort("ticket_tier")}
-          >
-            Ticket Tier
-            {renderSortIcon("ticket_tier")}
           </div>
         ),
         cell: (info) => info.getValue() || "N/A",
@@ -499,12 +810,11 @@ const Admin_Reservations = () => {
     fetchReservations();
   };
 
-  // Handle reinstate action - UPDATED with real backend calls
+  // Updated handleReinstate function to show the modal
   const handleReinstate = async () => {
     if (!hasUnclaimedSelected || actionLoading) return;
 
     try {
-      setActionLoading(true);
       // Filter only the unclaimed reservations
       const unclaimedIds = selectedReservations.filter((id) => {
         const reservation = reservations.find((r) => r.reservation_id === id);
@@ -513,6 +823,36 @@ const Admin_Reservations = () => {
           reservation.claiming_status.toLowerCase() === "unclaimed"
         );
       });
+
+      if (unclaimedIds.length === 0) {
+        toast.info("No unclaimed reservations selected.");
+        return;
+      }
+
+      // Get the full reservation data for selected unclaimed reservations
+      const selectedReinstateFullData = unclaimedIds.map((id) =>
+        reservations.find((r) => r.reservation_id === id)
+      );
+
+      // Set the data for the modal
+      setSelectedReinstateData(selectedReinstateFullData);
+
+      // Show the modal
+      setShowReinstateModal(true);
+    } catch (err) {
+      console.error("Error preparing reinstate:", err);
+      toast.error(
+        "An error occurred while preparing to reinstate reservations."
+      );
+    }
+  };
+
+  // Function to actually reinstate reservations after confirmation
+  const performReinstate = async () => {
+    try {
+      setActionLoading(true);
+      // Filter only the unclaimed reservations
+      const unclaimedIds = selectedReinstateData.map((r) => r.reservation_id);
 
       if (unclaimedIds.length === 0) {
         toast.info("No unclaimed reservations selected.");
@@ -551,6 +891,7 @@ const Admin_Reservations = () => {
       toast.error("Failed to reinstate reservations. Please try again.");
     } finally {
       setActionLoading(false);
+      setShowReinstateModal(false);
     }
   };
 
@@ -641,12 +982,11 @@ const Admin_Reservations = () => {
     }
   };
 
-  // Handle mark as claimed action - UPDATED with real backend calls
+  // Updated handleMarkAsClaimed to show the claim modal
   const handleMarkAsClaimed = async () => {
     if (!hasPendingSelected || actionLoading) return;
 
     try {
-      setActionLoading(true);
       // Filter only the pending reservations
       const pendingIds = selectedReservations.filter((id) => {
         const reservation = reservations.find((r) => r.reservation_id === id);
@@ -654,6 +994,36 @@ const Admin_Reservations = () => {
           reservation && reservation.claiming_status.toLowerCase() === "pending"
         );
       });
+
+      if (pendingIds.length === 0) {
+        toast.info("No pending reservations selected.");
+        return;
+      }
+
+      // Get the full reservation data for selected pending reservations
+      const selectedPendingFullData = pendingIds.map((id) =>
+        reservations.find((r) => r.reservation_id === id)
+      );
+
+      // Set the data for the modal
+      setSelectedClaimData(selectedPendingFullData);
+
+      // Show the modal
+      setShowClaimModal(true);
+    } catch (err) {
+      console.error("Error preparing mark as claimed:", err);
+      toast.error(
+        "An error occurred while preparing to mark reservations as claimed."
+      );
+    }
+  };
+
+  // Function to actually mark reservations as claimed after confirmation
+  const performMarkAsClaimed = async () => {
+    try {
+      setActionLoading(true);
+      // Get the IDs of the selected pending reservations
+      const pendingIds = selectedClaimData.map((r) => r.reservation_id);
 
       if (pendingIds.length === 0) {
         toast.info("No pending reservations selected.");
@@ -670,7 +1040,18 @@ const Admin_Reservations = () => {
 
       if (successCount > 0) {
         toast.success(
-          `Successfully marked ${successCount} reservation(s) as claimed.`
+          `Successfully marked ${successCount} reservation(s) as claimed.`,
+          {
+            style: {
+              backgroundColor: "#FFFFFF",
+              color: "#000",
+              fontWeight: "bold",
+              borderRadius: "8px",
+              padding: "10px",
+              marginTop: "70px",
+            },
+            autoClose: 2000,
+          }
         );
         // Refresh data after successful action
         await fetchReservations();
@@ -691,6 +1072,7 @@ const Admin_Reservations = () => {
       toast.error("Failed to mark reservations as claimed. Please try again.");
     } finally {
       setActionLoading(false);
+      setShowClaimModal(false);
     }
   };
 
@@ -938,6 +1320,17 @@ const Admin_Reservations = () => {
         />
       )}
 
+      {/* Reinstate Modal */}
+      {showReinstateModal && (
+        <ReinstateModal
+          reservations={selectedReinstateData}
+          onClose={() => {
+            setShowReinstateModal(false);
+          }}
+          onConfirm={performReinstate}
+        />
+      )}
+
       {/* RestoreUnclaimedModal */}
       {showRestoreUnclaimedModal && (
         <RestoreUnclaimedModal
@@ -946,6 +1339,17 @@ const Admin_Reservations = () => {
             setShowRestoreUnclaimedModal(false);
           }}
           onConfirm={performRestoreUnclaimed}
+        />
+      )}
+
+      {/* ClaimedReservationModal */}
+      {showClaimModal && (
+        <Admin_ClaimedReservationModal
+          reservations={selectedClaimData}
+          onClose={() => {
+            setShowClaimModal(false);
+          }}
+          onConfirm={performMarkAsClaimed}
         />
       )}
     </div>

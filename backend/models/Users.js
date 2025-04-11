@@ -46,6 +46,11 @@ const User = sequelize.define(
       type: DataTypes.INTEGER,
       defaultValue: 0,
     },
+    restriction_end_date: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
   },
   {
     tableName: "users",
@@ -71,6 +76,5 @@ User.associate = (models) => {
     as: "auditTrails",
   });
 };
-
 
 module.exports = User;

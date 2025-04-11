@@ -22,6 +22,56 @@ import Sidebar_Admin from "../components/Admin/SideBar_Admin";
 import { InfoIcon } from "lucide-react";
 import { formatImageUrl } from "../utils/imageUtils";
 
+// To get all reservations// To get all reservations
+// Add this debugging function to help identify where the issue is
+const debugReservationFetch = async (eventId) => {
+  try {
+    console.log("Fetching reservations for event ID:", eventId);
+
+    // Log the raw response from the API
+    const rawResponse = await adminReservationService.getReservationsByEventId(
+      eventId
+    );
+    console.log("Raw API response:", rawResponse);
+
+    // Check if we have data
+    if (!rawResponse || rawResponse.length === 0) {
+      console.log("No reservations found in API response");
+      return [];
+    }
+
+    // Format the data and log each step
+    const formattedReservations = rawResponse.map((reservation) => {
+      console.log("Processing reservation:", reservation);
+
+      return {
+        id: reservation.reservation_id || reservation.id,
+        user: reservation.name || reservation.user?.name || "Anonymous",
+        email: reservation.email || reservation.user?.email || "N/A",
+        ticket_type:
+          reservation.seat_type ||
+          reservation.ticket_tier ||
+          "General Admission",
+        quantity: reservation.quantity || 1,
+        total_price: reservation.amount
+          ? `₱${parseFloat(reservation.amount).toFixed(2)}`
+          : "₱0.00",
+        claiming_date: reservation.claiming_date || new Date().toISOString(),
+        status: reservation.claiming_status || reservation.status || "pending",
+        created_at: new Date(
+          reservation.created_at || Date.now()
+        ).toLocaleString(),
+      };
+    });
+
+    console.log("Formatted reservations:", formattedReservations);
+    return formattedReservations;
+  } catch (error) {
+    console.error("Error in debugReservationFetch:", error);
+    return [];
+  }
+};
+
 const EventDetailContainer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -163,37 +213,158 @@ const EventDetailContainer = () => {
             }
           }
 
-          // Fetch reservations using adminReservationService
-          // Fetch reservations using adminReservationService
+          // In your useEffect where reservations are fetched
+
           try {
+            // Use the event name directly from the response
+            const eventName = eventResponse.data.name || "Unknown Event";
+            console.log("Looking for reservations with event name:", eventName);
+
             const eventReservations =
-              await adminReservationService.getReservationsByEventId(id);
+              await adminReservationService.getReservationsByEventName(
+                eventName
+              );
 
             if (eventReservations.length > 0) {
+              console.log("Raw reservation data sample:", eventReservations[0]);
+
               const formattedReservations = eventReservations.map(
-                (reservation) => ({
-                  id: reservation.reservation_id,
-                  user: reservation.name || "Anonymous",
-                  email: reservation.email || "N/A",
-                  ticket_type:
+                (reservation) => {
+                  // Format date in a readable format (Month Day, Year)
+                  const formattedDate = reservation.claiming_date
+                    ? new Date(reservation.claiming_date).toLocaleDateString(
+                        "en-US",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        }
+                      )
+                    : "Not scheduled";
+
+                  // Format time in 12-hour format (e.g., 11:00 AM)
+                  let formattedTime = "Not specified";
+                  if (reservation.claiming_time) {
+                    // Parse claiming_time if it's in the format "HH:MM AM - HH:MM PM"
+                    const timeMatch =
+                      reservation.claiming_time.match(/(\d+:\d+\s*[AP]M)/i);
+                    if (timeMatch && timeMatch[1]) {
+                      formattedTime = timeMatch[1];
+                    } else {
+                      // Try to extract time from the format that might be provided
+                      try {
+                        // This will handle timestamp formats and simple time strings
+                        const timeParts =
+                          reservation.claiming_time.split(" - ");
+                        if (timeParts.length > 0) {
+                          // Get first time part and format it
+                          const firstTime = timeParts[0].trim();
+                          // Check if it has AM/PM already
+                          if (
+                            firstTime.toUpperCase().includes("AM") ||
+                            firstTime.toUpperCase().includes("PM")
+                          ) {
+                            formattedTime = firstTime;
+                          } else {
+                            // Try to parse as 24-hour format
+                            const [hours, minutes] = firstTime
+                              .split(":")
+                              .map(Number);
+                            if (!isNaN(hours) && !isNaN(minutes)) {
+                              const date = new Date();
+                              date.setHours(hours, minutes);
+                              formattedTime = date.toLocaleTimeString("en-US", {
+                                hour: "numeric",
+                                minute: "2-digit",
+                                hour12: true,
+                              });
+                            } else {
+                              formattedTime = firstTime; // Use as-is if we can't parse
+                            }
+                          }
+                        }
+                      } catch (e) {
+                        console.log("Error formatting time:", e);
+                        formattedTime = reservation.claiming_time; // Fallback to original
+                      }
+                    }
+                  }
+
+                  // Format created_at timestamp
+                  let formattedCreatedAt;
+                  try {
+                    const createdAtDate = new Date(
+                      reservation.created_at || Date.now()
+                    );
+                    formattedCreatedAt = `${createdAtDate.toLocaleDateString(
+                      "en-US",
+                      {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      }
+                    )} at ${createdAtDate.toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}`;
+                  } catch (e) {
+                    console.log("Error formatting created date:", e);
+                    formattedCreatedAt = reservation.created_at || "Unknown";
+                  }
+
+                  // Try to extract email from any possible location in the data
+                  let email = "N/A";
+                  if (reservation.email) {
+                    email = reservation.email;
+                  } else if (reservation.user_email) {
+                    email = reservation.user_email;
+                  } else if (reservation.user && reservation.user.email) {
+                    email = reservation.user.email;
+                  } else if (reservation.userEmail) {
+                    email = reservation.userEmail;
+                  } else if (reservation.contact_email) {
+                    email = reservation.contact_email;
+                  } else if (reservation.contact) {
+                    // Try to detect if contact might contain an email
+                    const contactStr = String(reservation.contact);
+                    if (contactStr.includes("@") && contactStr.includes(".")) {
+                      email = contactStr;
+                    }
+                  }
+
+                  // Extract seat type information
+                  const seatType =
                     reservation.seat_type ||
                     reservation.ticket_tier ||
-                    "General Admission",
-                  quantity: reservation.quantity || 1,
-                  total_price: reservation.amount
-                    ? `₱${parseFloat(reservation.amount).toFixed(2)}`
-                    : "₱0.00",
-                  claiming_date:
-                    reservation.claiming_date || new Date().toISOString(),
-                  status: reservation.claiming_status || "pending",
-                  created_at: new Date(
-                    reservation.created_at || Date.now()
-                  ).toLocaleString(),
-                })
+                    "General Admission";
+
+                  // Log what we found
+                  console.log(
+                    `Reservation ${reservation.reservation_id}: Email = ${email}, Date = ${formattedDate}, Time = ${formattedTime}, Seat Type = ${seatType}`
+                  );
+
+                  return {
+                    id: reservation.reservation_id,
+                    user: reservation.name || "Anonymous",
+                    email: email,
+                    seat_type: seatType, // Use the extracted seat_type value
+                    quantity: reservation.quantity || 1,
+                    total_price: reservation.amount
+                      ? `₱${parseFloat(reservation.amount).toFixed(2)}`
+                      : "₱0.00",
+                    claiming_date: formattedDate,
+                    claiming_time: formattedTime,
+                    status: reservation.claiming_status || "pending",
+                    created_at: formattedCreatedAt,
+                  };
+                }
               );
 
               setReservations(formattedReservations);
+              console.log("Set formatted reservations:", formattedReservations);
             } else {
+              console.log("No reservations found for event name:", eventName);
               setReservations([]);
             }
           } catch (error) {
@@ -267,6 +438,10 @@ const EventDetailContainer = () => {
   };
 
   // React Table configuration for reservations
+  // Replace the columns definition in the EventDetailContainer component with this updated version:
+
+  // Replace the columns definition in the EventDetailContainer component with this updated version:
+
   const columns = useMemo(
     () => [
       {
@@ -278,12 +453,8 @@ const EventDetailContainer = () => {
         header: "User",
       },
       {
-        accessorKey: "email",
-        header: "Email",
-      },
-      {
-        accessorKey: "ticket_type",
-        header: "Ticket Type",
+        accessorKey: "seat_type", // Changed from ticket_type to seat_type
+        header: "Seat Type", // Changed header from "Ticket Type" to "Seat Type"
       },
       {
         accessorKey: "quantity",
@@ -297,13 +468,10 @@ const EventDetailContainer = () => {
       {
         accessorKey: "claiming_date",
         header: "Claiming Date",
-        cell: (info) => {
-          try {
-            return new Date(info.getValue()).toLocaleDateString();
-          } catch (err) {
-            return "N/A";
-          }
-        },
+      },
+      {
+        accessorKey: "claiming_time",
+        header: "Claiming Time",
       },
       {
         accessorKey: "status",
@@ -312,7 +480,7 @@ const EventDetailContainer = () => {
           <span
             className={`px-2 py-1 rounded-full text-xs font-semibold
             ${
-              info.getValue() === "confirmed"
+              info.getValue() === "claimed"
                 ? "bg-green-900/30 text-green-400"
                 : info.getValue() === "pending"
                 ? "bg-yellow-900/30 text-yellow-400"
@@ -330,7 +498,6 @@ const EventDetailContainer = () => {
     ],
     []
   );
-
   const table = useReactTable({
     data: reservations,
     columns,
@@ -347,6 +514,30 @@ const EventDetailContainer = () => {
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
+  const getReservationSummary = () => {
+    // Initialize counters for each status
+    const summary = {
+      pending: 0,
+      claimed: 0,
+      unclaimed: 0,
+      cancelled: 0,
+      total: reservations.length,
+    };
+
+    // Count reservations by status
+    reservations.forEach((reservation) => {
+      const status = reservation.status.toLowerCase();
+      if (status === "pending") summary.pending++;
+      else if (status === "claimed") summary.claimed++;
+      else if (status === "unclaimed") summary.unclaimed++;
+      else if (status === "cancelled") summary.cancelled++;
+    });
+
+    return summary;
+  };
+
+  // Calculate summary
+  const reservationSummary = getReservationSummary();
 
   if (loading) {
     return (
@@ -647,9 +838,6 @@ const EventDetailContainer = () => {
                                 Tier
                               </th>
                               <th className="py-2 px-3 text-left text-sm ">
-                                Type
-                              </th>
-                              <th className="py-2 px-3 text-left text-sm ">
                                 Price
                               </th>
                               <th className="py-2 px-3 text-left text-sm ">
@@ -673,9 +861,7 @@ const EventDetailContainer = () => {
                                   <td className="py-2 px-3 text-sm text-white">
                                     {ticket.seat_type || "Standard"}
                                   </td>
-                                  <td className="py-2 px-3 text-sm text-white">
-                                    {ticket.ticket_type || "General"}
-                                  </td>
+
                                   <td className="py-2 px-3 text-sm text-white">
                                     ₱{parseFloat(ticket.price || 0).toFixed(2)}
                                   </td>
@@ -963,82 +1149,6 @@ const EventDetailContainer = () => {
               </div>
             )}
 
-            {/* Event Status */}
-            <div>
-              <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">
-                EVENT STATUS
-              </h3>
-              <div className="bg-[#1E1E1E] rounded-lg p-4 border border-gray-800">
-                <div className="flex items-center space-x-3">
-                  <div
-                    className={`w-3 h-3 rounded-full 
-                    ${
-                      event.status === "open"
-                        ? "bg-green-500"
-                        : event.status === "scheduled"
-                        ? "bg-yellow-500"
-                        : event.status === "cancelled"
-                        ? "bg-red-500"
-                        : event.status === "draft"
-                        ? "bg-blue-500"
-                        : "bg-gray-500"
-                    }`}
-                  ></div>
-                  <span className="text-white">
-                    {event.status.toUpperCase()}
-                  </span>
-                </div>
-                <div className="mt-4 text-sm">
-                  <p className="text-white">
-                    <span className="text-[#B8B8B8]">Visibility:</span>{" "}
-                    {event.visibility}
-                  </p>
-                  <p className="text-white">
-                    <span className="text-[#B8B8B8]">Type:</span>{" "}
-                    {event.eventType}
-                  </p>
-                  <p className="text-white">
-                    <span className="text-[#B8B8B8]">Created:</span>{" "}
-                    {event.created_at
-                      ? `${new Date(event.created_at).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "long",
-                            day: "numeric",
-                          }
-                        )} at ${new Date(event.created_at).toLocaleTimeString(
-                          "en-US",
-                          {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          }
-                        )}`
-                      : "N/A"}
-                  </p>
-                  <p className="text-white">
-                    <span className="text-[#B8B8B8]">Last Updated:</span>{" "}
-                    {event.updated_at
-                      ? `${new Date(event.updated_at).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "long",
-                            day: "numeric",
-                          }
-                        )} at ${new Date(event.updated_at).toLocaleTimeString(
-                          "en-US",
-                          {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          }
-                        )}`
-                      : "N/A"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Reservations Section */}
             <div>
               <h3 className="text-[#FFAB40] text-xl font-semibold mb-2">
@@ -1144,6 +1254,43 @@ const EventDetailContainer = () => {
                         ? "Free events don't require reservations."
                         : "Reservations will be available when this event is published."}
                     </p>
+                  </div>
+                )}
+                {/* Add this code right after the pagination section */}
+                {reservations.length > 0 && (
+                  <div className="mt-3 flex justify-end text-sm">
+                    <div className="flex space-x-4 text-right">
+                      <div>
+                        <span className="text-custom_yellow font-medium">
+                          {reservationSummary.pending}
+                        </span>
+                        <span className="text-gray-400 ml-1">pending</span>
+                      </div>
+                      <div>
+                        <span className="text-custom_yellow  font-medium">
+                          {reservationSummary.claimed}
+                        </span>
+                        <span className="text-gray-400 ml-1">claimed</span>
+                      </div>
+                      <div>
+                        <span className="text-custom_yellow  font-medium">
+                          {reservationSummary.unclaimed}
+                        </span>
+                        <span className="text-gray-400 ml-1">unclaimed</span>
+                      </div>
+                      <div>
+                        <span className="text-custom_yellow  font-medium">
+                          {reservationSummary.cancelled}
+                        </span>
+                        <span className="text-gray-400 ml-1">cancelled</span>
+                      </div>
+                      <div>
+                        <span className="text-custom_yellow  font-medium">
+                          {reservationSummary.total}
+                        </span>
+                        <span className="text-gray-400 ml-1">total</span>
+                      </div>
+                    </div>
                   </div>
                 )}
 
