@@ -138,6 +138,7 @@ const Event_Ticketed = () => {
         <IoChevronBackOutline className="text-3xl" />
       </button>
 
+   
       <div className="flex justify-center items-center p-5 mt-10">
         <div className="text-white p-6 flex flex-col md:flex-row max-w-7xl w-full rounded-lg">
           {/* Left Image */}

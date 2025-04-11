@@ -131,6 +131,7 @@ const Event_ComingSoon = () => {
         <IoChevronBackOutline className="text-3xl" />
       </button>
 
+
       <div className="flex justify-center items-center p-5 mt-10">
         <div className="text-white p-6 flex flex-col md:flex-row max-w-7xl w-full rounded-lg">
           {/* Left Image */}
@@ -154,7 +155,9 @@ const Event_ComingSoon = () => {
                     const fallback = document.createElement("div");
                     fallback.className =
                       "w-full h-full flex items-center justify-center image-fallback";
+
                     fallback.innerHTML = `<span class="text-white text-center p-4 font-Poppins">${
+
                       event.name || "Event image unavailable"
                     }</span>`;
                     container.appendChild(fallback);
@@ -221,11 +224,13 @@ const Event_ComingSoon = () => {
             {/* Be Notified Button */}
             <div className="flex justify-end mt-6">
               <button
+
                 className="font-Poppins font-bold py-3 px-7 min-w-[300px] rounded-lg inline-block mb-2 uppercase transition-all transform hover:scale-105 bg-black text-[#F09C32] flex items-center justify-center space-x-2"
                 onClick={() => alert("You will be notified about this event!")}
               >
                 <span>Be notified!</span>
                 <IoNotifications className="text-2xl bg-white p-1 rounded-full" />
+
               </button>
             </div>
           </div>

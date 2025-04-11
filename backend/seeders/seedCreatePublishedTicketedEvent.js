@@ -56,6 +56,7 @@ async function createPublishedTicketedEvents() {
         status: "open",
         visibility: "published",
       },
+      
     ]);
 
 }

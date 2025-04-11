@@ -18,6 +18,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [user, setUser] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // New state for error handling
   const [error, setError] = useState({
@@ -84,6 +85,10 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
         sessionStorage.setItem("authToken", data.token);
         sessionStorage.setItem("userRole", data.user.role);
 
+        sessionStorage.setItem("username", data.user.username);
+        sessionStorage.setItem("userId", data.user.user_id);
+
+
         // Store COMPLETE user object in localStorage (this is what's missing)
         localStorage.setItem("user", JSON.stringify(data.user));
 
@@ -95,6 +100,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
         });
 
         toggleLoginPopup();
+
 
         // Redirect based on user role
         if (data.user.role === "admin") {
@@ -116,7 +122,13 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
             message: data.message || "Invalid login credentials",
           });
         }
+
       }
+
+      else {
+        setErrorMessage("Wrong username or password");
+      }
+
     } catch (error) {
       console.error("Login error:", error);
       setError({
@@ -239,6 +251,11 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
               {error.type === "password" && (
                 <p className="text-red-500 text-xs mt-1">{error.message}</p>
               )}
+            </div>
+
+            <div>
+            {/* Error Message */}
+            {errorMessage && (<p className="text-red-500 text-xs mt-0.5">{errorMessage}</p>)}
             </div>
 
             {/* Forgot Password */}

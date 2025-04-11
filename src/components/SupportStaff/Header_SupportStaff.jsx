@@ -13,7 +13,7 @@ const Header_Admin = () => {
     if (storedName) {
       setUserName(storedName); // Set the username in state
     } else {
-      setUserName("Admin"); // Fallback if no username is found
+      setUserName("Support Staff"); // Fallback if no username is found
     }
   }, []);
 
@@ -58,8 +58,8 @@ const Header_Admin = () => {
         {/* Display the admin's username */}
         <span className="text-gray-800 font-medium">Hi, {userName}!</span>
 
-        {/* Profile Icon - Routes to Admin Profile */}
-        <Link to="/admin-profile">
+        {/* Profile Icon - Routes to Support Staff Profile */}
+        <Link to="/support-staff-profile">
           <FaUser className="text-gray-800 text-lg cursor-pointer hover:text-gray-600" />
         </Link>
 

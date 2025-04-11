@@ -9,45 +9,75 @@ async function createAdditionalUsers() {
 
     const users = [
       {
-        first_name: "Nayeon",
-        last_name: "Im",
-        email: "nayeon.im@ust.edu.ph",
-        username: "nayeonim",
-        plainPassword: "nayeonpass",
+        first_name: "Liam",
+        last_name: "Samillano",
+        email: "liam.samillano@ust.edu.ph",
+        username: "liamsamillano",
+        password_hash: "liam123",
         role: "student",
         status: "active",
-        violation_count: 0,
+        violation_count: 0
       },
       {
-        first_name: "Jeongyeon",
-        last_name: "Yoo",
-        email: "jeongyeon.yoo@ust.edu.ph",
-        username: "jeongyeonyoo",
-        plainPassword: "jeongyeonpass",
-        role: "faculty",
-        status: "active",
-        violation_count: 0,
+        first_name: "Jamia",
+        last_name: "Navarro",
+        email: "jamia.navarro.cics@ust.edu.ph",
+        username: "jnavarro",
+        password_hash: "jamia123",
+        role: "student",
+        status: "restricted",
+        violation_count: 1
       },
       {
-        first_name: "Momo",
-        last_name: "Hirai",
-        email: "momo.hirai@ust.edu.ph",
-        username: "momohirai",
-        plainPassword: "momopass",
+        first_name: "Christian",
+        last_name: "Buenagua",
+        email: "christianbhernan.buenagua.cics@ust.edu.ph",
+        username: "cbuenagua",
+        password_hash: "christian123",
         role: "student",
         status: "active",
-        violation_count: 0,
+        violation_count: 2
       },
       {
-        first_name: "Sana",
-        last_name: "Minatozaki",
-        email: "sana.minatozaki@ust.edu.ph",
-        username: "sanaminatozaki",
-        plainPassword: "sanapass",
-        role: "admin",
+        first_name: "Jaiddie",
+        last_name: "Pangilinan",
+        email: "jaiddie.pangilinan.cics@ust.edu.ph",
+        username: "jpangilinan",
+        password_hash: "jaiddie123",
+        role: "student",
         status: "active",
-        violation_count: 0,
+        violation_count: 0
       },
+      {
+        first_name: "Andrea",
+        last_name: "Dumanat",
+        email: "andreanicole.dumanat.cics@ust.edu.ph",
+        username: "adumanat",
+        password_hash: "andrea123",
+        role: "student",
+        status: "active",
+        violation_count: 0
+      },
+      {
+        first_name: "Natasha",
+        last_name: "Namujhe",
+        email: "natasha.namujhe.cics@ust.edu.ph",
+        username: "nnamujhe",
+        password_hash: "natasha123",
+        role: "student",
+        status: "active",
+        violation_count: 0
+      },
+      {
+        first_name: "Yvhan",
+        last_name: "Fermin",
+        email: "raudmonyvhan.fermin.cics@ust.edu.ph",
+        username: "yfermin",
+        password_hash: "yvhan123",
+        role: "student",
+        status: "active",
+        violation_count: 0
+      }
     ];
 
     for (const user of users) {
@@ -58,7 +88,7 @@ async function createAdditionalUsers() {
       }
 
       // Hash the password
-      const hashedPassword = await bcrypt.hash(user.plainPassword, 10);
+      const hashedPassword = await bcrypt.hash(user.password_hash, 10);
 
       // Create the user
       await User.create({

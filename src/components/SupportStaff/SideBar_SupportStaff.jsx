@@ -21,16 +21,16 @@ const Sidebar = () => {
           <li
             className={`group flex flex-col items-center w-[100px] cursor-pointer transition-colors text-center p-3 
               ${
-                location.pathname.startsWith("/admin-dashboard")
+                location.pathname.startsWith("/support-staff-dashboard")
                   ? "bg-[#997342]"
                   : "hover:bg-[#997342]"
               }`}
-            onClick={() => navigate("/admin-dashboard")}
+            onClick={() => navigate("/support-staff-dashboard")}
           >
             <div
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors
                 ${
-                  location.pathname.startsWith("/admin-dashboard")
+                  location.pathname.startsWith("/support-staff-dashboard")
                     ? "bg-[#FFAB40]"
                     : "bg-[#7D7D7D]"
                 } 
@@ -39,23 +39,23 @@ const Sidebar = () => {
               <Home size={20} />
             </div>
             <span className="text-white text-center w-full py-2">
-              Admin Dashboard
+              Support Staff Dashboard
             </span>
           </li>
 
           <li
             className={`group flex flex-col items-center w-[100px] cursor-pointer transition-colors text-center p-3 
               ${
-                location.pathname.startsWith("/events")
+                location.pathname.startsWith("/support-staff-events")
                   ? "bg-[#997342]"
                   : "hover:bg-[#997342]"
               }`}
-            onClick={() => navigate("/events")}
+            onClick={() => navigate("/support-staff-events")}
           >
             <div
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors
                 ${
-                  location.pathname.startsWith("/events")
+                  location.pathname.startsWith("/support-staff-events")
                     ? "bg-[#FFAB40]"
                     : "bg-[#7D7D7D]"
                 } 
@@ -71,16 +71,16 @@ const Sidebar = () => {
           <li
             className={`group flex flex-col items-center w-[100px] cursor-pointer transition-colors text-center p-3 
               ${
-                location.pathname.startsWith("/reservations")
+                location.pathname.startsWith("/support-staff-reservations")
                   ? "bg-[#997342]"
                   : "hover:bg-[#997342]"
               }`}
-            onClick={() => navigate("/reservations")}
+            onClick={() => navigate("/support-staff-reservations")}
           >
             <div
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors
                 ${
-                  location.pathname.startsWith("/reservations")
+                  location.pathname.startsWith("/support-staff-reservations")
                     ? "bg-[#FFAB40]"
                     : "bg-[#7D7D7D]"
                 } 
@@ -96,16 +96,16 @@ const Sidebar = () => {
           <li
             className={`group flex flex-col items-center w-[100px] cursor-pointer transition-colors text-center p-3 
               ${
-                location.pathname.startsWith("/users")
+                location.pathname.startsWith("/support-staff-users")
                   ? "bg-[#997342]"
                   : "hover:bg-[#997342]"
               }`}
-            onClick={() => navigate("/users")}
+            onClick={() => navigate("/support-staff-users")}
           >
             <div
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors
                 ${
-                  location.pathname.startsWith("/users")
+                  location.pathname.startsWith("/support-staff-users")
                     ? "bg-[#FFAB40]"
                     : "bg-[#7D7D7D]"
                 } 
@@ -119,16 +119,16 @@ const Sidebar = () => {
           <li
             className={`group flex flex-col items-center w-[100px] cursor-pointer transition-colors text-center p-3 
               ${
-                location.pathname.startsWith("/admin-profile")
+                location.pathname.startsWith("/support-staff-profile")
                   ? "bg-[#997342]"
                   : "hover:bg-[#997342]"
               }`}
-            onClick={() => navigate("/admin-profile")}
+            onClick={() => navigate("/support-staff-profile")}
           >
             <div
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors
                 ${
-                  location.pathname.startsWith("/admin-profile")
+                  location.pathname.startsWith("/support-staff-profile")
                     ? "bg-[#FFAB40]"
                     : "bg-[#7D7D7D]"
                 } 
@@ -136,22 +136,22 @@ const Sidebar = () => {
             >
               <Shield size={20} />
             </div>
-            <span className="text-white text-center w-full py-2">Admin</span>
+            <span className="text-white text-center w-full py-2">Profile</span>
           </li>
 
           <li
             className={`group flex flex-col items-center w-[100px] cursor-pointer transition-colors text-center p-3 
               ${
-                location.pathname.startsWith("/event-report")
+                location.pathname.startsWith("/support-staff-event-report")
                   ? "bg-[#997342]"
                   : "hover:bg-[#997342]"
               }`}
-            onClick={() => navigate("/event-report")}
+            onClick={() => navigate("/support-staff-event-report")}
           >
             <div
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors
                 ${
-                  location.pathname.startsWith("/event-report")
+                  location.pathname.startsWith("/support-staff-event-report")
                     ? "bg-[#FFAB40]"
                     : "bg-[#7D7D7D]"
                 } 
@@ -164,30 +164,7 @@ const Sidebar = () => {
             </span>
           </li>
 
-          <li
-            className={`group flex flex-col items-center w-[100px] cursor-pointer transition-colors text-center p-3 
-              ${
-                location.pathname.startsWith("/audit-trails")
-                  ? "bg-[#997342]"
-                  : "hover:bg-[#997342]"
-              }`}
-            onClick={() => navigate("/audit-trails")}
-          >
-            <div
-              className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors
-                ${
-                  location.pathname.startsWith("/audit-trails")
-                    ? "bg-[#FFAB40]"
-                    : "bg-[#7D7D7D]"
-                } 
-                group-hover:bg-[#FFAB40]`}
-            >
-              <Clipboard size={20} />
-            </div>
-            <span className="text-white text-center w-full py-2">
-              Audit Trails
-            </span>
-          </li>
+        
         </ul>
       </nav>
     </aside>

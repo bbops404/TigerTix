@@ -1,48 +1,32 @@
 import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaBell, FaSignOutAlt, FaChevronDown } from "react-icons/fa";
+import { useEffect, useState } from "react";
 import tigertix_logo from "../assets/tigertix_logo.png";
-import { useState, useEffect } from "react";
-import axios from "axios";
 
 const Header_User = () => {
+
   const [publishedEvents, setPublishedEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
   const [user, setUser] = useState(null); // State for user data
   const [loading, setLoading] = useState(true); // State for loading
   const [isRedirecting, setIsRedirecting] = useState(false); // State to prevent multiple clicks
+
   const navigate = useNavigate();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [userName, setUserName] = useState(""); // State to store the user's name
+  const [publishedEvents, setPublishedEvents] = useState([]); // State for published events
+  const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
 
   useEffect(() => {
-    // Function to fetch user data
-    const fetchUserData = async () => {
-      try {
-        const API_BASE_URL = "http://localhost:5002"; // Base URL
-        const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
-          withCredentials: true, // Important for including cookies
-        });
-
-        if (response.data.success) {
-          setUser(response.data.data);
-        } else {
-          console.error("Failed to fetch user data.");
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Function to fetch published events
+    // Fetch published events
     const fetchPublishedEvents = async () => {
       try {
-        const API_BASE_URL = "http://localhost:5002"; // Base URL
-        const response = await axios.get(
-          `${API_BASE_URL}/api/events/published`
-        );
+        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const response = await fetch(`${API_BASE_URL}/api/events/published`);
+        const data = await response.json();
 
-        if (response.data.success) {
-          setPublishedEvents(response.data.data);
+        if (response.ok && data.success) {
+          setPublishedEvents(data.data);
         } else {
           console.error("Failed to fetch published events.");
         }
@@ -52,11 +36,22 @@ const Header_User = () => {
     };
 
     // Fetch both user data and published events
-    fetchUserData();
     fetchPublishedEvents();
   }, []);
 
-  const handleEventChange = async (event) => {
+
+  useEffect(() => {
+    // Retrieve the username from sessionStorage
+    const storedName = sessionStorage.getItem("username");
+    if (storedName) {
+      setUserName(storedName); // Set the username in state
+    } else {
+      setUserName("User"); // Fallback if no username is found
+    }
+  }, []);
+
+  const handleEventChange = (event) => {
+
     const eventId = event.target.value;
     if (!eventId) return;
 
@@ -126,51 +121,19 @@ const Header_User = () => {
       console.log("🔴 Logging out...");
 
       // Clear session storage
-      sessionStorage.removeItem("authToken");
-      sessionStorage.removeItem("userRole");
-
-      // Debugging logs
-      console.log(
-        "Session cleared:",
-        sessionStorage.getItem("authToken"),
-        sessionStorage.getItem("userRole")
-      );
+      sessionStorage.clear();
 
       alert("Logged out successfully!");
       navigate("/"); // Redirect to Landing Page
-      sessionStorage.clear();
-
-      window.history.pushState(null, "", window.location.href);
-      window.history.replaceState(null, "", window.location.href);
     } catch (error) {
       console.error("Logout error:", error.message);
       alert(error.message);
     }
   };
 
-  // Get the proper display name for the user
-  const getUserDisplayName = () => {
-    if (loading) return "Loading...";
-    if (!user) return "Guest";
-
-    // First try to use first_name
-    if (user.first_name) {
-      return `${user.first_name}`;
-    }
-    // Fall back to username if available
-    else if (user.username) {
-      return user.username;
-    }
-    // Last resort, use email prefix
-    else if (user.email) {
-      return user.email.split("@")[0];
-    }
-
-    return "User"; // Default fallback
-  };
 
   return (
-    <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl">
+    <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl relative">
       {/* Logo */}
       <Link to="/home" className="flex items-center">
         <img
@@ -180,21 +143,22 @@ const Header_User = () => {
         />
       </Link>
 
-      {/* Dropdown Selection with Arrow Icon */}
-      <div className="relative flex items-center group">
-        <FaChevronDown className="absolute left-3 text-gray-600 group-hover:text-gray-800 transition-colors duration-200" />
+      {/* Dropdown Selection */}
+      <div className="relative group">
         <select
           value={selectedEvent}
           onChange={handleEventChange}
+
           className="font-Poppins text-[15px] font-medium bg-white py-3 px-5 pl-8 rounded-xl text-[#2D2D2D] transition-all duration-300 relative w-[565px] h-[50px] border border-gray-300 cursor-pointer focus:ring-2 focus:ring-yellow-500 focus:outline-none"
           disabled={isRedirecting}
+
         >
           <option value="" disabled>
             {isRedirecting ? "Redirecting..." : "Select Event"}
           </option>
           {publishedEvents.length > 0 ? (
             publishedEvents.map((event) => (
-              <option key={event.id} value={event.id} className="py-2">
+              <option key={event.id} value={event.id}>
                 {event.name} -{" "}
                 {new Date(event.event_date).toLocaleDateString("en-US", {
                   year: "numeric",
@@ -211,22 +175,19 @@ const Header_User = () => {
 
       {/* Right-side content */}
       <div className="flex items-center gap-4">
-        <span className="text-gray-800 font-medium">
-          Hi, {getUserDisplayName()}!
-        </span>
+        {/* Display the username */}
+        <span className="text-gray-800 font-medium">Hi, {userName}!</span>
 
         {/* Profile Icon - Routes to My Profile */}
         <Link to="/my-profile">
           <FaUser className="text-gray-800 text-lg cursor-pointer hover:text-gray-600" />
         </Link>
 
-        {/* Notification Icon */}
-        <FaBell className="text-gray-800 text-lg cursor-pointer hover:text-gray-600" />
-
-        {/* Logout Icon - Calls handleLogout function */}
-        <button onClick={handleLogout} className="bg-transparent border-none">
-          <FaSignOutAlt className="text-gray-800 text-lg cursor-pointer hover:text-gray-600" />
-        </button>
+        {/* Logout Icon - Calls handleLogout */}
+        <FaSignOutAlt
+          className="text-gray-800 text-lg cursor-pointer hover:text-gray-600"
+          onClick={handleLogout}
+        />
       </div>
     </div>
   );

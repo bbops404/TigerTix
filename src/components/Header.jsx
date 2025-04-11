@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
-const Header = ({ toggleLoginPopup, showAuthButtons = true }) => {
+const Header = ({ toggleLoginPopup, showAuthButtons = true, showDropdown = true }) => {
   const navigate = useNavigate();
   const [publishedEvents, setPublishedEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
@@ -87,7 +87,7 @@ const Header = ({ toggleLoginPopup, showAuthButtons = true }) => {
 
   return (
     <div>
-      <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl ">
+      <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl relative">
         <Link to="/" className="flex items-center">
           <img
             src={tigertix_logo}
@@ -96,33 +96,36 @@ const Header = ({ toggleLoginPopup, showAuthButtons = true }) => {
           />
         </Link>
 
-        {/* Dropdown for Published Events */}
-        <div className="relative group">
-          <select
-            value={selectedEvent}
-            onChange={handleEventChange}
-            className="font-Poppins text-[15px] font-medium bg-white py-3 px-5 rounded-xl text-[#2D2D2D] transition-all duration-300 relative w-[565px] h-[50px] border border-gray-300 cursor-pointer focus:ring-2 focus:ring-yellow-500 focus:outline-none"
-            disabled={isRedirecting}
-          >
-            <option value="" disabled>
-              {isRedirecting ? "Redirecting..." : "Select Event"}
-            </option>
-            {publishedEvents.length > 0 ? (
-              publishedEvents.map((event) => (
-                <option key={event.id} value={event.id}>
-                  {event.name} -{" "}
-                  {new Date(event.event_date).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </option>
-              ))
-            ) : (
-              <option disabled>No events available yet</option>
-            )}
-          </select>
-        </div>
+
+        {/* Conditionally render the dropdown */}
+        {showDropdown && (
+          <div className="relative group">
+            <select
+              value={selectedEvent}
+              onChange={handleEventChange}
+              className="font-Poppins text-[15px] font-medium bg-white py-3 px-5 rounded-xl text-[#2D2D2D] transition-all duration-300 relative w-[565px] h-[50px] border border-gray-300 cursor-pointer focus:ring-2 focus:ring-yellow-500 focus:outline-none"
+            >
+              <option value="" disabled>
+                Select Event
+              </option>
+              {publishedEvents.length > 0 ? (
+                publishedEvents.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.name} -{" "}
+                    {new Date(event.event_date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </option>
+                ))
+              ) : (
+                <option disabled>No events available yet</option>
+              )}
+            </select>
+          </div>
+        )}
+
 
         {showAuthButtons && (
           <div className="flex gap-5">
