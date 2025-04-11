@@ -83,26 +83,6 @@ const Header_User = () => {
     }
   };
 
-  // Get the proper display name for the user
-  const getUserDisplayName = () => {
-    if (loading) return "Loading...";
-    if (!user) return "Guest";
-
-    // First try to use first_name
-    if (user.first_name) {
-      return `${user.first_name}`;
-    }
-    // Fall back to username if available
-    else if (user.username) {
-      return user.username;
-    }
-    // Last resort, use email prefix
-    else if (user.email) {
-      return user.email.split("@")[0];
-    }
-
-    return "User"; // Default fallback
-  };
 
   return (
     <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl relative">
