@@ -1,10 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaBell, FaSignOutAlt, FaChevronDown } from "react-icons/fa";
 import { useEffect, useState } from "react";
+import axios from "axios"; // Added missing axios import
 import tigertix_logo from "../assets/tigertix_logo.png";
 
 const Header_User = () => {
-
   const [publishedEvents, setPublishedEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
   const [user, setUser] = useState(null); // State for user data
@@ -14,8 +14,6 @@ const Header_User = () => {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [userName, setUserName] = useState(""); // State to store the user's name
-  const [publishedEvents, setPublishedEvents] = useState([]); // State for published events
-  const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
 
   useEffect(() => {
     // Fetch published events
@@ -32,13 +30,14 @@ const Header_User = () => {
         }
       } catch (error) {
         console.error("Error fetching published events:", error);
+      } finally {
+        setLoading(false); // Set loading to false regardless of outcome
       }
     };
 
     // Fetch both user data and published events
     fetchPublishedEvents();
   }, []);
-
 
   useEffect(() => {
     // Retrieve the username from sessionStorage
@@ -50,8 +49,8 @@ const Header_User = () => {
     }
   }, []);
 
-  const handleEventChange = (event) => {
-
+  const handleEventChange = async (event) => {
+    // Added async keyword
     const eventId = event.target.value;
     if (!eventId) return;
 
@@ -131,7 +130,6 @@ const Header_User = () => {
     }
   };
 
-
   return (
     <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl relative">
       {/* Logo */}
@@ -148,13 +146,15 @@ const Header_User = () => {
         <select
           value={selectedEvent}
           onChange={handleEventChange}
-
           className="font-Poppins text-[15px] font-medium bg-white py-3 px-5 pl-8 rounded-xl text-[#2D2D2D] transition-all duration-300 relative w-[565px] h-[50px] border border-gray-300 cursor-pointer focus:ring-2 focus:ring-yellow-500 focus:outline-none"
-          disabled={isRedirecting}
-
+          disabled={isRedirecting || loading} // Added loading check
         >
           <option value="" disabled>
-            {isRedirecting ? "Redirecting..." : "Select Event"}
+            {loading
+              ? "Loading events..."
+              : isRedirecting
+              ? "Redirecting..."
+              : "Select Event"}
           </option>
           {publishedEvents.length > 0 ? (
             publishedEvents.map((event) => (

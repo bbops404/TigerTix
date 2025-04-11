@@ -140,7 +140,6 @@ const Event_Free = () => {
         <IoChevronBackOutline className="text-3xl" />
       </button>
 
-
       <div className="flex justify-center items-center p-5 mt-10">
         <div className="text-white p-6 flex flex-col md:flex-row max-w-7xl w-full rounded-lg">
           {/* Left Image */}
@@ -164,9 +163,7 @@ const Event_Free = () => {
                     const fallback = document.createElement("div");
                     fallback.className =
                       "w-full h-full flex items-center justify-center image-fallback";
-<
                     fallback.innerHTML = `<span class="text-white text-center p-4 font-Poppins">${
-
                       event.name || "Event image unavailable"
                     }</span>`;
                     container.appendChild(fallback);
