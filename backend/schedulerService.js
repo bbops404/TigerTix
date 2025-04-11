@@ -6,7 +6,10 @@ const cron = require("node-cron");
 const db = require("./models");
 const autoStatusCheck = require("./middleware/autoStatusCheck");
 const { Op } = require("sequelize");
-
+const {
+  checkUserRestrictions,
+  updateAllUserRestrictions,
+} = require("./middleware/checkUserRestrictions");
 // If you have a controller or service for reservation status update:
 const updateReservationStatusService = require("./middleware/updateReservationStatus"); // Replace path if needed
 
@@ -204,7 +207,78 @@ const initScheduler = (io) => {
     }
   });
 
-  console.log("✅ Scheduler services initialized successfully ⏰");
+  cron.schedule("*/5 * * * *", async () => {
+    console.log("🕒 Running scheduled user restriction check...");
+    try {
+      const restrictedUsers = await db.User.findAll({
+        where: {
+          [Op.or]: [
+            // Users with 2 violations to be restricted
+            {
+              violation_count: { [Op.gt]: 1, [Op.lte]: 2 },
+              status: { [Op.ne]: "restricted" },
+            },
+            // Users with 3 or more violations to be suspended
+            {
+              violation_count: { [Op.gt]: 2 },
+              status: { [Op.ne]: "suspended" },
+            },
+            // Users with existing restrictions that may have expired
+            {
+              status: "restricted",
+              restriction_end_date: { [Op.lt]: new Date() },
+            },
+          ],
+        },
+      });
+
+      for (const user of restrictedUsers) {
+        if (user.violation_count > 2) {
+          // Suspend users with 3 or more violations
+          await user.update({
+            status: "suspended",
+            restriction_end_date: null,
+          });
+
+          console.log(
+            `🚫 User ${user.username} (ID: ${user.user_id}) suspended due to multiple violations`
+          );
+        } else if (user.violation_count > 1 && user.violation_count <= 2) {
+          // Restrict users with 2 violations for 15 days
+          const restrictionEndDate = new Date();
+          restrictionEndDate.setDate(restrictionEndDate.getDate() + 15);
+
+          await user.update({
+            status: "restricted",
+            restriction_end_date: restrictionEndDate,
+          });
+
+          console.log(
+            `⏳ User ${user.username} (ID: ${user.user_id}) restricted for 15 days`
+          );
+        } else if (
+          user.status === "restricted" &&
+          user.restriction_end_date < new Date()
+        ) {
+          // Lift restrictions for users whose restriction period has ended
+          await user.update({
+            status: "active",
+            restriction_end_date: null,
+          });
+
+          console.log(
+            `✅ User ${user.username} (ID: ${user.user_id}) restrictions lifted`
+          );
+        }
+      }
+
+      console.log(
+        `📊 User restriction check completed. Processed ${restrictedUsers.length} users.`
+      );
+    } catch (error) {
+      console.error("❌ Error during scheduled user restriction check:", error);
+    }
+  });
 };
 
 module.exports = {

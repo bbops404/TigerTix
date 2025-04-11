@@ -474,24 +474,37 @@ const Reservation = () => {
         // Close the modal
         setShowConfirmModal(false);
 
-        // Store reservation data for receipt page
+        // Get the price for the selected ticket type
+        const ticketPrice =
+          seatType && getTicketPrices()[seatType]
+            ? parseFloat(getTicketPrices()[seatType])
+            : 0;
+
+        // Get claiming venue info
+        const claimingVenueInfo =
+          claimingSlots.find((slot) => slot.id === claimingSlotId)?.venue ||
+          "UST IPEA";
+
+        // Store reservation data for receipt page with properly structured fields
         const receiptData = {
           ticketType: seatType,
           ticketCount,
+          ticketPrice: ticketPrice, // Add the price for a single ticket
           emails: emails.slice(0, ticketCount),
           timeSlot: claimingSlot,
-          ticketPrices: getTicketPrices(),
           userEmail: user.email,
           firstName: user.first_name,
           lastName: user.last_name,
-          event: event,
+          // Extract event details explicitly
+          eventName: event.name,
+          eventDate: event.event_date,
+          eventTime: event.event_time,
+          eventVenue: event.venue,
           reservationId:
             response.data && response.data.length > 0
               ? response.data[0]?.reservation_id
               : "N/A",
-          claimingVenue:
-            claimingSlots.find((slot) => slot.id === claimingSlotId)?.venue ||
-            "UST IPEA",
+          claimingVenue: claimingVenueInfo,
         };
 
         // Navigate to the receipt page
@@ -518,7 +531,6 @@ const Reservation = () => {
       setShowConfirmModal(false);
     }
   };
-
   // Helper function to get user IDs from emails
   const getUserIdsFromEmails = async (emails) => {
     try {

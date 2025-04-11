@@ -24,9 +24,15 @@ const Event_Free = () => {
         const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
 
         // Fetch event details by ID
-        const response = await axios.get(`${API_BASE_URL}/api/events/free-events/${id}`);
+        const response = await axios.get(
+          `${API_BASE_URL}/api/events/free-events/${id}`
+        );
         if (response.data.success) {
           setEvent(response.data.data);
+          console.log(
+            "Free Event data fetched successfully:",
+            response.data.data
+          );
         } else {
           setError("Failed to fetch event details.");
         }
@@ -41,24 +47,94 @@ const Event_Free = () => {
     fetchEvent();
   }, [id]);
 
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "TBA";
+
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  // Format time to show AM/PM
+  const formatTime = (timeString) => {
+    if (!timeString) return "TBA";
+
+    try {
+      if (
+        timeString.toLowerCase().includes("am") ||
+        timeString.toLowerCase().includes("pm")
+      ) {
+        return timeString;
+      }
+
+      if (timeString.includes(":")) {
+        const [hours, minutes] = timeString
+          .split(":")
+          .map((num) => parseInt(num, 10));
+        const period = hours >= 12 ? "PM" : "AM";
+        const formattedHours = hours % 12 || 12;
+        return `${formattedHours}:${minutes
+          .toString()
+          .padStart(2, "0")} ${period}`;
+      }
+
+      const hours = parseInt(timeString, 10);
+      if (!isNaN(hours)) {
+        const period = hours >= 12 ? "PM" : "AM";
+        const formattedHours = hours % 12 || 12;
+        return `${formattedHours}:00 ${period}`;
+      }
+
+      return timeString;
+    } catch (e) {
+      console.error("Error formatting time:", e);
+      return timeString;
+    }
+  };
+
   if (loading) {
-    return <div className="text-center text-white">Loading event details...</div>;
+    return (
+      <div className="bg-[#121212] text-white min-h-screen">
+        <Header toggleLoginPopup={toggleLoginPopup} />
+        <div className="flex justify-center items-center h-[calc(100vh-100px)]">
+          <div className="text-xl">Loading event details...</div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-center text-red-500">{error}</div>;
+    return (
+      <div className="bg-[#121212] text-white min-h-screen">
+        <Header toggleLoginPopup={toggleLoginPopup} />
+        <div className="flex justify-center items-center h-[calc(100vh-100px)]">
+          <div className="text-xl text-red-500">{error}</div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="bg-[#121212] text-white min-h-screen">
       <Header toggleLoginPopup={toggleLoginPopup} />
       {loginPopup && (
-        <LoginPopup loginPopup={loginPopup} toggleLoginPopup={toggleLoginPopup} />
+        <LoginPopup
+          loginPopup={loginPopup}
+          toggleLoginPopup={toggleLoginPopup}
+        />
       )}
 
-      {/* Back Button (Upper Left) */}
+      {/* Back Button (Upper Left) - Navigate to landing page */}
       <button
-        onClick={() => navigate(-1)}
+        onClick={() => navigate("/")}
         className="absolute top-[100px] left-4 text-white font-Poppins font-bold"
       >
         <IoChevronBackOutline className="text-3xl" />
@@ -88,7 +164,9 @@ const Event_Free = () => {
                     const fallback = document.createElement("div");
                     fallback.className =
                       "w-full h-full flex items-center justify-center image-fallback";
-                    fallback.innerHTML = `<span class="text-white text-center p-4">${
+<
+                    fallback.innerHTML = `<span class="text-white text-center p-4 font-Poppins">${
+
                       event.name || "Event image unavailable"
                     }</span>`;
                     container.appendChild(fallback);
@@ -105,12 +183,14 @@ const Event_Free = () => {
           </div>
 
           {/* Right Content */}
-          <div className="w-2/3 pl-6">
+          <div className="w-full pl-8">
             <div className="bg-[#F09C32] text-black font-Poppins font-bold px-4 py-2 rounded-lg inline-block mb-4">
               {event.name}
             </div>
 
-            <h2 className="font-bold font-Poppins text-lg mb-2">EVENT DETAILS:</h2>
+            <h2 className="font-bold font-Poppins text-sm mb-2">
+              EVENT DETAILS:
+            </h2>
             <p className="font-Poppins text-justify text-sm text-gray-300 mb-4">
               {event.details}
             </p>
@@ -119,16 +199,46 @@ const Event_Free = () => {
               <strong>Location:</strong> {event.venue}
             </p>
             <p className="text-sm mb-2 font-Poppins">
-              <strong>Date:</strong> {event.event_date || "TBA"}
+              <strong>Date:</strong> {formatDate(event.event_date)}
             </p>
             <p className="text-sm mb-2 font-Poppins">
-              <strong>Time:</strong> {event.event_time || "TBA"}
+              <strong>Time:</strong> {formatTime(event.event_time)}
             </p>
 
-            {/* Login Message */}
-            <p className="text-center font-Poppins mt-4 text-sm">
-              To be notified for free events, please login{" "}
-              <a href="#" onClick={toggleLoginPopup} className="text-[#F09C32] hover:underline">
+            <hr className="border-t border-gray-400 my-4" />
+
+            {/* Free Event Information */}
+            <div className="bg-[#2a2a2a] p-4 rounded-lg mt-4">
+              <p className="font-Poppins text-center text-sm mb-2">
+                <strong>
+                  This is a free event - no ticket or reservation required!
+                </strong>
+              </p>
+              <p className="font-Poppins text-center text-xs text-gray-400">
+                Simply show up at the venue on the specified date and time. No
+                reservation needed.
+              </p>
+            </div>
+
+            {/* Additional Information - if available */}
+            {event.additional_information && (
+              <div className="mt-4 p-2 bg-[#2a2a2a] rounded-lg">
+                <p className="text-sm font-Poppins">
+                  <strong>Additional Information:</strong>{" "}
+                  {event.additional_information}
+                </p>
+              </div>
+            )}
+
+            {/* Login Button */}
+
+            <p className="text-center font-Poppins mt-10 text-sm">
+              To receive updates about this and other free events, please login{" "}
+              <a
+                href="#"
+                onClick={toggleLoginPopup}
+                className="text-[#F09C32] hover:underline"
+              >
                 here
               </a>
             </p>

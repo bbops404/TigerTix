@@ -7,11 +7,7 @@ const ClaimingSlot = db.ClaimingSlot; // Add this
 const nodemailer = require("nodemailer");
 const { createAuditTrail } = require("./auditTrailController");
 
-
-
-
 const sequelize = db.sequelize; // Add this for transaction
-
 
 // Nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -21,7 +17,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
-
 
 const reservationController = {
   // Create a new reservation
@@ -109,6 +104,86 @@ const reservationController = {
         }
       }
 
+      // NEW: Check for user restrictions and violations
+      const users = await User.findAll({
+        where: { user_id: usersToReserveFor },
+        attributes: [
+          "user_id",
+          "email",
+          "first_name",
+          "last_name",
+          "status",
+          "violation_count",
+          "restriction_end_date",
+        ],
+      });
+
+      // Check if all users exist
+      if (users.length !== usersToReserveFor.length) {
+        const foundUserIds = users.map((user) => user.user_id);
+        const missingUserIds = usersToReserveFor.filter(
+          (id) => !foundUserIds.includes(id)
+        );
+
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          message: "One or more users not found",
+          missing_users: missingUserIds,
+        });
+      }
+
+      // Check for account restrictions
+      const restrictedUsers = users.filter((user) => {
+        // Case 1: Account is suspended
+        if (user.status === "suspended") {
+          return true;
+        }
+
+        // Case 2: Account is restricted and restriction is still active
+        if (user.status === "restricted" && user.restriction_end_date) {
+          const now = new Date();
+          return now < new Date(user.restriction_end_date);
+        }
+
+        return false;
+      });
+
+      if (restrictedUsers.length > 0) {
+        await transaction.rollback();
+
+        // Format restriction messages
+        const restrictions = restrictedUsers.map((user) => {
+          let message = "";
+
+          if (user.status === "suspended") {
+            message = "Account is suspended due to multiple violations";
+          } else if (user.status === "restricted") {
+            const endDate = new Date(user.restriction_end_date);
+            const formattedDate = endDate.toLocaleDateString();
+            message = `Account is restricted until ${formattedDate} due to previous violations`;
+          }
+
+          return {
+            user_id: user.user_id,
+            name: `${user.first_name} ${user.last_name}`,
+            status: user.status,
+            restriction_end_date: user.restriction_end_date,
+            message,
+          };
+        });
+
+        return res.status(403).json({
+          success: false,
+          message:
+            "One or more users have restrictions and cannot make reservations",
+          restricted_users: restrictions,
+        });
+      }
+
+      // If we reach here, continue with the rest of the reservation process
+      // Rest of the existing createReservation method follows...
+
       // Check if the ticket exists and has enough remaining quantity
       const ticket = await Ticket.findByPk(ticket_id);
       if (!ticket) {
@@ -125,25 +200,6 @@ const reservationController = {
         return res.status(400).json({
           success: false,
           message: "Not enough tickets available",
-        });
-      }
-
-      // Validate that all users exist in the system
-      const users = await User.findAll({
-        where: { user_id: usersToReserveFor },
-      });
-
-      if (users.length !== usersToReserveFor.length) {
-        const foundUserIds = users.map((user) => user.user_id);
-        const missingUserIds = usersToReserveFor.filter(
-          (id) => !foundUserIds.includes(id)
-        );
-
-        await transaction.rollback();
-        return res.status(404).json({
-          success: false,
-          message: "One or more users not found",
-          missing_users: missingUserIds,
         });
       }
 
@@ -240,12 +296,12 @@ const reservationController = {
             <p>Thank you for using TigerTix!</p>
           `,
         };
-      try {
-        await transporter.sendMail(mailOptions);
-      } catch (emailError) {
-        console.error(`Failed to send email to ${user.email}:`, emailError);
+        try {
+          await transporter.sendMail(mailOptions);
+        } catch (emailError) {
+          console.error(`Failed to send email to ${user.email}:`, emailError);
+        }
       }
-    }
 
       return res.status(201).json({
         success: true,
@@ -500,27 +556,24 @@ const reservationController = {
       await reservation.save();
       consolemo.log("User data for audit log:", req.user);
 
-    try {
-  await createAuditTrail({
-    user_id: req.user.user_id,
-    username: req.user.username,
-    role: req.user.role,
-    action: "Mark Reservation as Claimed",
-    affectedEntity: "Reservation",
-    message: `Marked reservation ID ${reservation_id} as claimed.`,
-    status: "Successful",
-  });
-} catch (error) {
-  console.error("Failed to create audit log:", error);
-}
+      try {
+        await createAuditTrail({
+          user_id: req.user.user_id,
+          username: req.user.username,
+          role: req.user.role,
+          action: "Mark Reservation as Claimed",
+          affectedEntity: "Reservation",
+          message: `Marked reservation ID ${reservation_id} as claimed.`,
+          status: "Successful",
+        });
+      } catch (error) {
+        console.error("Failed to create audit log:", error);
+      }
       return res.status(200).json({
-        
         success: true,
         message: "Reservation marked as claimed successfully",
         data: reservation,
       });
-
-
     } catch (error) {
       console.error("Error marking reservation as claimed:", error);
       return res.status(500).json({
@@ -595,7 +648,6 @@ const reservationController = {
       reservation.reservation_status = "claimed";
       await reservation.save();
 
-      
       // Format user name safely
       const userName = reservation.User
         ? `${reservation.User.first_name || ""} ${
@@ -633,8 +685,6 @@ const reservationController = {
           status: "claimed",
         },
       });
-
-      
     } catch (error) {
       console.error("Error marking reservation as claimed via QR code:", error);
       return res.status(500).json({
@@ -812,15 +862,15 @@ const reservationController = {
       reservation.reservation_status = "claimed";
       await reservation.save();
 
-await createAuditTrail({
-  user_id: req.user.user_id,
-  username: req.user.username,
-  role: req.user.role,
-  action: "Reinstated reservation",
-  message: `Marked ${reservation_id} reservations from unclaimed to claimed.`,
-  status: "Successful",
-});
-      
+      await createAuditTrail({
+        user_id: req.user.user_id,
+        username: req.user.username,
+        role: req.user.role,
+        action: "Reinstated reservation",
+        message: `Marked ${reservation_id} reservations from unclaimed to claimed.`,
+        status: "Successful",
+      });
+
       return res.status(200).json({
         success: true,
         message: "Reservation reinstated to claimed successfully",
@@ -850,6 +900,7 @@ await createAuditTrail({
 
       const restoredReservations = [];
       const errors = [];
+      const violationWarnings = [];
 
       for (const reservation_id of reservation_ids) {
         try {
@@ -858,13 +909,18 @@ await createAuditTrail({
             include: [
               {
                 model: db.Ticket,
-                as: "Tickets", // Use the alias defined in the association
+                as: "Ticket", // Use the alias defined in the association
                 attributes: ["id", "remaining_quantity"],
               },
               {
                 model: db.User,
                 as: "User", // Use the alias defined in the association
-                attributes: ["user_id", "violation_count"],
+                attributes: [
+                  "user_id",
+                  "violation_count",
+                  "status",
+                  "restriction_end_date",
+                ],
               },
             ],
           });
@@ -883,11 +939,52 @@ await createAuditTrail({
             continue;
           }
 
-          // Increment the user's violation count
+          // Increment the user's violation count and apply appropriate restrictions
           const user = reservation.User;
           if (user) {
-            user.violation_count += 1;
-            await user.save();
+            // Increment violation count
+            const newViolationCount = user.violation_count + 1;
+
+            // Apply different restrictions based on violation count
+            let newStatus = user.status;
+            let restrictionEndDate = null;
+            let violationMessage = "";
+
+            if (newViolationCount === 1) {
+              // First violation: Warning only
+              violationMessage =
+                "This is your first violation. Please claim your tickets on time in the future.";
+              newStatus = "active"; // Keep status active
+            } else if (newViolationCount === 2) {
+              // Second violation: Block reservations for 15 days
+              const endDate = new Date();
+              endDate.setDate(endDate.getDate() + 15); // Add 15 days
+              restrictionEndDate = endDate;
+              newStatus = "restricted";
+              violationMessage =
+                "This is your second violation. You are restricted from making reservations for 15 days.";
+            } else if (newViolationCount >= 3) {
+              // Third violation: Account suspended
+              newStatus = "suspended";
+              violationMessage =
+                "This is your third violation. Your account has been suspended.";
+            }
+
+            // Update the user record
+            await user.update({
+              violation_count: newViolationCount,
+              status: newStatus,
+              restriction_end_date: restrictionEndDate,
+            });
+
+            // Add violation warning for response
+            violationWarnings.push({
+              user_id: user.user_id,
+              violation_count: newViolationCount,
+              message: violationMessage,
+              status: newStatus,
+              restriction_end_date: restrictionEndDate,
+            });
           }
 
           // Restore the ticket slot
@@ -897,20 +994,20 @@ await createAuditTrail({
             await ticket.save();
           }
 
-
-
           // Update the reservation status to "cancelled"
           reservation.reservation_status = "cancelled";
           await reservation.save();
 
-await createAuditTrail({
-  user_id: req.user.user_id,
-  username: req.user.username,
-  role: req.user.role,
-  action: "Restore reservation",
-  message: `Marked ${reservation_id} reservations from unclaimed to cancelled.`,
-  status: "Successful",
-});
+          await createAuditTrail({
+            user_id: req.user.user_id,
+            username: req.user.username,
+            role: req.user.role,
+            action: "Restore reservation",
+            affectedEntity: "Reservation",
+            message: `Marked reservation ${reservation_id} from unclaimed to cancelled with violation count increment.`,
+            status: "Successful",
+          });
+
           restoredReservations.push(reservation);
         } catch (error) {
           errors.push({ reservation_id, message: error.message });
@@ -921,6 +1018,7 @@ await createAuditTrail({
         success: true,
         message: "Processed reservations.",
         restored: restoredReservations,
+        violations: violationWarnings,
         errors,
       });
     } catch (error) {
@@ -1001,21 +1099,18 @@ await createAuditTrail({
             { transaction }
           );
 
-
-
           successfulIds.push(reservationId);
 
           // Inside markMultipleAsClaimed
-await createAuditTrail({
-  user_id: req.user.user_id,
-  username: req.user.username,
-  role: req.user.role,
-  action: "Mark Multiple Reservations as Claimed",
-  affectedEntity: "Reservations",
-  message: `Marked ${successfulIds.length} reservations as claimed.`,
-  status: "Successful",
-});
-          
+          await createAuditTrail({
+            user_id: req.user.user_id,
+            username: req.user.username,
+            role: req.user.role,
+            action: "Mark Multiple Reservations as Claimed",
+            affectedEntity: "Reservations",
+            message: `Marked ${successfulIds.length} reservations as claimed.`,
+            status: "Successful",
+          });
         } catch (error) {
           console.error(
             `Error processing reservation ${reservationId}:`,
