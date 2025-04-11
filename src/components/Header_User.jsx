@@ -49,7 +49,7 @@ const Header_User = () => {
     if (eventId) {
       // Add a slight delay before navigation for smoother experience
       setTimeout(() => {
-        navigate(`/event-ticketed/${eventId}`);
+        navigate(`/event-ticketed-enduser/${eventId}`);
       }, 300); // 300ms delay gives visual feedback that selection was made
     }
   };

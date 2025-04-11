@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-
 const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -9,26 +8,31 @@ const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
   const [error, setError] = useState("");
 
   const handleChangePassword = async () => {
+
+    const token = sessionStorage.getItem("authToken");
     if (newPassword !== confirmPassword) {
       setError("New passwords do not match!");
       return;
     }
-  
+
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/change-password", // Replace with your actual endpoint
+      const userId = sessionStorage.getItem("userId"); // Retrieve user ID from sessionStorage
+      const response = await axios.put(
+        `http://localhost:5002/api/users/${userId}/change-password`, // Updated endpoint
         {
           currentPassword,
           newPassword,
         },
         {
+                    withCredentials: true, // Ensures cookies are sent (if applicable)
+          
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`, // Include token if required
+            Authorization: `Bearer ${token}`, // Include token if required
             "Content-Type": "application/json",
           },
         }
       );
-  
+
       if (response.data.success) {
         alert("Password successfully changed!");
         togglePopup();
@@ -39,10 +43,6 @@ const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
       setError(error.response?.data?.message || "An error occurred.");
     }
   };
-
-
-
- 
 
   return (
     showPopup && (

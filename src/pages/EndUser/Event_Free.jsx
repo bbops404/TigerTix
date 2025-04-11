@@ -57,16 +57,45 @@ const EventFree = () => {
         <IoChevronBackOutline className="text-3xl" />
       </button>
 
-      <div className="flex justify-center items-center p-4 mt-16">
-        <div className="text-white p-6 flex max-w-7xl w-full rounded-lg">
+      <div className="flex justify-center items-center p-5 mt-10">
+        <div className="text-white p-6 flex flex-col md:flex-row max-w-7xl w-full rounded-lg">
           {/* Left Image */}
-          <div
-            className="min-w-[300px] max-w-[300px] min-h-[450px] max-h-[450px] rounded-lg ml-[50px] bg-cover bg-center"
-            style={{
-              backgroundImage: `url('${event.image || "https://via.placeholder.com/300"}')`,
-            }}
-          ></div>
-
+          <div className="min-w-[300px] max-w-[300px] min-h-[450px] max-h-[450px] rounded-lg mx-auto md:ml-[50px] mb-6 md:mb-0 overflow-hidden bg-gray-800">
+            {event.image ? (
+              <img
+                src={
+                  event.image.startsWith("http")
+                    ? event.image
+                    : `http://localhost:5002${
+                        event.image.startsWith("/") ? "" : "/"
+                      }${event.image}`
+                }
+                alt={event.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  console.error("Image failed to load:", e.target.src);
+                  e.target.style.display = "none";
+                  const container = e.target.parentNode;
+                  if (!container.querySelector(".image-fallback")) {
+                    const fallback = document.createElement("div");
+                    fallback.className =
+                      "w-full h-full flex items-center justify-center image-fallback";
+                    fallback.innerHTML = `<span class="text-white text-center p-4">${
+                      event.name || "Event image unavailable"
+                    }</span>`;
+                    container.appendChild(fallback);
+                  }
+                }}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-white text-center p-4">
+                  {event.name || "No image available"}
+                </span>
+              </div>
+            )}
+          </div>
+          
           {/* Right Content */}
           <div className="w-2/3 pl-6">
             <div className="bg-[#F09C32] text-black font-Poppins font-bold px-4 py-2 rounded-full inline-block mb-4">

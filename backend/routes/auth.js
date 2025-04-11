@@ -12,7 +12,6 @@ router.post("/signUp", authController.signUp);
 router.post("/login", authController.login);
 router.post("/request-password-reset", authController.requestPasswordReset);
 router.post("/validate-password-reset-otp", authController.validatePasswordResetOTP);
-router.post("/reset-password", authController.resetPassword);
 
 
 // Protected routes

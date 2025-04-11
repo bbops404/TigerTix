@@ -119,6 +119,23 @@ exports.signUp = async (req, res) => {
       status: "active",
     });
 
+
+     // Send email for successfully creating account
+     await transporter.sendMail({
+      from: `"TigerTix Support" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Welcome to TigerTix!",
+      text: `Hi ${firstName} ${lastName},\n\nYour account has been successfully created on TigerTix.\n\nUsername: ${username}\nRole: ${formattedRole}\n\nThank you for joining us!\n\nBest regards,\nTigerTix Team`,
+      html: `<p>Hi <strong>${firstName} ${lastName}</strong>,</p>
+             <p>Your account has been successfully created on <strong>TigerTix</strong>.</p>
+             <p><strong>Username:</strong> ${username}<br>
+             <strong>Role:</strong> ${formattedRole}</p>
+             <p> You may now log in to your account.</p>
+             <p>If you have any questions or need assistance, feel free to reach out to us.</p>
+             <p>Thank you for joining us!</p>
+             <p>Best regards,<br><strong>TigerTix Team</strong></p>`,
+    });
+
     res.status(201).json({
       message: "Account created successfully!",
       user: { email, username, role: formattedRole },
@@ -311,22 +328,3 @@ exports.validatePasswordResetOTP = async (req, res) => {
   }
 };
 
-// Reset Password
-exports.resetPassword = async (req, res) => {
-  try {
-    const { email, newPassword } = req.body;
-
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    user.password_hash = await bcrypt.hash(newPassword, 10);
-    await user.save();
-
-    res.status(200).json({ message: "Password reset successful." });
-  } catch (error) {
-    console.error("Error resetting password:", error);
-    res.status(500).json({ message: "Server error, please try again." });
-  }
-};

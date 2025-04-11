@@ -51,6 +51,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
         sessionStorage.setItem("authToken", data.token);
         sessionStorage.setItem("userRole", data.user.role);
         sessionStorage.setItem("username", data.user.username);
+        sessionStorage.setItem("userId", data.user.user_id);
         console.log("Token (Frontend) :", data.token);
         console.log("User role (Frontend):", data.user.role);
 
