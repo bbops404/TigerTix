@@ -21,11 +21,23 @@ const port = process.env.PORT || 5002;
 // REDIS DATABASE SETUP
 // For caching and fast data retrieval
 // ========================================================
-const redisClient = new Redis();
+const redisClient = process.env.REDIS_URL
+  ? new Redis(process.env.REDIS_URL)
+  : new Redis({
+      host: process.env.REDIS_HOST || "127.0.0.1",
+      port: Number(process.env.REDIS_PORT) || 6379,
+      maxRetriesPerRequest: 5,
+      retryStrategy(times) {
+        return Math.min(times * 50, 2000);
+      },
+    });
+
 redisClient.on("connect", () =>
-  console.log("Connected to Redis successfully! 🔥")
+  console.log("✅ Connected to Redis successfully!"),
 );
-redisClient.on("error", (err) => console.error("Redis connection error:", err));
+redisClient.on("error", (err) =>
+  console.error("⚠️ Redis connection error:", err),
+);
 
 // ========================================================
 // SOCKET.IO REAL-TIME COMMUNICATION SETUP
@@ -111,7 +123,7 @@ app.use(
       "withCredentials", // Add this to allow the withCredentials header
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"], // Allow these HTTP methods
-  })
+  }),
 );
 
 app.use(express.json());
@@ -134,7 +146,7 @@ app.use(
         throw new Error("Request payload too large");
       }
     },
-  })
+  }),
 );
 
 // URL-encoded request body parsing with size limit
@@ -147,7 +159,7 @@ app.use(
         throw new Error("Request payload too large");
       }
     },
-  })
+  }),
 );
 
 // Debug incoming cookies in requests
@@ -273,7 +285,6 @@ const startServer = async () => {
     // Initialize the scheduler with the io instance for event status updates
     initScheduler(io);
 
-    
     // Start HTTP server
     server.listen(port, () => {
       console.log(`Server running on port ${port} 🚀`);
@@ -283,7 +294,6 @@ const startServer = async () => {
     process.exit(1);
   }
 };
-
 
 // Start the server
 startServer();
