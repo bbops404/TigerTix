@@ -1,5 +1,4 @@
 const nodemailer = require("nodemailer");
-const Redis = require("ioredis");
 const bcrypt = require("bcryptjs");
 const { Sequelize } = require("sequelize");
 const jwt = require("jsonwebtoken");
@@ -7,7 +6,7 @@ const User = require("../models/Users");
 
 require("dotenv").config();
 
-const redis = new Redis();
+const redis = require("../config/redis");
 
 // Generate a 6-digit OTP
 const generateOTP = () =>
@@ -119,9 +118,8 @@ exports.signUp = async (req, res) => {
       status: "active",
     });
 
-
-     // Send email for successfully creating account
-     await transporter.sendMail({
+    // Send email for successfully creating account
+    await transporter.sendMail({
       from: `"TigerTix Support" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Welcome to TigerTix!",
@@ -166,11 +164,11 @@ exports.login = async (req, res) => {
         [Sequelize.Op.or]: [
           Sequelize.where(
             Sequelize.fn("LOWER", Sequelize.col("email")),
-            email ? email.toLowerCase() : ""
+            email ? email.toLowerCase() : "",
           ),
           Sequelize.where(
             Sequelize.fn("LOWER", Sequelize.col("username")),
-            username ? username.toLowerCase() : ""
+            username ? username.toLowerCase() : "",
           ),
         ],
       },
@@ -213,7 +211,7 @@ exports.login = async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7h" }
+      { expiresIn: "7h" },
     );
 
     // Store token in Redis with expiration (1 hour)
@@ -224,7 +222,7 @@ exports.login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // Only send over HTTPS
       sameSite: "Lax",
-      maxAge: 24 * 60 * 60 * 1000, 
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     console.log("✅ Cookie set successfully:", req.cookies); // Debug log
@@ -343,4 +341,3 @@ exports.validatePasswordResetOTP = async (req, res) => {
     res.status(500).json({ message: "Server error, please try again." });
   }
 };
-
