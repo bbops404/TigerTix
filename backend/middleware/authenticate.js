@@ -2,7 +2,7 @@
 const jwt = require("jsonwebtoken");
 const Redis = require("ioredis");
 
-const redis = new Redis(); // Initialize Redis connection
+const redis = require("../config/redis"); // Initialize Redis connection
 
 const authenticate = async (req, res, next) => {
   try {
