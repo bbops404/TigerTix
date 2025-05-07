@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 
 const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -6,14 +7,41 @@ const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
+
+    const token = sessionStorage.getItem("authToken");
     if (newPassword !== confirmPassword) {
       setError("New passwords do not match!");
       return;
     }
 
-    alert("Password successfully changed!");
-    togglePopup();
+    try {
+      const userId = sessionStorage.getItem("userId"); // Retrieve user ID from sessionStorage
+      const response = await axios.put(
+        `http://localhost:5002/api/users/${userId}/change-password`, // Updated endpoint
+        {
+          currentPassword,
+          newPassword,
+        },
+        {
+                    withCredentials: true, // Ensures cookies are sent (if applicable)
+          
+          headers: {
+            Authorization: `Bearer ${token}`, // Include token if required
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        alert("Password successfully changed!");
+        togglePopup();
+      } else {
+        setError(response.data.message || "Failed to change password.");
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || "An error occurred.");
+    }
   };
 
   return (

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { FaSearch, FaFilter } from "react-icons/fa";
 
 import Admin_AuditTrailsFilter from "./Admin_AuditTrailsFilter";
@@ -6,115 +7,62 @@ import Admin_AuditTrailsFilter from "./Admin_AuditTrailsFilter";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
 
-
 const AuditTrails = () => {
-  const [showFilter, setShowFilter] = useState(false); // Correct state declaration
+  const [showFilter, setShowFilter] = useState(false); // State for filter visibility
+  const [logs, setLogs] = useState([]); // State for audit trail logs
+  const [loading, setLoading] = useState(true); // State for loading indicator
+  const [error, setError] = useState(null); // State for error handling
 
-  const logs = [
-    {
-      id: 10,
-      timestamp: "2024-12-14 14:25:10",
-      userId: "05",
-      username: "Mark Reyes",
-      role: "Admin",
-      action: "Delete Event",
-      message: "Deleted event 'Christmas Party'",
-      status: "Successful",
-    },
-    {
-      id: 9,
-      timestamp: "2024-12-14 13:10:45",
-      userId: "06",
-      username: "Mia",
-      role: "Support Staff",
-      action: "Update User",
-      message: "Updated user permissions",
-      status: "Successful",
-    },
-    {
-      id: 8,
-      timestamp: "2024-12-13 16:45:30",
-      userId: "07",
-      username: "Daniel Cruz",
-      role: "Support Staff",
-      action: "Add User",
-      message: "Added a user 'user567'",
-      status: "Successful",
-    },
-    {
-      id: 7,
-      timestamp: "2024-12-13 12:30:20",
-      userId: "02",
-      username: "Hannah",
-      role: "Support Staff",
-      action: "Scan QR Code",
-      message: "Scanned ticket QR for event 'UAAP Finals'",
-      status: "Successful",
-    },
-    {
-      id: 6,
-      timestamp: "2024-12-12 18:10:05",
-      userId: "03",
-      username: "Georgina",
-      role: "Support Staff",
-      action: "Manage User",
-      message: "Updated profile details",
-      status: "Successful",
-    },
-    {
-      id: 5,
-      timestamp: "2024-12-12 11:00:15",
-      userId: "01",
-      username: "Olivia Dimatulac",
-      role: "Admin",
-      action: "Add Event",
-      message: "Event 'UAAP Quarterfinals' added",
-      status: "Successful",
-    },
-    {
-      id: 4,
-      timestamp: "2024-12-12 10:30:45",
-      userId: "02",
-      username: "Hannah",
-      role: "Support Staff",
-      action: "Scan QR Code",
-      message: "Scanned ticket QR for event 'UAAP Semifinals'",
-      status: "Failed (Invalid)",
-    },
-    {
-      id: 3,
-      timestamp: "2024-12-12 09:15:30",
-      userId: "02",
-      username: "Hannah",
-      role: "Support Staff",
-      action: "Manage User",
-      message: "Reset password",
-      status: "Successful",
-    },
-    {
-      id: 2,
-      timestamp: "2024-12-11 09:02:30",
-      userId: "03",
-      username: "Georgina",
-      role: "Support Staff",
-      action: "Add User",
-      message: "Added a user 'user789'",
-      status: "Successful",
-    },
-    {
-      id: 1,
-      timestamp: "2024-12-10 08:54:32",
-      userId: "04",
-      username: "Larry",
-      role: "Support Staff",
-      action: "Generated a Report",
-      message: "Generated a Report about 'Event Summary'",
-      status: "Successful",
-    },
-  ];
+  // Fetch audit trails from the backend
+  useEffect(() => {
+    const fetchAuditTrails = async () => {
+      try {
+        const token = sessionStorage.getItem("authToken"); // Get the token from session storage
+        setLoading(true); // Set loading to true before fetching
+        const response = await axios.get(
+          "http://localhost:5002/api/audit-trails",
+          {
+            withCredentials: true, // Ensures cookies are sent (if applicable)
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        setLogs(response.data.data); // Set logs from the response
+        setLoading(false); // Set loading to false after fetching
+      } catch (err) {
+        console.error("Error fetching audit trails:", err);
+        setError("Failed to fetch audit trails. Please try again later.");
+        setLoading(false); // Set loading to false even if there's an error
+      }
+    };
+
+    fetchAuditTrails();
+  }, []); // Empty dependency array to fetch data on component mount
+
+  // Function to format the audit ID
+  const formatAuditId = (auditId) => {
+    return auditId ? auditId.slice(0, 8).toUpperCase() : "N/A"; // Show the first 8 characters in uppercase
+  };
+
+  // Function to format the user ID
+  const formatUserId = (userId) => {
+    return userId ? userId.slice(0, 8).toUpperCase() : "N/A"; // Show the first 8 characters in uppercase
+  };
+
+  // Function to format the timestamp
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return "N/A";
+    const date = new Date(timestamp);
+    return new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(date);
+  };
 
   return (
-    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
+    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
       {/* Header */}
       <Header_Admin />
 
@@ -150,47 +98,84 @@ const AuditTrails = () => {
           </div>
 
           {/* Filter Component */}
-          {showFilter && <Admin_AuditTrailsFilter showFilter={showFilter} setShowFilter={setShowFilter} />}
+          {showFilter && (
+            <Admin_AuditTrailsFilter
+              showFilter={showFilter}
+              setShowFilter={setShowFilter}
+            />
+          )}
 
           {/* Audit Trails Table */}
           <div className="overflow-x-auto rounded-md shadow-md">
             <div className="max-h-[400px] overflow-y-auto">
-              <table className="w-full border-collapse border border-[#D6D3D3] bg-[#333333] rounded-md overflow-hidden">
-                <thead className="sticky top-0 bg-[#F09C32] text-[#333333] text-center">
-                  <tr>
-
-                    {[
-                      "ID",
-                      "Timestamp",
-                      "User ID",
-                      "Username",
-                      "User Role",
-                      "Action",
-                      "Message",
-                      "Status",
-                    ].map((header, index) => (
-                      <th
-                        key={index}
-                        className="px-4 py-2 border border-[#D6D3D3] text-center"
-                      >
-
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.slice(0, 10).map((log) => (
-                    <tr key={log.id} className="border border-[#D6D3D3] text-center text-white">
-                      {Object.values(log).map((value, index) => (
-                        <td key={index} className="px-4 py-2 border border-[#D6D3D3]">
-                          {value}
-                        </td>
+              {loading ? (
+                <p className="text-center text-white">Loading...</p>
+              ) : error ? (
+                <p className="text-center text-red-500">{error}</p>
+              ) : logs.length === 0 ? (
+                <p className="text-center text-white">No audit trails found.</p>
+              ) : (
+                <table className="w-full border-collapse border border-[#D6D3D3] bg-[#333333] rounded-md overflow-hidden">
+                  <thead className="sticky top-0 bg-[#F09C32] text-[#333333] text-center">
+                    <tr>
+                      {[
+                        "Audit ID",
+                        "Timestamp",
+                        "User ID",
+                        "Username",
+                        "User Role",
+                        "Action",
+                        "Affected Entity",
+                        "Message",
+                        "Status",
+                      ].map((header, index) => (
+                        <th
+                          key={index}
+                          className="px-4 py-2 border border-[#D6D3D3] text-center"
+                        >
+                          {header}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {logs.map((log) => (
+                      <tr
+                        key={log.audit_id}
+                        className="border border-[#D6D3D3] text-center text-white"
+                      >
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {formatAuditId(log.audit_id)}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {formatTimestamp(log.timestamp)}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {formatUserId(log.user_id)}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {log.username}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {log.role}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {log.action}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {log.affectedEntity}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {log.message}
+                        </td>
+                        <td className="px-4 py-2 border border-[#D6D3D3]">
+                          {log.status}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>

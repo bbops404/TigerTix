@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { IoArrowBack } from "react-icons/io5";
+import axios from 'axios';
 
 const AddUserModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
@@ -38,32 +39,68 @@ const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState("");
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isSuccessModalOpen, setSuccessModalOpen] = useState(false);
   
-  const roles = ["Student", "Faculty", "Alumni"];
+  const roles = ["Student", "Employee", "Alumni", "Admin", "Support Staff"];
+  const token = sessionStorage.getItem("authToken"); // Get JWT token
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!username || !firstName || !lastName || !email || !password || !confirmPassword || !role) {
+    if (!username || !firstName || !lastName || !email || !role) {
       alert("All fields are required!");
-      return;
-    }
-    if (password !== confirmPassword) {
-      alert("Passwords do not match!");
       return;
     }
     setConfirmModalOpen(true);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setConfirmModalOpen(false);
-    setSuccessModalOpen(true);
-  };
 
+    try {
+      // Make a POST request to the backend
+      const response = await axios.post(
+        "http://localhost:5002/admin/users/add",
+        {
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          username,
+          role
+        },
+        {
+          withCredentials: true, // ✅ Ensures cookies are sent (if applicable)
+          headers: {
+            Authorization: `Bearer ${token}`, // ✅ Proper placement of the token
+            "Content-Type": "application/json" // ✅ Explicitly setting content type
+          }
+        }
+      );
+    
+      // If user is created successfully, show success modal
+      if (response.status === 201) {
+        setSuccessModalOpen(true);
+      } else {
+        alert(response.data.message || "Something went wrong!");
+      }
+    } catch (error) {
+      console.error("Error adding user:", error);
+    
+      // Handle different types of errors
+      if (error.response) {
+        // Server responded with a status code outside of 2xx
+        alert(error.response.data.message || "Failed to add user.");
+      } else if (error.request) {
+        // Request was made but no response received
+        alert("No response from server. Check your connection.");
+      } else {
+        // Something else happened
+        alert("An unexpected error occurred.");
+      }
+    }
+  }
+    
   return (
     showPopup && (
       <div className="fixed top-0 left-0 w-full h-full flex justify-center items-center bg-black bg-opacity-50 z-20">
@@ -83,23 +120,15 @@ const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
                 <input type="text" className="border p-2 rounded w-full" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
               </div>
               <div>
-                <label>Password</label>
-                <input type="password" className="border p-2 rounded w-full" value={password} onChange={(e) => setPassword(e.target.value)} required />
-              </div>
-              <div>
                 <label>Last Name</label>
                 <input type="text" className="border p-2 rounded w-full" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-              </div>
-              <div>
-                <label>Confirm Password</label>
-                <input type="password" className="border p-2 rounded w-full" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
               </div>
               <div>
                 <label>Email</label>
                 <input type="email" className="border p-2 rounded w-full" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div>
-                <label>Role</label>
+                <label>User Type</label>
                 <select className="border p-2 rounded w-full" value={role} onChange={(e) => setRole(e.target.value)}>
                   <option value="" disabled>See Roles</option>
                   {roles.map((option, index) => (

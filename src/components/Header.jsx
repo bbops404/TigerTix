@@ -1,39 +1,93 @@
+// Header.jsx
 import React, { useEffect, useState } from "react";
 import tigertix_logo from "../assets/tigertix_logo.png";
-import { FaSearch } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
-const Header = ({
-  toggleLoginPopup,
-  showSearch = true,
-  showAuthButtons = true,
-}) => {
+const Header = ({ toggleLoginPopup, showAuthButtons = true, showDropdown = true }) => {
   const navigate = useNavigate();
-  const [data, setData] = useState([]);
-  const [filterData, setFilterData] = useState([]);
-  const [isFocused, setIsFocused] = useState(false);
+  const [publishedEvents, setPublishedEvents] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
+  const [isRedirecting, setIsRedirecting] = useState(false); // State to prevent multiple clicks
 
   useEffect(() => {
-    fetch("https://jsonplaceholder.typicode.com/users")
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data);
-        setFilterData(data);
-      })
-      .catch((err) => console.log(err));
+    const fetchPublishedEvents = async () => {
+      try {
+        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const response = await axios.get(
+          `${API_BASE_URL}/api/events/published`
+        );
+
+        if (response.data.success) {
+          setPublishedEvents(response.data.data);
+        } else {
+          console.error("Failed to fetch published events.");
+        }
+      } catch (error) {
+        console.error("Error fetching published events:", error);
+      }
+    };
+
+    fetchPublishedEvents();
   }, []);
 
-  const handleFilter = (value) => {
-    const res = filterData.filter((f) =>
-      f.name.toLowerCase().includes(value.toLowerCase())
-    );
-    setData(res);
+  const handleEventChange = async (event) => {
+    const eventId = event.target.value;
+    if (!eventId) return;
+
+    setSelectedEvent(eventId);
+    setIsRedirecting(true);
+
+    try {
+      // We need to get the full event details from any endpoint that will return them
+      // Since we know from the controller code that any of the endpoints will return the event
+      // regardless of its actual type, we can just use one endpoint
+      const API_BASE_URL = "http://localhost:5002";
+
+      const response = await axios.get(
+        `${API_BASE_URL}/api/events/ticketed/${eventId}`
+      );
+
+      if (response.data.success) {
+        // Now we check the actual event_type from the response
+        const eventType = response.data.data.event_type;
+        console.log("Detected event type:", eventType);
+
+        // Navigate based on the actual event type
+        switch (eventType) {
+          case "ticketed":
+            navigate(`/event-ticketed/${eventId}`);
+            break;
+          case "free":
+            navigate(`/event-free/${eventId}`);
+            break;
+          case "coming_soon":
+            navigate(`/event-coming-soon/${eventId}`);
+            break;
+          default:
+            // Default fallback
+            navigate(`/event-ticketed/${eventId}`);
+        }
+      } else {
+        // If we somehow didn't get a successful response, default to ticketed
+        navigate(`/event-ticketed/${eventId}`);
+      }
+    } catch (error) {
+      console.error("Error determining event type:", error);
+      // Default fallback in case of error
+      navigate(`/event-ticketed/${eventId}`);
+    } finally {
+      // Reset after a short delay
+      setTimeout(() => {
+        setIsRedirecting(false);
+      }, 500);
+    }
   };
 
   return (
     <div>
-      <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl ">
+      <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl relative">
         <Link to="/" className="flex items-center">
           <img
             src={tigertix_logo}
@@ -42,36 +96,36 @@ const Header = ({
           />
         </Link>
 
-        {showSearch && (
-          <div className="search-top relative">
-            <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-xl border-2 border-[#D8DADC] h-8 w-[700px]">
-              <FaSearch className="w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                className="focus:outline-none text-sm w-[700px] text-gray-600"
-                placeholder="Search"
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-                onChange={(e) => handleFilter(e.target.value)}
-              />
-            </div>
-            {isFocused && data.length > 0 && (
-              <div
-                className="text-custom_black search-result absolute top-full left-0 w-[700px] bg-white shadow-lg border border-gray-200 rounded-lg mt-1 h-60 overflow-y-auto"
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                {data.map((d, i) => (
-                  <div
-                    key={i}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    {d.name}
-                  </div>
-                ))}
-              </div>
-            )}
+
+        {/* Conditionally render the dropdown */}
+        {showDropdown && (
+          <div className="relative group">
+            <select
+              value={selectedEvent}
+              onChange={handleEventChange}
+              className="font-Poppins text-[15px] font-medium bg-white py-3 px-5 rounded-xl text-[#2D2D2D] transition-all duration-300 relative w-[565px] h-[50px] border border-gray-300 cursor-pointer focus:ring-2 focus:ring-yellow-500 focus:outline-none"
+            >
+              <option value="" disabled>
+                Select Event
+              </option>
+              {publishedEvents.length > 0 ? (
+                publishedEvents.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.name} -{" "}
+                    {new Date(event.event_date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </option>
+                ))
+              ) : (
+                <option disabled>No events available yet</option>
+              )}
+            </select>
           </div>
         )}
+
 
         {showAuthButtons && (
           <div className="flex gap-5">

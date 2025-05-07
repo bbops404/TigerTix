@@ -81,6 +81,7 @@ const UnpublishConfirmationPopup = ({
           </button>
           <button
             onClick={() => {
+              console.log(`Popup: Confirming unpublish for ${eventId}`);
               onConfirm(eventId);
               onClose();
             }}

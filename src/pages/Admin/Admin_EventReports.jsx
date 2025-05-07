@@ -1,4 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import axios from "axios";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  createColumnHelper,
+  flexRender,
+} from "@tanstack/react-table";
 import {
   FaSearch,
   FaFilter,
@@ -12,17 +22,6 @@ import Admin_EventReportGenerateReport from "./Admin_EventReportGenerateReport";
 import Admin_EventReportsFilter from "./Admin_EventReportsFilter";
 import Admin_EventReportGenerateSummary from "./Admin_EventReportGenerateSummaryPopUp";
 
-const eventData = [
-  { id: 1, image: eventPlaceholder, name: "UAAP CDC" },
-  { id: 2, image: eventPlaceholder, name: "UST Homecoming" },
-  { id: 3, image: eventPlaceholder, name: "Tigers Championship" },
-  { id: 4, image: eventPlaceholder, name: "UST Men's Volleyball" },
-  { id: 5, image: eventPlaceholder, name: "Paskuhan 2024" },
-  { id: 6, image: eventPlaceholder, name: "Freshmen Welcome Walk" },
-  { id: 7, image: eventPlaceholder, name: "Thomasian Gala Night" },
-  { id: 8, image: eventPlaceholder, name: "Intramurals 2024" },
-];
-
 const Admin_EventReports = () => {
   const [showGenerateSummaryPopup, setShowGenerateSummaryPopup] =
     useState(false);
@@ -30,7 +29,11 @@ const Admin_EventReports = () => {
   const closeGenerateSummaryPopup = () => setShowGenerateSummaryPopup(false);
 
   const [showGenerateReport, setShowGenerateReport] = useState(false);
-  const openGenerateReport = () => setShowGenerateReport(true);
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const openGenerateReport = (eventId) => {
+    setSelectedEventId(eventId);
+    setShowGenerateReport(true);
+  };
   const closeGenerateReport = () => setShowGenerateReport(false);
 
   const [showFilter, setShowFilter] = useState(false);
@@ -43,13 +46,265 @@ const Admin_EventReports = () => {
   };
 
   const nextSlide = () => {
-    if (currentIndex + visibleEvents < eventData.length) {
+    if (currentIndex + visibleEvents < ticketedEvents.length) {
       setCurrentIndex((prevIndex) => prevIndex + 1);
     }
   };
 
+  // Ticketed Events for Carousel
+  const [ticketedEvents, setTicketedEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState("");
+  const [eventSearchQuery, setEventSearchQuery] = useState("");
+
+  // Event Summary Table Logic
+  const [eventSummaryData, setEventSummaryData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [globalFilter, setGlobalFilter] = useState("");
+
+  // Fetch ticketed events for the carousel
+  useEffect(() => {
+    const fetchTicketedEvents = async () => {
+      try {
+        setEventsLoading(true);
+        // Updated to the correct endpoint
+        const response = await axios.get(
+          "http://localhost:5002/admin/ticketed-events",
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${sessionStorage.getItem("authToken")}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.data && response.data.data) {
+          setTicketedEvents(response.data.data);
+        } else {
+          console.error("Unexpected response structure:", response.data);
+          setEventsError(
+            "Unexpected response structure. Please contact support."
+          );
+        }
+      } catch (err) {
+        console.error(
+          "Error fetching ticketed events:",
+          err.response || err.message || err
+        );
+        setEventsError(
+          "Failed to fetch ticketed events. Please try again later."
+        );
+      } finally {
+        setEventsLoading(false);
+      }
+    };
+
+    fetchTicketedEvents();
+  }, []);
+
+  // Fetch event summary data for the table
+  useEffect(() => {
+    const fetchEventSummaryData = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          "http://localhost:5002/api/events-summary",
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${sessionStorage.getItem("authToken")}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (
+          response.data &&
+          response.data.success &&
+          Array.isArray(response.data.data)
+        ) {
+          const formattedData = response.data.data.map((event) => ({
+            ...event,
+            event_date: event.event_date || "TBD",
+            remaining_tickets:
+              event.remaining_tickets === null ||
+              event.remaining_tickets === "FREE"
+                ? "N/A"
+                : event.remaining_tickets,
+          }));
+          setEventSummaryData(formattedData);
+        } else {
+          console.error("Unexpected response structure:", response.data);
+          setError("Unexpected response structure. Please contact support.");
+        }
+      } catch (err) {
+        console.error(
+          "Error fetching event data:",
+          err.response || err.message || err
+        );
+        setError("Failed to fetch event data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEventSummaryData();
+  }, []);
+
+  // Filter ticketed events based on search query
+  const filteredTicketedEvents = useMemo(() => {
+    if (!eventSearchQuery) return ticketedEvents;
+    return ticketedEvents.filter((event) =>
+      event.name.toLowerCase().includes(eventSearchQuery.toLowerCase())
+    );
+  }, [ticketedEvents, eventSearchQuery]);
+
+  // Reset search and filters
+  const resetSearchAndFilters = () => {
+    setEventSearchQuery("");
+    setGlobalFilter("");
+    // Any other filter states you might add in the future
+  };
+
+  const columnHelper = createColumnHelper();
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor("name", {
+        header: "Event Name",
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("event_date", {
+        header: "Event Date",
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("venue", {
+        header: "Event Venue",
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("category", {
+        header: "Event Category",
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("event_type", {
+        header: "Event Type",
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("status", {
+        header: "Event Status",
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("total_reservations", {
+        header: "Total Reservations",
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("revenue", {
+        header: "Revenue",
+        cell: (info) => `₱${parseFloat(info.getValue() || 0).toLocaleString()}`,
+      }),
+      columnHelper.accessor("remaining_tickets", {
+        header: "Remaining Tickets",
+        cell: (info) => info.getValue(),
+      }),
+    ],
+    []
+  );
+
+  const table = useReactTable({
+    data: eventSummaryData,
+    columns,
+    state: {
+      globalFilter,
+    },
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 10,
+      },
+    },
+  });
+
+  // Render the events carousel section
+  const renderEventsSection = () => {
+    if (eventsLoading) {
+      return <div className="text-center py-10">Loading events...</div>;
+    }
+
+    if (eventsError) {
+      return (
+        <div className="text-center py-10 text-red-500">{eventsError}</div>
+      );
+    }
+
+    if (filteredTicketedEvents.length === 0) {
+      return (
+        <div className="text-center py-10">No ticketed events available</div>
+      );
+    }
+
+    // Calculate visible events - handle case where filtered events changes
+    const maxIndex = Math.max(0, filteredTicketedEvents.length - visibleEvents);
+    const safeCurrentIndex = Math.min(currentIndex, maxIndex);
+
+    const visibleTicketedEvents = filteredTicketedEvents.slice(
+      safeCurrentIndex,
+      safeCurrentIndex + visibleEvents
+    );
+
+    return (
+      <div className="relative flex items-center justify-center mb-10">
+        <button
+          onClick={prevSlide}
+          className="absolute left-0 bg-black/50 p-2 rounded-full"
+          disabled={safeCurrentIndex === 0}
+        >
+          <FaChevronLeft size={20} />
+        </button>
+
+        <div className="w-full flex justify-center overflow-hidden space-x-2">
+          {visibleTicketedEvents.map((event) => (
+            <div
+              key={event.id}
+              className="transition-opacity duration-1000 opacity-100 transform hover:scale-105"
+            >
+              <div className="p-2 rounded-lg">
+                <img
+                  src={eventPlaceholder}
+                  alt={event.name}
+                  className="w-[200px] h-[250px] object-cover rounded-lg mx-auto"
+                />
+                <p className="text-center mt-2 font-semibold">{event.name}</p>
+                <button
+                  className="mt-2 w-full px-4 py-2 text-white font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105"
+                  onClick={() => openGenerateReport(event.id)}
+                >
+                  Generate Report
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={nextSlide}
+          className="absolute right-0 bg-black/50 p-2 rounded-full"
+          disabled={
+            safeCurrentIndex + visibleEvents >= filteredTicketedEvents.length
+          }
+        >
+          <FaChevronRight size={20} />
+        </button>
+      </div>
+    );
+  };
+
   return (
-    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white">
+    <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
       <Header_Admin />
 
       <div className="flex">
@@ -58,18 +313,25 @@ const Admin_EventReports = () => {
         <div className="flex-1 px-10 py-10">
           {/* Events List */}
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Events List</h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold">List of Ticketed Events</h2>
+            </div>
             <div className="flex gap-2">
               <div className="relative flex-grow mr-4">
                 <FaSearch className="absolute left-4 top-3 text-white" />
                 <input
                   type="text"
                   placeholder="Search events..."
+                  value={eventSearchQuery}
+                  onChange={(e) => setEventSearchQuery(e.target.value)}
                   className="w-full pl-12 pr-4 py-2 rounded-full bg-gray-500 text-white outline-none"
                 />
               </div>
 
-              <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
+              <button
+                className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                onClick={resetSearchAndFilters}
+              >
                 Reset
               </button>
               <button
@@ -81,6 +343,14 @@ const Admin_EventReports = () => {
             </div>
           </div>
 
+          {/* Prompt for Admin */}
+          <div className="mb-4">
+            <p className="text-sm text-gray-400">
+              Generate a reservation report for each ticketed event by clicking
+              the "Generate Report" button.
+            </p>
+          </div>
+
           {/* Filter Component */}
           {showFilter && (
             <Admin_EventReportsFilter
@@ -89,194 +359,119 @@ const Admin_EventReports = () => {
             />
           )}
 
-          {/* Events */}
-          <div className="relative flex items-center justify-center mb-10">
-            <button
-              onClick={prevSlide}
-              className="absolute left-0 bg-black/50 p-2 rounded-full"
-              disabled={currentIndex === 0}
-            >
-              <FaChevronLeft size={20} />
-            </button>
+          {/* Render Ticketed Events Carousel */}
+          {renderEventsSection()}
 
-            <div className="w-full flex justify-center overflow-hidden space-x-2">
-              {eventData
-                .slice(currentIndex, currentIndex + visibleEvents)
-                .map((event) => (
-                  <div
-                    key={event.id}
-                    className="transition-opacity duration-1000 opacity-100 transform hover:scale-105"
-                  >
-                    <div className="p-2 rounded-lg">
-                      <img
-                        src={event.image}
-                        alt={event.name}
-                        className="w-[200px] h-[250px] object-cover rounded-lg mx-auto"
-                      />
-                      <p className="text-center mt-2 font-semibold">
-                        {event.name}
-                      </p>
-                      <button
-                        className="mt-2 w-full px-4 py-2 text-white font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105"
-                        onClick={openGenerateReport}
-                      >
-                        Generate Report
-                      </button>
-                    </div>
-                  </div>
-                ))}
+          {/* Event Summary Table */}
+          <div className="mt-10">
+            <h2 className="text-xl font-bold mb-4">Event Summary</h2>
+            {/* Prompt for Admin */}
+            <div className="mb-4">
+              <p className="text-sm text-gray-400">
+                Generate a summary of events report by clicking the "Generate
+                Summary Report" button.
+              </p>
             </div>
-
-            <button
-              onClick={nextSlide}
-              className="absolute right-0 bg-black/50 p-2 rounded-full"
-              disabled={currentIndex + visibleEvents >= eventData.length}
-            >
-              <FaChevronRight size={20} />
-            </button>
-          </div>
-
-          {/* Event Summary */}
-          <div className="mt-10 bg-[#333333] p-6 rounded-md">
-            <div className="flex justify-between items-center mb-4 top-0 bg-[#333333] z-10">
-              <h2 className="text-lg font-bold">Event Summary</h2>
-              <div className="flex gap-2">
-                <button className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300">
-                  Reset
-                </button>
-                <button
-                  className="px-4 py-2 bg-white text-black rounded-md flex items-center gap-2 hover:bg-[#FFAB40] hover:text-black transition duration-300"
-                  onClick={() => setShowFilter(!showFilter)}
-                >
-                  <FaFilter /> Sort/Filter by
-                </button>
-              </div>
+            <div className="flex items-center mb-4">
+              <FaSearch className="mr-2 text-white" />
+              <input
+                type="text"
+                placeholder="Search events..."
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                className="w-full px-4 py-2 rounded-md bg-gray-700 text-white outline-none"
+              />
             </div>
-            <div className="max-h-96 overflow-y-auto scrollbar-hide">
-              <table className="w-full text-black bg-white rounded-md">
-                <thead className="sticky text-[14px] top-0 bg-[#F09C32] text-[#333333] text-center">
-                  <tr>
-                    {[
-                      "Event Name",
-                      "Date",
-                      "Venue",
-                      "Event Category",
-                      "Type",
-                      "Availability",
-                      "Reservation Count",
-                      "Revenue",
-                      "Remaining Tickets",
-                    ].map((header, index) => (
-                      <th
-                        key={index}
-                        className="px-4 py-2 border border-gray-300"
-                      >
-                        {header}
-                      </th>
+            <div className="overflow-x-auto rounded-md shadow-md max-h-[400px] overflow-y-auto">
+              {loading ? (
+                <p className="text-center text-white">Loading...</p>
+              ) : error ? (
+                <p className="text-center text-red-500">{error}</p>
+              ) : (
+                <table className="w-full text-black border-collapse border border-[#D6D3D3] bg-white rounded-md overflow-hidden">
+                  <thead className="sticky top-0 bg-[#F09C32] text-[#333333] text-center z-1">
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <tr key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => (
+                          <th
+                            key={header.id}
+                            className="px-4 py-2 border border-[#D6D3D3] text-center"
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                          </th>
+                        ))}
+                      </tr>
                     ))}
-                  </tr>
-                </thead>
-                <tbody className="scrollbar-hide">
-                  {[
-                    {
-                      name: "UAAP CDC",
-                      date: "Oct 15, 2024",
-                      venue: "MOA Arena",
-                      category: "Cheerdance",
-                      type: "Competition",
-                      availability: "Available",
-                      count: 250,
-                      revenue: 500000,
-                      remaining: 50,
-                    },
-                    {
-                      name: "UST Homecoming",
-                      date: "Nov 10, 2024",
-                      venue: "UST Quadricentennial Pavilion",
-                      category: "Reunion",
-                      type: "Social Event",
-                      availability: "Limited",
-                      count: 150,
-                      revenue: 300000,
-                      remaining: 20,
-                    },
-                    {
-                      name: "Tigers Championship",
-                      date: "Dec 05, 2024",
-                      venue: "Smart Araneta Coliseum",
-                      category: "Sports",
-                      type: "Game",
-                      availability: "Sold Out",
-                      count: 500,
-                      revenue: 1000000,
-                      remaining: 0,
-                    },
-                    {
-                      name: "UST Men's Volleyball",
-                      date: "Jan 20, 2025",
-                      venue: "UST Gym",
-                      category: "Sports",
-                      type: "Game",
-                      availability: "Available",
-                      count: 200,
-                      revenue: 400000,
-                      remaining: 75,
-                    },
-                    {
-                      name: "Tigers Championship",
-                      date: "Dec 05, 2024",
-                      venue: "Smart Araneta Coliseum",
-                      category: "Sports",
-                      type: "Game",
-                      availability: "Sold Out",
-                      count: 500,
-                      revenue: 1000000,
-                      remaining: 0,
-                    },
-                    {
-                      name: "UST Women's Volleyball",
-                      date: "Jan 20, 2025",
-                      venue: "UST Gym",
-                      category: "Sports",
-                      type: "Game",
-                      availability: "Available",
-                      count: 200,
-                      revenue: 400000,
-                      remaining: 75,
-                    },
-                  ].map((event, index) => (
-                    <tr
-                      key={index}
-                      className="border border-gray-300 text-center"
-                    >
-                      {Object.values(event).map((value, i) => (
-                        <td
-                          key={i}
-                          className="px-4 py-2 border border-gray-300"
-                        >
-                          {value}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {table.getRowModel().rows.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="border border-[#D6D3D3] text-center"
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <td
+                            key={cell.id}
+                            className="px-4 py-2 border border-[#D6D3D3]"
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center mt-4">
               <button
-                className="w-[220px] h-[40px] mt-4 font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                className="px-4 py-2 bg-gray-700 text-white rounded-md disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span>
+                Page {table.getState().pagination.pageIndex + 1} of{" "}
+                {table.getPageCount()}
+              </span>
+              <button
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                className="px-4 py-2 bg-gray-700 text-white rounded-md disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+
+            {/* Generate Summary Button */}
+            <div className="flex justify-end mt-4">
+              <button
+                className="px-6 py-2 bg-gradient-to-r from-[#FFAB40] to-[#CD6905] text-white font-bold rounded-full hover:scale-105 transition-transform"
                 onClick={openGenerateSummaryPopup}
               >
-                Generate Event Summary
+                Generate Summary Report
               </button>
             </div>
           </div>
+
+          {/* Modals */}
           {showGenerateReport && (
             <Admin_EventReportGenerateReport
               isOpen={showGenerateReport}
               onClose={closeGenerateReport}
+              selectedEventId={selectedEventId}
             />
           )}
+
           {showGenerateSummaryPopup && (
             <Admin_EventReportGenerateSummary
               isOpen={showGenerateSummaryPopup}

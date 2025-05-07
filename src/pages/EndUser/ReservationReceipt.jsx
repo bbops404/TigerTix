@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { GoArrowLeft } from "react-icons/go";
-import Header from "../../components/Header";
+import Header from "../../components/Header_User";
 import { useLocation } from "react-router-dom";
-import QRCode from "react-qr-code"; // You'll need to install this package
+import QRCode from "react-qr-code";
 
 const Label = ({ label, value }) => {
   return (
-    <div className="w-full grid grid-cols-[20%_70%] items-start text-sm py-1">
+    <div className="w-full grid grid-cols-[30%_70%] items-start text-sm py-1">
       <label className="block text-gray-700 text-left font-bold mb-1">
         {label}
       </label>
@@ -22,97 +21,139 @@ const ReservationReceipt = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Get reservation data from navigation state or localStorage fallback
-  const [reservationData, setReservationData] = useState(null);
-  const [reservationId, setReservationId] = useState("");
-  const [currentDate, setCurrentDate] = useState("");
-  const [eventDate, setEventDate] = useState("March 30, 2025"); // Example date
+  // State for reservation data and current date
+  const [receiptData, setReceiptData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
 
     // Set current date for the receipt
-    const date = new Date();
-    setCurrentDate(
-      date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    );
 
-    // Generate a reservation ID (in a real app, this would come from the backend)
-    setReservationId(`UST-${Math.floor(100000 + Math.random() * 900000)}`);
+    // Set loading state
+    setIsLoading(true);
 
     // Get data from location state if available, otherwise try localStorage
     if (location.state) {
-      setReservationData(location.state);
+      setReceiptData(location.state);
+      setIsLoading(false);
     } else {
       // Try to retrieve from localStorage as fallback
-      const savedData = localStorage.getItem("reservationData");
-      if (savedData) {
-        setReservationData(JSON.parse(savedData));
-      } else {
-        // No data available, redirect back to reservation page
+      try {
+        const savedData = localStorage.getItem("reservationData");
+        if (savedData) {
+          setReceiptData(JSON.parse(savedData));
+        } else {
+          // No data available, redirect back to reservation page
+          navigate("/reservation", { replace: true });
+        }
+      } catch (error) {
+        console.error("Error retrieving reservation data:", error);
         navigate("/reservation", { replace: true });
+      } finally {
+        setIsLoading(false);
       }
     }
   }, [location, navigate]);
 
   // Handle download receipt functionality
   const handleDownload = () => {
-    window.print(); // Simple print for now, could be replaced with proper PDF generation
+    window.print();
   };
 
-  // If data is still loading or not available
-  if (!reservationData) {
+  // Loading state
+  if (isLoading) {
     return (
       <div className="flex flex-col min-h-screen bg-[#202020]">
         <Header showSearch={false} showAuthButtons={false} />
         <div className="flex flex-col justify-center items-center flex-grow text-white">
-          Loading receipt data...
+          <div className="animate-pulse">Loading receipt data...</div>
         </div>
       </div>
     );
   }
 
-  const { ticketType, ticketCount, ticketPrices, emails, timeSlot, userEmail } =
-    reservationData;
+  // Handle missing data case
+  if (!receiptData) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#202020]">
+        <Header showSearch={false} showAuthButtons={false} />
+        <div className="flex flex-col justify-center items-center flex-grow text-white">
+          <div className="text-red-500 mb-4">Receipt data not found</div>
+          <button
+            onClick={() => navigate("/home")}
+            className="px-6 py-2 bg-[#F09C32] text-black rounded-lg font-bold"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Destructure data with defaults to prevent errors
+  const {
+    ticketType = "",
+    ticketCount = 1,
+    ticketPrice = 0,
+    emails = [],
+    timeSlot = "N/A",
+    userEmail = "",
+    eventName = "Event",
+    eventDate = "",
+    eventTime = "",
+    eventVenue = "",
+    reservationId = "N/A",
+    claimingVenue = "UST IPEA",
+    firstName = "",
+    lastName = "",
+  } = receiptData;
+
+  // Calculate total price
+  const totalPrice = ticketPrice * ticketCount;
+
+  // Format QR code value
+  const qrValue = `UST-TICKET-${reservationId}-${eventName}-${ticketType}-${ticketCount}`;
+
+  // Get user's name for display
+  const displayName = `${firstName || ""} ${lastName || ""}`.trim() || "N/A";
 
   return (
     <div className="flex flex-col min-h-screen bg-[#202020]">
       <Header showSearch={false} showAuthButtons={false} />
 
-      <div className="flex flex-col justify-center items-center flex-grow">
-        <div className="font-Poppins w-[80vw] h-auto min-h-[70vh] bg-[#D9D9D9] flex flex-col justify-start text-center text-4xl font-bold p-5 gap-6">
+      <div className="flex flex-col justify-center items-center flex-grow py-8">
+        <div className="font-Poppins w-[90vw] lg:w-[80vw] h-auto min-h-[70vh] bg-[#D9D9D9] flex flex-col justify-start text-center text-4xl font-bold p-5 gap-6 rounded-lg shadow-xl">
           Reservation Receipt
-          <div className="w-[90%] h-auto min-h-[70%] bg-white self-center grid grid-cols-1 md:grid-cols-[40%_60%] p-4">
+          <div className="w-[95%] lg:w-[90%] h-auto min-h-[70%] bg-white self-center grid grid-cols-1 md:grid-cols-[40%_60%] p-4 rounded-lg shadow-md">
             <div className="font-Poppins text-center justify-start font-bold text-lg">
               YOUR QR CODE:
               <div className="font-Poppins w-full h-auto py-4 flex justify-center items-center">
-                <QRCode
-                  value={`UST-TICKET-${reservationId}-${ticketType}-${ticketCount}`}
-                  size={150}
-                  level="H"
-                />
+                <QRCode value={qrValue} size={150} level="H" />
               </div>
               <div className="mt-2">
                 RESERVATION ID:{" "}
                 <span className="text-[#F09C32]">{reservationId}</span>
               </div>
+              <div className="mt-4 text-xs text-gray-600 font-normal">
+                Please present this QR code when claiming your ticket(s)
+              </div>
             </div>
 
             <div className="mt-4 md:mt-0">
-              <Label label="Name:" value={"FirstName LastName"} />
+              <Label label="Name:" value={displayName} />
               <Label
                 label="Email:"
                 value={userEmail || emails?.[0] || "email@ust.edu.ph"}
               />
-              <Label label="Date Reserved:" value={currentDate} />
-              <Label label="Event:" value={"UAAP Season 87 Men's Basketball"} />
+
+              <Label label="Event:" value={eventName || "N/A"} />
+              <Label label="Event Date:" value={eventDate || "TBA"} />
+              <Label label="Event Time:" value={eventTime || "TBA"} />
+              <Label label="Venue:" value={eventVenue || "TBA"} />
               <Label
-                label="Ticket Tier:"
+                label="Ticket Type:"
                 value={ticketType || "Not specified"}
               />
               <Label
@@ -130,16 +171,20 @@ const ReservationReceipt = () => {
                 }
               />
               <Label label="Batch:" value={timeSlot || "Not specified"} />
-              <Label label="Claiming Venue:" value={"UST IPEA"} />
+              <Label
+                label="Claiming Venue:"
+                value={claimingVenue || "UST IPEA"}
+              />
+              <Label
+                label="Price Per Person:"
+                value={`₱${parseFloat(ticketPrice || 0).toFixed(2)}`}
+              />
               <Label
                 label="Total Amount:"
-                value={`₱${
-                  ticketType && ticketPrices
-                    ? ticketPrices[ticketType] * ticketCount
-                    : 0
-                }`}
+                value={`₱${(
+                  parseFloat(ticketPrice || 0) * (ticketCount || 1)
+                ).toFixed(2)}`}
               />
-              <Label label="Date of Event:" value={eventDate} />
             </div>
           </div>
           <div className="flex flex-col md:flex-row items-center gap-4 text-lg justify-center">
@@ -156,6 +201,21 @@ const ReservationReceipt = () => {
               GO BACK
             </button>
           </div>
+        </div>
+
+        <div className="mt-6 w-[90vw] lg:w-[80vw] p-4 bg-[#F0F0F0] rounded-lg text-black text-sm">
+          <p className="text-center font-semibold">Important Reminders</p>
+          <ul className="list-disc ml-6 mt-2">
+            <li>You must bring a valid UST ID when claiming your ticket.</li>
+            <li>
+              All ticket holders must present their UST ID for verification.
+            </li>
+            <li>Ticket claiming deadline: 3 hours before the event starts.</li>
+            <li>
+              Unclaimed tickets may result in account restrictions for future
+              events.
+            </li>
+          </ul>
         </div>
       </div>
     </div>

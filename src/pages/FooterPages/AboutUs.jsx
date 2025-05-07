@@ -1,17 +1,46 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import LoginPopup from "../Landing/LoginPopup"; // Import the LoginPopup component
 import { Link } from "react-router-dom";
 import Header from "../../components/Header";
+import Header_User from "../../components/Header_User";
+
 import { FaArrowLeft } from "react-icons/fa";
 import tigertix_logo from "../../assets/tigertix_logo.png";
 
 const AboutUs = () => {
+  // 🔹 State for login popup
+    const [loginPopup, setLoginPopup] = useState(false);
+  
+    const toggleLoginPopup = () => {
+      setLoginPopup((prev) => !prev);
+    };
+  
+    // 🔹 Check if login popup should be shown on load
+    useEffect(() => {
+      const shouldShowLogin = sessionStorage.getItem("showLoginPopup");
+      if (shouldShowLogin === "true") {
+        setLoginPopup(true);
+        sessionStorage.removeItem("showLoginPopup");
+      }
+    }, []); // Dependency array ensures this runs only once on mount
+
+    const isLoggedIn = !!sessionStorage.getItem("authToken"); // Replace with your token logic
+
   return (
     <div className="bg-[#202020] text-white min-h-screen">
+      {/* Conditionally render the header */}
+      {isLoggedIn ? (
+        <Header_User />
+      ) : (
+        <Header toggleLoginPopup={toggleLoginPopup} />
+      )}
 
-     <Header showSearch={false} showAuthButtons={false} />
-
-
-      {/* Return Button (Icon Only) */}
+      {loginPopup && (
+        <LoginPopup
+          loginPopup={loginPopup}
+          toggleLoginPopup={toggleLoginPopup}
+        />
+      )}
       <div className="px-6 mt-6">
         <Link to="/" className="flex items-center text-white text-xl hover:opacity-80 transition-opacity">
           <FaArrowLeft className="text-2xl" />
@@ -19,7 +48,7 @@ const AboutUs = () => {
       </div>
 
       <div className="p-16 max-w-6xl mx-auto font-Poppins">
-        <h1 className="text-4xl font-bold text-center">About Us</h1>
+        <h1 className="text-4xl font-bold text-center">ABOUT US</h1>
 
         <div className="mt-10 flex flex-col md:flex-row items-center gap-10">
 

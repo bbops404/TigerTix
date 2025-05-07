@@ -1,0 +1,35 @@
+{
+    "users": [
+      { "username": "John Doe", "email": "john.doe@example.com", "role": "Admin","status": "Restricted/Active",
+      "violations": 0 },
+      { "username": "Olivia Doe", "email": "john.doe@example.com", "role": "Admin","status": "Restricted/Active",
+      "violations": 0 },
+    {
+      "username": "olivesangels",
+      "fullName": "Olive's Angels",
+      "role": "Student",
+      "email": "olivesangels@ust.edu.ph",
+      "status": "Restricted/Active",
+      "violations": 0
+    },
+    {
+      "username": "john_doe",
+      "fullName": "John Doe",
+      "role": "Faculty",
+      "email": "johndoe@ust.edu.ph",
+      "status": "Active",
+      "violations": 1
+    },
+    {
+      "username": "tigersfan",
+      "fullName": "Tigers Fan Club",
+      "role": "Alumni",
+      "email": "tigersfan@ust.edu.ph",
+      "status": "Suspended",
+      "violations": 3
+    }
+    ]
+}
+
+
+    
