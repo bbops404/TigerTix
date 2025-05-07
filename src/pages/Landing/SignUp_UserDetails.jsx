@@ -7,7 +7,6 @@ import axios from "axios";
 import LoginPopup from "./LoginPopup";
 import SuccessModal from "../../components/SuccessModal";
 
-
 const SignUp_UserDetails = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState("Select an option"); // Default text
@@ -20,20 +19,17 @@ const SignUp_UserDetails = () => {
   const [role, setRole] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const dropdownRef = useRef(null);
- 
-
 
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
-  const [loginPopup, setLoginPopup] = useState(false);  
+  const [loginPopup, setLoginPopup] = useState(false);
   const toggleLoginPopup = () => {
     setLoginPopup((prev) => !prev);
   };
   const navigate = useNavigate();
 
-
   const options = ["Student", "Employee", "Alumni"];
-  
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -44,8 +40,7 @@ const SignUp_UserDetails = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const userRole = role.toLowerCase();  
-
+  const userRole = role.toLowerCase();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,33 +51,43 @@ const SignUp_UserDetails = () => {
       navigate("/sign-up"); // Redirect if email is missing
       return;
     }
-    
+
     // Validate form fields
-    if (!username || !firstName || !lastName || !password || !confirmPassword || !role) {
+    if (
+      !username ||
+      !firstName ||
+      !lastName ||
+      !password ||
+      !confirmPassword ||
+      !role
+    ) {
       setErrorMessage("Please fill in all fields.");
       return;
     }
-  
+
     if (password !== confirmPassword) {
       setErrorMessage("Passwords do not match.");
       return;
     }
-  
+
     setErrorMessage(""); // Clear previous errors
-  
+
     try {
-      const response = await axios.post("http://localhost:5002/auth/signUp", {
-        email: verifiedEmail,
-        username,
-        firstName,
-        lastName,
-        password,
-        role: userRole,
-      });
-  
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/auth/signUp`,
+        {
+          email: verifiedEmail,
+          username,
+          firstName,
+          lastName,
+          password,
+          role: userRole,
+        }
+      );
+
       if (response.status >= 200 && response.status < 300) {
         setIsSuccessModalOpen(true);
-  
+
         setTimeout(() => {
           setIsSuccessModalOpen(false);
           // Save to local storage before redirect
@@ -97,7 +102,7 @@ const SignUp_UserDetails = () => {
       setErrorMessage("Something went wrong. Please try again.");
     }
   };
-  
+
   return (
     <div>
       <Header showAuthButtons={false} showDropdown={false} />
@@ -137,8 +142,6 @@ const SignUp_UserDetails = () => {
 
             {/* Form Inputs */}
             <form onSubmit={handleSubmit}>
-
-             
               <div className="flex">
                 <div className="flex flex-col mr-2">
                   <p className="text-xs">Username</p>
@@ -207,7 +210,9 @@ const SignUp_UserDetails = () => {
               </div>
 
               {/* Error Message */}
-              {errorMessage && <p className="text-red-500 text-xs mt-2">{errorMessage}</p>}
+              {errorMessage && (
+                <p className="text-red-500 text-xs mt-2">{errorMessage}</p>
+              )}
 
               {/* Divider */}
               <hr className="border-t-2 border-custom_black my-4 opacity-50" />
@@ -246,27 +251,24 @@ const SignUp_UserDetails = () => {
 
               {/* Submit Button */}
               <button
-  type="submit"
-  onClick={handleSubmit}
-  className="bg-custom_black text-white px-4 py-2 mt-5 w-72 text-sm rounded-md font-semibold hover:text-custom_yellow transition-all duration-300 transform hover:scale-105 mx-auto"
->
-  Make Account!
-</button>
+                type="submit"
+                onClick={handleSubmit}
+                className="bg-custom_black text-white px-4 py-2 mt-5 w-72 text-sm rounded-md font-semibold hover:text-custom_yellow transition-all duration-300 transform hover:scale-105 mx-auto"
+              >
+                Make Account!
+              </button>
 
-<SuccessModal
-  isOpen={isSuccessModalOpen}
-  onClose={() => setIsSuccessModalOpen(false)}
-  onRedirect={() => {
-    setIsSuccessModalOpen(false);
-    navigate("/");
-    setTimeout(() => setLoginPopup(true), 500);
-  }}
-  title="Success!"
-  message="Your account has been created successfully. Please log in."
-/>
-
-
-
+              <SuccessModal
+                isOpen={isSuccessModalOpen}
+                onClose={() => setIsSuccessModalOpen(false)}
+                onRedirect={() => {
+                  setIsSuccessModalOpen(false);
+                  navigate("/");
+                  setTimeout(() => setLoginPopup(true), 500);
+                }}
+                title="Success!"
+                message="Your account has been created successfully. Please log in."
+              />
             </form>
           </div>
         </div>
@@ -274,6 +276,5 @@ const SignUp_UserDetails = () => {
     </div>
   );
 };
-
 
 export default SignUp_UserDetails;

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { IoArrowBack } from "react-icons/io5";
-import axios from 'axios';
-
+import axios from "axios";
 
 const EditUserModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
@@ -9,11 +8,23 @@ const EditUserModal = ({ isOpen, onClose, onConfirm }) => {
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white p-6 rounded-xl w-[500px] h-[200px] shadow-lg">
         <h2 className="text-2xl text-black font-bold">Update User</h2>
-        <p className="text-black mt-2">Are you sure you want to update the following user?</p>
+        <p className="text-black mt-2">
+          Are you sure you want to update the following user?
+        </p>
         <p className="text-gray-600 text-sm">Please confirm to proceed.</p>
         <div className="flex justify-end gap-2 mt-10">
-          <button onClick={onClose} className="px-8 py-1 bg-gray-700 text-white rounded-2xl">Cancel</button>
-          <button onClick={onConfirm} className="px-8 py-1 bg-[#F09C32] text-white rounded-2xl">Update</button>
+          <button
+            onClick={onClose}
+            className="px-8 py-1 bg-gray-700 text-white rounded-2xl"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-8 py-1 bg-[#F09C32] text-white rounded-2xl"
+          >
+            Update
+          </button>
         </div>
       </div>
     </div>
@@ -25,17 +36,30 @@ const SuccessModal = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white p-6 rounded-xl w-[500px] h-[200px] shadow-lg">
-        <h2 className="text-2xl text-black font-bold">User Updated Successfully!</h2>
-        <p className="text-gray-600 mt-2">The user's information has been successfully updated.</p>
+        <h2 className="text-2xl text-black font-bold">
+          User Updated Successfully!
+        </h2>
+        <p className="text-gray-600 mt-2">
+          The user's information has been successfully updated.
+        </p>
         <div className="flex justify-end mt-4">
-          <button onClick={onClose} className="mt-10 px-8 py-1 bg-[#F09C32] text-white rounded-2xl">OK</button>
+          <button
+            onClick={onClose}
+            className="mt-10 px-8 py-1 bg-[#F09C32] text-white rounded-2xl"
+          >
+            OK
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-const SupportStaff_EditUserPopUp = ({ showPopup, togglePopup, selectedUserIds }) => {
+const SupportStaff_EditUserPopUp = ({
+  showPopup,
+  togglePopup,
+  selectedUserIds,
+}) => {
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -53,21 +77,20 @@ const SupportStaff_EditUserPopUp = ({ showPopup, togglePopup, selectedUserIds })
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    
     setConfirmModalOpen(true);
   };
 
   const handleConfirm = async () => {
     setConfirmModalOpen(false);
-  
+
     try {
       // Loop through selected users and send update requests for each one
       const updatePromises = selectedUserIds.map(async (userId) => {
         try {
           // Update status for each user
-          const token = sessionStorage.getItem('authToken'); // 
+          const token = sessionStorage.getItem("authToken");
           const statusResponse = await axios.put(
-            `http://localhost:5002/admin/users/${userId}/status`,
+            `${import.meta.env.VITE_API_URL}/admin/users/${userId}/status`, // Updated URL
             { status: accountStatus.toLowerCase() },
             {
               withCredentials: true,
@@ -78,7 +101,6 @@ const SupportStaff_EditUserPopUp = ({ showPopup, togglePopup, selectedUserIds })
             }
           );
 
-  
           // Optionally handle the response to check for successful update
           if (statusResponse.status === 200) {
             console.log(`User ${userId} updated successfully`);
@@ -91,15 +113,14 @@ const SupportStaff_EditUserPopUp = ({ showPopup, togglePopup, selectedUserIds })
           alert(`Failed to update user ${userId}. Please try again.`);
         }
       });
-  
+
       // Wait for all update promises to resolve
       await Promise.all(updatePromises);
-      
+
       // Show success modal after all updates are complete
-  
     } catch (error) {
       console.error("Error updating users:", error);
-      
+
       // Handle different types of errors
       if (error.response) {
         // Server responded with a status code outside of 2xx
@@ -113,12 +134,15 @@ const SupportStaff_EditUserPopUp = ({ showPopup, togglePopup, selectedUserIds })
       }
     }
   };
-  
+
   return (
     showPopup && (
       <div className="fixed top-0 left-0 w-full h-full flex justify-center items-center bg-black bg-opacity-50 z-20">
         <div className="bg-white w-[500px] max-w-[90vw] p-6 rounded-lg shadow-lg text-black relative">
-          <button className="absolute top-4 left-4 text-gray-700" onClick={togglePopup}>
+          <button
+            className="absolute top-4 left-4 text-gray-700"
+            onClick={togglePopup}
+          >
             <IoArrowBack size={24} />
           </button>
           <h2 className="text-xl font-bold text-center mb-6">EDIT USER</h2>
@@ -126,23 +150,44 @@ const SupportStaff_EditUserPopUp = ({ showPopup, togglePopup, selectedUserIds })
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label>Account Status</label>
-                <select className="border p-2 rounded w-full" value={accountStatus} onChange={(e) => setAccountStatus(e.target.value)}>
-                  <option value="" disabled>Change Account Status</option>
+                <select
+                  className="border p-2 rounded w-full"
+                  value={accountStatus}
+                  onChange={(e) => setAccountStatus(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Change Account Status
+                  </option>
                   {statuses.map((option, index) => (
-                    <option key={index} value={option}>{option}</option>
+                    <option key={index} value={option}>
+                      {option}
+                    </option>
                   ))}
                 </select>
               </div>
             </div>
-            <button type="submit" className="bg-[#FFAB40] text-white font-bold px-2 py-2 rounded w-full mt-4 hover:bg-[#E69530]">
+            <button
+              type="submit"
+              className="bg-[#FFAB40] text-white font-bold px-2 py-2 rounded w-full mt-4 hover:bg-[#E69530]"
+            >
               UPDATE USER
             </button>
           </form>
         </div>
 
         {/* Modals */}
-        <EditUserModal isOpen={isConfirmModalOpen} onClose={() => setConfirmModalOpen(false)} onConfirm={handleConfirm} />
-        <SuccessModal isOpen={isSuccessModalOpen} onClose={() => { setSuccessModalOpen(false); togglePopup(); }} />
+        <EditUserModal
+          isOpen={isConfirmModalOpen}
+          onClose={() => setConfirmModalOpen(false)}
+          onConfirm={handleConfirm}
+        />
+        <SuccessModal
+          isOpen={isSuccessModalOpen}
+          onClose={() => {
+            setSuccessModalOpen(false);
+            togglePopup();
+          }}
+        />
       </div>
     )
   );

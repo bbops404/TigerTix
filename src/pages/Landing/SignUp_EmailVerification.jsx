@@ -11,7 +11,6 @@ import axios from "axios"; // Import Axios
 
 import LoginPopup from "./LoginPopup";
 
-
 const schema = yup
   .object({
     email: yup
@@ -24,7 +23,6 @@ const schema = yup
   })
   .required();
 
- 
 const SignUp = () => {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [email, setEmail] = useState("");
@@ -33,52 +31,53 @@ const SignUp = () => {
   const [knownOtp] = useState("1234"); // ✅ Hardcoded OTP for testing
   const navigate = useNavigate();
 
- 
-   const {
-     register,
-     handleSubmit,
-     formState: { errors },
-   } = useForm({
-     resolver: yupResolver(schema),
-     
-   });
-   const [loginPopup, setLoginPopup] = useState(false);
-   const toggleLoginPopup = () => {
-     setLoginPopup((prev) => !prev);
-   };
-   
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
+  const [loginPopup, setLoginPopup] = useState(false);
+  const toggleLoginPopup = () => {
+    setLoginPopup((prev) => !prev);
+  };
+
   const onSubmit = async (data) => {
     event.preventDefault(); // Prevent default form submission
 
     try {
       // Check if the email is already registered before sending OTP
-      const checkResponse = await axios.post("http://localhost:5002/auth/check-user", { email: data.email });
-  
-        
-      if (checkResponse.data.exists) { 
+      const checkResponse = await axios.post(
+        `${import.meta.env.VITE_API_URL}/auth/check-user`, // Updated URL
+        { email: data.email }
+      );
+
+      if (checkResponse.data.exists) {
         alert("This email is already registered. Please log in instead.");
 
-        // put code for the hyper link nung user if want mag log in instead sa ngayon alert pa lang 
-        setLoginPopup(true); // ✅ Show the login pop-up
+        // Show the login pop-up
+        setLoginPopup(true);
         return;
       }
-          
-  
+
       setEmail(data.email); // Store the email
       setShowOtpInput(true); // Show OTP input
       alert(`Verification code sent to: ${data.email}`);
-  
-      // ✅ Send email to backend for OTP generation
-      const response = await axios.post("http://localhost:5002/auth/send-otp", { email: data.email });
-  
+
+      // Send email to backend for OTP generation
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/auth/send-otp`, // Updated URL
+        { email: data.email }
+      );
+
       if (response.status === 200) {
         alert("OTP sent successfully! Please check your email.");
       }
-  }
-  catch (error) {
+    } catch (error) {
       console.error("Error processing request:", error);
-  
-      // 🔍 Check if error is from check-user or send-otp
+
+      // Check if error is from check-user or send-otp
       if (error.response) {
         console.log("Error response:", error.response);
         if (error.response.status === 400) {
@@ -86,27 +85,25 @@ const SignUp = () => {
           return;
         }
       }
-      
 
       alert("Failed to send OTP. Please try again.");
     }
   };
-  
-  
 
   // Handler for confirming OTP via button click
   const handleConfirmOtp = async () => {
     if (otp.length === 6) {
       try {
         // Send OTP to backend for validation
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/auth/validate-otp`, // Updated URL
+          { email, otp }
+        );
 
-        const response = await axios.post("http://localhost:5002/auth/validate-otp", { email, otp });
-        
         if (response.status === 200) {
           alert("OTP confirmed successfully.");
           sessionStorage.setItem("verifiedEmail", email);
           navigate("/sign-up", { state: { email } });
-
         }
       } catch (error) {
         console.error("Error confirming OTP:", error);
@@ -119,7 +116,7 @@ const SignUp = () => {
 
   return (
     <div>
-    <Header showAuthButtons={false} showDropdown={false} />
+      <Header showAuthButtons={false} showDropdown={false} />
       {loginPopup && (
         <LoginPopup
           loginPopup={loginPopup}
@@ -220,6 +217,5 @@ const SignUp = () => {
     </div>
   );
 };
-
 
 export default SignUp;

@@ -1,10 +1,10 @@
 // frontend/src/services/eventService.js
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
+const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 const formatImageUrl = (imageUrl) => {
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002";
+  const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
   if (!imageUrl) return null;
 

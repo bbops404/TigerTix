@@ -70,7 +70,7 @@ const Admin_EventReports = () => {
         setEventsLoading(true);
         // Updated to the correct endpoint
         const response = await axios.get(
-          "http://localhost:5002/admin/ticketed-events",
+          `${import.meta.env.VITE_API_URL}/admin/ticketed-events`,
           {
             withCredentials: true,
             headers: {
@@ -110,7 +110,7 @@ const Admin_EventReports = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          "http://localhost:5002/api/events-summary",
+          `${import.meta.env.VITE_API_URL}/api/events-summary`,
           {
             withCredentials: true,
             headers: {

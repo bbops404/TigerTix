@@ -2,7 +2,11 @@ import React, { useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify"; // Import toast from react-toastify
 
-const SupportStaff_UserGenerateReportPopUp = ({ isOpen, onClose, visibleRows }) => {
+const SupportStaff_UserGenerateReportPopUp = ({
+  isOpen,
+  onClose,
+  visibleRows,
+}) => {
   const [selectedColumns, setSelectedColumns] = useState([]);
 
   if (!isOpen) return null;
@@ -20,11 +24,11 @@ const SupportStaff_UserGenerateReportPopUp = ({ isOpen, onClose, visibleRows }) 
       const token = sessionStorage.getItem("authToken");
 
       const response = await axios.post(
-        `http://localhost:5002/admin/generate-user-report`,
-        { columns: selectedColumns,
+        `${import.meta.env.VITE_API_URL}/admin/generate-user-report`, // Updated URL
+        {
+          columns: selectedColumns,
           rows: visibleRows, // Pass visible rows to the backend
-
-         }, // Request body
+        }, // Request body
         {
           withCredentials: true, // Ensures cookies are sent (if applicable)
           headers: {
@@ -58,7 +62,9 @@ const SupportStaff_UserGenerateReportPopUp = ({ isOpen, onClose, visibleRows }) 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white p-6 rounded-2xl shadow-lg w-80 text-center">
-        <h2 className="text-lg text-[25px] font-bold text-gray-800 mb-4">GENERATE REPORT</h2>
+        <h2 className="text-lg text-[25px] font-bold text-gray-800 mb-4">
+          GENERATE REPORT
+        </h2>
         <div className="text-left space-y-2">
           {[
             "username",
@@ -68,7 +74,10 @@ const SupportStaff_UserGenerateReportPopUp = ({ isOpen, onClose, visibleRows }) 
             "status",
             "violation_count",
           ].map((label, index) => (
-            <label key={index} className="flex items-center space-x-2 text-orange-500">
+            <label
+              key={index}
+              className="flex items-center space-x-2 text-orange-500"
+            >
               <input
                 type="checkbox"
                 className="accent-orange-500"

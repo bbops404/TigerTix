@@ -21,7 +21,7 @@ const Event_Free = () => {
     const fetchEvent = async () => {
       try {
         setLoading(true);
-        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`; // Replace with your backend URL
 
         // Fetch event details by ID
         const response = await axios.get(
@@ -149,7 +149,7 @@ const Event_Free = () => {
                 src={
                   event.image.startsWith("http")
                     ? event.image
-                    : `http://localhost:5002${
+                    : `${import.meta.env.VITE_API_URL}${
                         event.image.startsWith("/") ? "" : "/"
                       }${event.image}`
                 }

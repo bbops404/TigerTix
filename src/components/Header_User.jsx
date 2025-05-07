@@ -19,7 +19,7 @@ const Header_User = () => {
     // Fetch published events
     const fetchPublishedEvents = async () => {
       try {
-        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`; // Replace with your backend URL
         const response = await fetch(`${API_BASE_URL}/api/events/published`);
         const data = await response.json();
 
@@ -59,7 +59,7 @@ const Header_User = () => {
 
     try {
       // We need to get the full event details from any endpoint that will return them
-      const API_BASE_URL = "http://localhost:5002";
+      const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
 
       const response = await axios.get(
         `${API_BASE_URL}/api/events/ticketed/${eventId}`
@@ -103,13 +103,16 @@ const Header_User = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("http://localhost:5002/auth/logout", {
-        method: "POST",
-        credentials: "include", // ✅ Important! Sends cookies with request
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/auth/logout`,
+        {
+          method: "POST",
+          credentials: "include", // ✅ Important! Sends cookies with request
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       const data = await response.json();
 

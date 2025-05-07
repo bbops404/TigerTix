@@ -24,10 +24,10 @@ const port = process.env.PORT || 5002;
 const redisClient = require("./config/redis");
 
 redisClient.on("connect", () =>
-  console.log("✅ Connected to Redis successfully!"),
+  console.log("✅ Connected to Redis successfully!")
 );
 redisClient.on("error", (err) =>
-  console.error("⚠️ Redis connection error:", err),
+  console.error("⚠️ Redis connection error:", err)
 );
 
 // ========================================================
@@ -37,15 +37,18 @@ redisClient.on("error", (err) =>
 // Create HTTP server instance
 const server = http.createServer(app);
 
-// Initialize Socket.IO with appropriate CORS settings
+// Use environment variable for frontend URL or fallback to localhost
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
+// Initialize Socket.IO with dynamic CORS settings
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173", "*"],
+    origin: [FRONTEND_URL], // Use the variable here
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   },
-  path: "/socket.io", // Make sure path is consistent with client
+  path: "/socket.io", // Ensure this matches the client configuration
   pingTimeout: 60000,
   pingInterval: 25000,
   transports: ["websocket", "polling"],
@@ -103,18 +106,14 @@ app.use((req, res, next) => {
 // ========================================================
 // EXPRESS MIDDLEWARE CONFIGURATION
 // ========================================================
-// CORS configuration for cross-origin requests
+// CORS middleware configuration
 app.use(
   cors({
-    origin: "http://localhost:5173", // Replace with your frontend's URL
+    origin: FRONTEND_URL, // Use the variable here
     credentials: true, // Allow credentials (cookies, authorization headers, etc.)
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "withCredentials", // Add this to allow the withCredentials header
-    ],
+    allowedHeaders: ["Content-Type", "Authorization", "withCredentials"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"], // Allow these HTTP methods
-  }),
+  })
 );
 
 app.use(express.json());
@@ -137,7 +136,7 @@ app.use(
         throw new Error("Request payload too large");
       }
     },
-  }),
+  })
 );
 
 // URL-encoded request body parsing with size limit
@@ -150,7 +149,7 @@ app.use(
         throw new Error("Request payload too large");
       }
     },
-  }),
+  })
 );
 
 // Debug incoming cookies in requests

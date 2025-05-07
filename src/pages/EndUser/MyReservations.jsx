@@ -77,9 +77,12 @@ const MyReservations = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get("http://localhost:5002/api/users/me", {
-          withCredentials: true,
-        });
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/users/me`,
+          {
+            withCredentials: true,
+          }
+        );
 
         if (response.data.success && response.data.data) {
           setUserId(response.data.data.user_id);
@@ -103,7 +106,7 @@ const MyReservations = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `http://localhost:5002/api/reservations/user/${userId}`,
+          `${import.meta.env.VITE_API_URL}/api/reservations/user/${userId}`,
           {
             withCredentials: true,
           }
@@ -174,7 +177,7 @@ const MyReservations = () => {
     const fetchUserInfo = async () => {
       try {
         const userResponse = await axios.get(
-          "http://localhost:5002/api/users/me",
+          `${import.meta.env.VITE_API_URL}/api/users/me`,
           {
             withCredentials: true,
           }

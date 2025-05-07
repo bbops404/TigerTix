@@ -18,7 +18,7 @@ const Event_Ticketed_EndUser = () => {
     const fetchEventAndCheckReservation = async () => {
       try {
         setLoading(true);
-        const API_BASE_URL = "http://localhost:5002";
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
 
         // Fetch event details
         const eventResponse = await fetch(
@@ -205,7 +205,7 @@ const Event_Ticketed_EndUser = () => {
   }
 
   return (
-    <div className="bg-[#121212] text-white min-h-screen">
+    <div className="bg-[#121212] text-white min-h-screen font-Poppins">
       <Header_User />
 
       {/* Back Button (Upper Left) */}
@@ -225,7 +225,7 @@ const Event_Ticketed_EndUser = () => {
                 src={
                   event.image.startsWith("http")
                     ? event.image
-                    : `http://localhost:5002${
+                    : `${import.meta.env.VITE_API_URL}${
                         event.image.startsWith("/") ? "" : "/"
                       }${event.image}`
                 }

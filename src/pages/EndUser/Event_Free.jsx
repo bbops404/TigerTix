@@ -15,7 +15,7 @@ const EventFree = () => {
     const fetchEvent = async () => {
       try {
         setLoading(true);
-        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`; // Replace with your backend URL
 
         // Fetch event details by ID
         const response = await axios.get(
@@ -120,7 +120,7 @@ const EventFree = () => {
   }
 
   return (
-    <div className="bg-[#121212] text-white min-h-screen">
+    <div className="bg-[#121212] text-white min-h-screen font-Poppins">
       <Header_User />
 
       {/* Back Button (Upper Left) */}
@@ -140,7 +140,7 @@ const EventFree = () => {
                 src={
                   event.image.startsWith("http")
                     ? event.image
-                    : `http://localhost:5002${
+                    : `${import.meta.env.VITE_API_URL}${
                         event.image.startsWith("/") ? "" : "/"
                       }${event.image}`
                 }
@@ -156,7 +156,6 @@ const EventFree = () => {
                       "w-full h-full flex items-center justify-center image-fallback";
 
                     fallback.innerHTML = `<span class="text-white text-center p-4 font-Poppins">${
-
                       event.name || "Event image unavailable"
                     }</span>`;
                     container.appendChild(fallback);
@@ -217,13 +216,11 @@ const EventFree = () => {
             {/* Be Notified Button */}
             <div className="flex justify-end mt-6">
               <button
-
                 className="font-Poppins font-bold py-3 px-7 min-w-[300px] rounded-lg inline-block mb-2 uppercase transition-all transform hover:scale-105 bg-black text-[#F09C32] flex items-center justify-center space-x-2"
                 onClick={() => alert("You will be notified about this event!")}
               >
                 <span>Be notified!</span>
                 <IoNotifications className="text-2xl bg-white p-1 rounded-full" />
-
               </button>
             </div>
           </div>

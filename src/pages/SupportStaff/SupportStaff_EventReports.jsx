@@ -16,11 +16,8 @@ import {
   FaChevronRight,
 } from "react-icons/fa";
 
-
 import Header_SupportStaff from "../../components/SupportStaff/Header_SupportStaff";
 import SideBar_SupportStaff from "../../components/SupportStaff/SideBar_SupportStaff";
-
-
 
 import eventPlaceholder from "../../assets/event_placeholder.jpg";
 import SupportStaff_EventReportGenerateReport from "./SupportStaff_EventReportGenerateReport";
@@ -73,20 +70,28 @@ const SupportStaff_EventReports = () => {
     const fetchEventSummaryData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("http://localhost:5002/api/events-summary", {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${sessionStorage.getItem("authToken")}`,
-            "Content-Type": "application/json",
-          },
-        });
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/events-summary`, // Updated URL
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${sessionStorage.getItem("authToken")}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
-        if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        if (
+          response.data &&
+          response.data.success &&
+          Array.isArray(response.data.data)
+        ) {
           const formattedData = response.data.data.map((event) => ({
             ...event,
             event_date: event.event_date || "TBD",
             remaining_tickets:
-              event.remaining_tickets === null || event.remaining_tickets === "FREE"
+              event.remaining_tickets === null ||
+              event.remaining_tickets === "FREE"
                 ? "N/A"
                 : event.remaining_tickets,
           }));
@@ -96,7 +101,10 @@ const SupportStaff_EventReports = () => {
           setError("Unexpected response structure. Please contact support.");
         }
       } catch (err) {
-        console.error("Error fetching event data:", err.response || err.message || err);
+        console.error(
+          "Error fetching event data:",
+          err.response || err.message || err
+        );
         setError("Failed to fetch event data. Please try again later.");
       } finally {
         setLoading(false);
@@ -200,7 +208,8 @@ const SupportStaff_EventReports = () => {
           {/* Prompt for Admin */}
           <div className="mb-4">
             <p className="text-sm text-gray-400">
-            Generate a reservation report for each event by clicking the "Generate Report" button.
+              Generate a reservation report for each event by clicking the
+              "Generate Report" button.
             </p>
           </div>
 
@@ -262,12 +271,13 @@ const SupportStaff_EventReports = () => {
           {/* Event Summary Table */}
           <div className="mt-10">
             <h2 className="text-xl font-bold mb-4">Event Summary</h2>
-                 {/* Prompt for Admin */}
-          <div className="mb-4">
-            <p className="text-sm text-gray-400">
-            Generate a summary of events report by clicking the "Generate Summary Report" button.
-            </p>
-          </div>
+            {/* Prompt for Admin */}
+            <div className="mb-4">
+              <p className="text-sm text-gray-400">
+                Generate a summary of events report by clicking the "Generate
+                Summary Report" button.
+              </p>
+            </div>
             <div className="flex items-center mb-4">
               <FaSearch className="mr-2 text-white" />
               <input
@@ -348,7 +358,6 @@ const SupportStaff_EventReports = () => {
               </button>
             </div>
 
-            
             {/* Generate Summary Button */}
             <div className="flex justify-end mt-4">
               <button

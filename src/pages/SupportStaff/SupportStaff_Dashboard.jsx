@@ -14,7 +14,7 @@ const SupportStaff_Dashboard = () => {
     console.log("Fetching Ticketed Events..."); // Debug log
     try {
       const response = await axios.get(
-        "http://localhost:5002/admin/ticketed-events",
+        `${import.meta.env.VITE_API_URL}/admin/ticketed-events`, // Updated URL
         {
           withCredentials: true,
           headers: {
@@ -27,7 +27,6 @@ const SupportStaff_Dashboard = () => {
       console.log("Ticketed Events Response:", response.data); // Debug log
 
       if (response.data.success) {
-        // Filter only events that have tickets
         const events = response.data.data
           .filter((event) => event.Tickets && event.Tickets.length > 0)
           .map((event) => ({
@@ -51,7 +50,9 @@ const SupportStaff_Dashboard = () => {
   const fetchEventClaimingStatus = async (eventId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5002/admin/event-claiming-status/${eventId}`,
+        `${
+          import.meta.env.VITE_API_URL
+        }/admin/event-claiming-status/${eventId}`, // Updated URL
         {
           withCredentials: true,
           headers: {
@@ -114,9 +115,9 @@ const SupportStaff_Dashboard = () => {
       try {
         const token = sessionStorage.getItem("authToken");
         const response = await axios.get(
-          "http://localhost:5002/admin/dashboard/metrics",
+          `${import.meta.env.VITE_API_URL}/admin/dashboard/metrics`, // Updated URL
           {
-            withCredentials: true, // Ensures cookies are sent (if applicable)
+            withCredentials: true,
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -138,7 +139,7 @@ const SupportStaff_Dashboard = () => {
       try {
         const token = sessionStorage.getItem("authToken");
         const response = await axios.get(
-          "http://localhost:5002/admin/upcoming-events",
+          `${import.meta.env.VITE_API_URL}/admin/upcoming-events`, // Updated URL
           {
             withCredentials: true,
             headers: {
@@ -169,7 +170,7 @@ const SupportStaff_Dashboard = () => {
       try {
         const token = sessionStorage.getItem("authToken");
         const response = await axios.get(
-          "http://localhost:5002/admin/recent-reservations",
+          `${import.meta.env.VITE_API_URL}/admin/recent-reservations`, // Updated URL
           {
             withCredentials: true,
             headers: {

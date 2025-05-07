@@ -20,7 +20,7 @@ const AuditTrails = () => {
         const token = sessionStorage.getItem("authToken"); // Get the token from session storage
         setLoading(true); // Set loading to true before fetching
         const response = await axios.get(
-          "http://localhost:5002/api/audit-trails",
+          `${import.meta.env.VITE_API_URL}/api/audit-trails`,
           {
             withCredentials: true, // Ensures cookies are sent (if applicable)
             headers: {

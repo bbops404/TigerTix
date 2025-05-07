@@ -5,7 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
-const Header = ({ toggleLoginPopup, showAuthButtons = true, showDropdown = true }) => {
+const Header = ({
+  toggleLoginPopup,
+  showAuthButtons = true,
+  showDropdown = true,
+}) => {
   const navigate = useNavigate();
   const [publishedEvents, setPublishedEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
@@ -14,7 +18,7 @@ const Header = ({ toggleLoginPopup, showAuthButtons = true, showDropdown = true 
   useEffect(() => {
     const fetchPublishedEvents = async () => {
       try {
-        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`; // Replace with your backend URL
         const response = await axios.get(
           `${API_BASE_URL}/api/events/published`
         );
@@ -43,7 +47,7 @@ const Header = ({ toggleLoginPopup, showAuthButtons = true, showDropdown = true 
       // We need to get the full event details from any endpoint that will return them
       // Since we know from the controller code that any of the endpoints will return the event
       // regardless of its actual type, we can just use one endpoint
-      const API_BASE_URL = "http://localhost:5002";
+      const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
 
       const response = await axios.get(
         `${API_BASE_URL}/api/events/ticketed/${eventId}`
@@ -96,7 +100,6 @@ const Header = ({ toggleLoginPopup, showAuthButtons = true, showDropdown = true 
           />
         </Link>
 
-
         {/* Conditionally render the dropdown */}
         {showDropdown && (
           <div className="relative group">
@@ -125,7 +128,6 @@ const Header = ({ toggleLoginPopup, showAuthButtons = true, showDropdown = true 
             </select>
           </div>
         )}
-
 
         {showAuthButtons && (
           <div className="flex gap-5">

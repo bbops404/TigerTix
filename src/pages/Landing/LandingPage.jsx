@@ -27,7 +27,7 @@ function Carousel() {
     const fetchTicketedEvents = async () => {
       try {
         setIsLoading(true);
-        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`; // Updated to use environment variable
         const response = await axios.get(
           `${API_BASE_URL}/api/events/published-ticketed`,
           {
@@ -339,7 +339,7 @@ function LandingPage() {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+      const API_BASE_URL = `${import.meta.env.VITE_API_URL}`; // Updated to use environment variable
       const timestamp = new Date().getTime(); // Prevent caching
 
       // Helper function to fetch events with loading state management

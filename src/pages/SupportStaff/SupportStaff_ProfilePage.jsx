@@ -27,11 +27,11 @@ const SupportStaff_ProfilePage = () => {
   const [error, setError] = useState(null);
   const [userDetails, setUserDetails] = useState(null);
 
-   // Fetch user details on component mount
-   useEffect(() => {
+  // Fetch user details on component mount
+  useEffect(() => {
     const fetchUserDetails = async () => {
       try {
-        const API_BASE_URL = "http://localhost:5002/api";
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api`; // Updated to use environment variable
 
         const response = await axios.get(`${API_BASE_URL}/users/me`, {
           withCredentials: true,
@@ -63,30 +63,30 @@ const SupportStaff_ProfilePage = () => {
     setShowEditDetailsPopup((prev) => !prev);
   };
 
-    // Render loading state
-    if (loading) {
-      return (
-        <div className="flex flex-col min-h-screen bg-[#202020]">
-          <Header_SupportStaff />
-          <div className="flex justify-center items-center flex-grow">
-            <p className="text-white">Loading profile...</p>
-          </div>
+  // Render loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#202020]">
+        <Header_SupportStaff />
+        <div className="flex justify-center items-center flex-grow">
+          <p className="text-white">Loading profile...</p>
         </div>
-      );
-    }
-  
-    // Render error state
-    if (error) {
-      console.error("Error fetching user details:", error); // Log the error for debugging
-      return (
-        <div className="flex flex-col min-h-screen bg-[#202020]">
-          <Header_SupportStaff />
-          <div className="flex justify-center items-center flex-grow">
-            <p className="text-red-500">Error: {error}</p>
-          </div>
+      </div>
+    );
+  }
+
+  // Render error state
+  if (error) {
+    console.error("Error fetching user details:", error); // Log the error for debugging
+    return (
+      <div className="flex flex-col min-h-screen bg-[#202020]">
+        <Header_SupportStaff />
+        <div className="flex justify-center items-center flex-grow">
+          <p className="text-red-500">Error: {error}</p>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
@@ -116,19 +116,19 @@ const SupportStaff_ProfilePage = () => {
               </div>
 
               <div className="space-y-4">
-              <Label
-                      label="Name:"
-                      value={`${userDetails?.first_name} ${userDetails?.last_name}`}
-                    />
-                    <Label label="Email:" value={userDetails.email} />
-                    <Label label="Username:" value={userDetails.username} />
-                    <Label
-                      label="Role:"
-                      value={
-                        userDetails.role.charAt(0).toUpperCase() +
-                        userDetails.role.slice(1)
-                      }
-                    />
+                <Label
+                  label="Name:"
+                  value={`${userDetails?.first_name} ${userDetails?.last_name}`}
+                />
+                <Label label="Email:" value={userDetails.email} />
+                <Label label="Username:" value={userDetails.username} />
+                <Label
+                  label="Role:"
+                  value={
+                    userDetails.role.charAt(0).toUpperCase() +
+                    userDetails.role.slice(1)
+                  }
+                />
               </div>
 
               {/* Buttons */}
@@ -165,6 +165,5 @@ const SupportStaff_ProfilePage = () => {
     </div>
   );
 };
-
 
 export default SupportStaff_ProfilePage;

@@ -61,18 +61,21 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
     const trimmedInput = email.trim();
 
     try {
-      const response = await fetch("http://localhost:5002/auth/login", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: trimmedInput.includes("@") ? trimmedInput : null,
-          username: trimmedInput.includes("@") ? null : trimmedInput,
-          password: password,
-        }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/auth/login`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: trimmedInput.includes("@") ? trimmedInput : null,
+            username: trimmedInput.includes("@") ? null : trimmedInput,
+            password: password,
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -97,14 +100,14 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
         });
 
         toggleLoginPopup();
-// ✅ Redirect based on user role
-if (data.user.role === "admin") {
-  navigate("/admin-dashboard", { replace: true });
-} else if (data.user.role === "support staff") {
-  navigate("/support-staff-dashboard", { replace: true });
-} else if (["student", "employee", "alumni"].includes(data.user.role)) {
-  navigate("/home", { replace: true });
-}
+        // ✅ Redirect based on user role
+        if (data.user.role === "admin") {
+          navigate("/admin-dashboard", { replace: true });
+        } else if (data.user.role === "support staff") {
+          navigate("/support-staff-dashboard", { replace: true });
+        } else if (["student", "employee", "alumni"].includes(data.user.role)) {
+          navigate("/home", { replace: true });
+        }
 
         // Redirect based on user role
         if (data.user.role === "admin") {

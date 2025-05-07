@@ -22,7 +22,7 @@ const Event_Ticketed = () => {
     const fetchEvent = async () => {
       try {
         setLoading(true);
-        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`; // Replace with your backend URL
 
         // Fetch event details by ID
         const response = await axios.get(
@@ -138,7 +138,6 @@ const Event_Ticketed = () => {
         <IoChevronBackOutline className="text-3xl" />
       </button>
 
-   
       <div className="flex justify-center items-center p-5 mt-10">
         <div className="text-white p-6 flex flex-col md:flex-row max-w-7xl w-full rounded-lg">
           {/* Left Image */}
@@ -148,7 +147,7 @@ const Event_Ticketed = () => {
                 src={
                   event.image.startsWith("http")
                     ? event.image
-                    : `http://localhost:5002${
+                    : `${import.meta.env.VITE_API_URL}${
                         event.image.startsWith("/") ? "" : "/"
                       }${event.image}`
                 }

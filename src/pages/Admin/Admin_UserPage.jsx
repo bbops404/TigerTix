@@ -328,7 +328,7 @@ const Admin_UserPage = () => {
 
       // Send the selected user IDs in the request body
       const response = await axios.delete(
-        "http://localhost:5002/admin/users/delete",
+        `${import.meta.env.VITE_API_URL}/admin/users/delete`,
         {
           withCredentials: true, // Ensures cookies are sent (if applicable)
           headers: {
@@ -361,13 +361,16 @@ const Admin_UserPage = () => {
     const fetchUsers = async () => {
       try {
         const token = sessionStorage.getItem("authToken"); //
-        const response = await axios.get("http://localhost:5002/admin/users", {
-          withCredentials: true, // ✅ Ensures cookies are sent (if applicable)
-          headers: {
-            Authorization: `Bearer ${token}`, // ✅ Proper placement of the token
-            "Content-Type": "application/json", // ✅ Explicitly setting content type
-          },
-        });
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/admin/users`,
+          {
+            withCredentials: true, // ✅ Ensures cookies are sent (if applicable)
+            headers: {
+              Authorization: `Bearer ${token}`, // ✅ Proper placement of the token
+              "Content-Type": "application/json", // ✅ Explicitly setting content type
+            },
+          }
+        );
 
         // Map the users and combine first_name & last_name
         const formattedUsers = response.data.map((user) => ({
@@ -623,7 +626,7 @@ const Admin_UserPage = () => {
           isOpen={showGenerateReportPopup}
           onClose={closeGenerateReportPopup}
           visibleRows={table.getRowModel().rows.map((row) => row.original)} // Pass visible rows
-          />
+        />
       )}
     </div>
   );
