@@ -38,7 +38,7 @@ redisClient.on("error", (err) =>
 const server = http.createServer(app);
 
 // Use environment variable for frontend URL or fallback to localhost
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 // Initialize Socket.IO with dynamic CORS settings
 const io = socketIo(server, {
