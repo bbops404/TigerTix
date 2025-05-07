@@ -6,6 +6,8 @@ const User = db.User; // Add this
 const ClaimingSlot = db.ClaimingSlot; // Add this
 const nodemailer = require("nodemailer");
 const { createAuditTrail } = require("./auditTrailController");
+const { Resend } = require("resend"); // Add this
+const resend = new Resend(process.env.RESEND_API_KEY); // Add this
 
 const sequelize = db.sequelize; // Add this for transaction
 
@@ -21,7 +23,6 @@ const transporter = nodemailer.createTransport({
 const reservationController = {
   // Create a new reservation
   createReservation: async (req, res) => {
-    // Start a transaction to ensure all database operations succeed or fail together
     const transaction = await db.sequelize.transaction();
 
     try {
@@ -278,26 +279,25 @@ const reservationController = {
       await transaction.commit(); // Commit the transaction
 
       for (const user of users) {
-        const mailOptions = {
-          from: `"TigerTix" <${process.env.EMAIL_USER}>`,
-          to: user.email,
-          subject: "Your Reservation Details",
-          html: `
-            <h1>Reservation Confirmation</h1>
-            <p>Dear ${user.first_name} ${user.last_name},</p>
-            <p>Your reservation has been successfully created. Here are the details:</p>
-            <ul>
-              <li><strong>Event:</strong> ${event.name}</li>
-              <li><strong>Ticket Type:</strong> ${ticket.ticket_type}</li>
-              <li><strong>Claiming Time:</strong> ${claimingSlot.claiming_date} (${claimingSlot.start_time} - ${claimingSlot.end_time})</li>
-            </ul>
-            <p>Please log in to your account to view your reservations and ensure all details are correct.</p>
-            <p><strong>Reminder:</strong> You must claim your tickets during the chosen claiming time. Failure to do so may result in restrictions on your account.</p>
-            <p>Thank you for using TigerTix!</p>
-          `,
-        };
         try {
-          await transporter.sendMail(mailOptions);
+          await resend.emails.send({
+            from: `"TigerTix" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: "Your Reservation Details",
+            html: `
+              <h1>Reservation Confirmation</h1>
+              <p>Dear ${user.first_name} ${user.last_name},</p>
+              <p>Your reservation has been successfully created. Here are the details:</p>
+              <ul>
+                <li><strong>Event:</strong> ${event.name}</li>
+                <li><strong>Ticket Type:</strong> ${ticket.ticket_type}</li>
+                <li><strong>Claiming Time:</strong> ${claimingSlot.claiming_date} (${claimingSlot.start_time} - ${claimingSlot.end_time})</li>
+              </ul>
+              <p>Please log in to your account to view your reservations and ensure all details are correct.</p>
+              <p><strong>Reminder:</strong> You must claim your tickets during the chosen claiming time. Failure to do so may result in restrictions on your account.</p>
+              <p>Thank you for using TigerTix!</p>
+            `,
+          });
         } catch (emailError) {
           console.error(`Failed to send email to ${user.email}:`, emailError);
         }

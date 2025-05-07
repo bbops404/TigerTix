@@ -1,8 +1,10 @@
-const nodemailer = require("nodemailer");
 const bcrypt = require("bcryptjs");
 const { Sequelize } = require("sequelize");
 const jwt = require("jsonwebtoken");
 const User = require("../models/Users");
+
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 require("dotenv").config();
 
@@ -11,15 +13,6 @@ const redis = require("../config/redis");
 // Generate a 6-digit OTP
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
-
-// Nodemailer transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
 
 // Check if a user exists
 exports.checkUser = async (req, res) => {
@@ -52,11 +45,11 @@ exports.sendOTP = async (req, res) => {
     const otp = generateOTP();
     await redis.set(`otp:${email}`, otp, "EX", 300);
 
-    await transporter.sendMail({
-      from: `"TigerTix OTP Service" <${process.env.EMAIL_USER}>`,
-      to: email,
+    resend.emails.send({
+      from: `onboarding@resend.dev`,
+      to: `jamianavarro07@gmail.com`,
       subject: "Your One-Time Password (OTP)",
-      text: `Your OTP code is: ${otp}\n\nThis code will expire in 5 minutes. Do not share it with anyone.`,
+      html: "Your OTP code is: ${otp}\n\nThis code will expire in 5 minutes. Do not share it with anyone.",
     });
 
     res.status(200).json({ message: "OTP sent successfully!" });
@@ -119,7 +112,7 @@ exports.signUp = async (req, res) => {
     });
 
     // Send email for successfully creating account
-    await transporter.sendMail({
+    resend.emails.send({
       from: `"TigerTix Support" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Welcome to TigerTix!",
@@ -164,11 +157,11 @@ exports.login = async (req, res) => {
         [Sequelize.Op.or]: [
           Sequelize.where(
             Sequelize.fn("LOWER", Sequelize.col("email")),
-            email ? email.toLowerCase() : "",
+            email ? email.toLowerCase() : ""
           ),
           Sequelize.where(
             Sequelize.fn("LOWER", Sequelize.col("username")),
-            username ? username.toLowerCase() : "",
+            username ? username.toLowerCase() : ""
           ),
         ],
       },
@@ -211,7 +204,7 @@ exports.login = async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7h" },
+      { expiresIn: "7h" }
     );
 
     // Store token in Redis with expiration (1 hour)
@@ -308,7 +301,7 @@ exports.requestPasswordReset = async (req, res) => {
     const otp = generateOTP();
     await redis.set(`password-reset:${email}`, otp, "EX", 300);
 
-    await transporter.sendMail({
+    resend.emails.send({
       from: `"TigerTix Support" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Password Reset OTP",

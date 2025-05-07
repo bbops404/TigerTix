@@ -9,6 +9,8 @@ const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const { createAuditTrail } = require("./auditTrailController");
 const crypto = require("crypto");
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -380,7 +382,7 @@ exports.addUser = async (req, res) => {
     });
 
     // Send an email to the user with their temporary password
-    await transporter.sendMail({
+    await resend.emails.send({
       from: `"TigerTix" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Welcome to TigerTix!",
