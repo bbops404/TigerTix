@@ -50,7 +50,7 @@ exports.sendOTP = async (req, res) => {
       from: resendhost,
       to: email,
       subject: "Your One-Time Password (OTP)",
-      html: "Your OTP code is: ${otp}\n\nThis code will expire in 5 minutes. Do not share it with anyone.",
+      html: `Your OTP code is: ${otp}\n\nThis code will expire in 5 minutes. Do not share it with anyone.`,
     });
 
     res.status(200).json({ message: "OTP sent successfully!" });
