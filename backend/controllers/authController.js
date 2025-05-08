@@ -5,6 +5,7 @@ const User = require("../models/Users");
 
 const { Resend } = require("resend");
 const resend = new Resend(process.env.RESEND_API_KEY);
+const resendhost = process.env.RESEND_HOST;
 
 require("dotenv").config();
 
@@ -46,8 +47,8 @@ exports.sendOTP = async (req, res) => {
     await redis.set(`otp:${email}`, otp, "EX", 300);
 
     resend.emails.send({
-      from: `onboarding@resend.dev`,
-      to: `jamianavarro07@gmail.com`,
+      from: resendhost,
+      to: email,
       subject: "Your One-Time Password (OTP)",
       html: "Your OTP code is: ${otp}\n\nThis code will expire in 5 minutes. Do not share it with anyone.",
     });
@@ -113,7 +114,7 @@ exports.signUp = async (req, res) => {
 
     // Send email for successfully creating account
     resend.emails.send({
-      from: `"TigerTix Support" <${process.env.EMAIL_USER}>`,
+      from: resendhost,
       to: email,
       subject: "Welcome to TigerTix!",
       text: `Hi ${firstName} ${lastName},\n\nYour account has been successfully created on TigerTix.\n\nUsername: ${username}\nRole: ${formattedRole}\n\nThank you for joining us!\n\nBest regards,\nTigerTix Team`,
@@ -302,7 +303,7 @@ exports.requestPasswordReset = async (req, res) => {
     await redis.set(`password-reset:${email}`, otp, "EX", 300);
 
     resend.emails.send({
-      from: `"TigerTix Support" <${process.env.EMAIL_USER}>`,
+      from: resendhost,
       to: email,
       subject: "Password Reset OTP",
       text: `Your password reset OTP is: ${otp}\n\nIt expires in 5 minutes.`,
