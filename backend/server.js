@@ -38,12 +38,12 @@ redisClient.on("error", (err) =>
 const server = http.createServer(app);
 
 // Use environment variable for frontend URL or fallback to localhost
-const FRONTEND_URL = process.env.FRONTEND_URL;
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 // Initialize Socket.IO with dynamic CORS settings
 const io = socketIo(server, {
   cors: {
-    origin: [FRONTEND_URL], // Use the variable here
+    origin: [FRONTEND_URL],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -109,7 +109,7 @@ app.use((req, res, next) => {
 // CORS middleware configuration
 app.use(
   cors({
-    origin: FRONTEND_URL, // Use the variable here
+    origin: FRONTEND_URL,
     credentials: true, // Allow credentials (cookies, authorization headers, etc.)
     allowedHeaders: ["Content-Type", "Authorization", "withCredentials"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"], // Allow these HTTP methods
