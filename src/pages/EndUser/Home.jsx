@@ -6,6 +6,7 @@ import { IoChevronForward, IoChevronBack } from "react-icons/io5";
 import EventCard from "../../components/EventCardEndUser";
 import axios from "axios";
 import { AlertTriangle } from "lucide-react";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 // Violation Warning Modal Component
 const ViolationWarningModal = ({ violationCount, onClose }) => {
@@ -99,14 +100,16 @@ function Carousel() {
           console.error("Failed to fetch ticketed events.");
         }
       } catch (error) {
-        console.error("Error fetching ticketed events:", error);
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching ticketed events:", error);
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchTicketedEvents();
-  }, []);
+  }, [navigate]);
 
   const prevSlide = () => {
     if (isSliding || ticketedEvents.length <= 1) return;
@@ -363,6 +366,7 @@ function Home() {
     comingSoon: true,
   });
   const [error, setError] = useState("");
+  const navigate = useNavigate();
   useEffect(() => {
     try {
       const data = localStorage.getItem("user");
@@ -429,11 +433,13 @@ function Home() {
             setter(response.data.data);
           }
         } catch (err) {
-          console.error(`Error fetching ${category} events:`, err);
-          setError(
-            (prev) =>
-              prev || "Failed to load some events. Please try again later."
-          );
+          if (!handleApiError(err, navigate)) {
+            console.error(`Error fetching ${category} events:`, err);
+            setError(
+              (prev) =>
+                prev || "Failed to load some events. Please try again later."
+            );
+          }
         } finally {
           setLoading((prev) => ({ ...prev, [loadingKey]: false }));
         }
@@ -448,7 +454,7 @@ function Home() {
     };
 
     fetchEvents();
-  }, []);
+  }, [navigate]);
   // Handler for closing violation warning
   const handleViolationWarningClose = () => {
     setShowViolationWarning(false);

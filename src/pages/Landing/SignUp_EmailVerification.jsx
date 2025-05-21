@@ -8,6 +8,7 @@ import * as yup from "yup";
 import OtpInput from "../../components/OtpInput";
 import { useNavigate } from "react-router-dom";
 import axios from "axios"; // Import Axios
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 import LoginPopup from "./LoginPopup";
 
@@ -75,18 +76,20 @@ const SignUp = () => {
         alert("OTP sent successfully! Please check your email.");
       }
     } catch (error) {
-      console.error("Error processing request:", error);
+      if (!handleApiError(error, navigate)) {
+        console.error("Error processing request:", error);
 
-      // Check if error is from check-user or send-otp
-      if (error.response) {
-        console.log("Error response:", error.response);
-        if (error.response.status === 400) {
-          alert("This email is already registered. Please log in instead.");
-          return;
+        // Check if error is from check-user or send-otp
+        if (error.response) {
+          console.log("Error response:", error.response);
+          if (error.response.status === 400) {
+            alert("This email is already registered. Please log in instead.");
+            return;
+          }
         }
-      }
 
-      alert("Failed to send OTP. Please try again.");
+        alert("Failed to send OTP. Please try again.");
+      }
     }
   };
 
@@ -106,8 +109,10 @@ const SignUp = () => {
           navigate("/sign-up", { state: { email } });
         }
       } catch (error) {
-        console.error("Error confirming OTP:", error);
-        alert("Invalid OTP. Please try again.");
+        if (!handleApiError(error, navigate)) {
+          console.error("Error confirming OTP:", error);
+          alert("Invalid OTP. Please try again.");
+        }
       }
     } else {
       alert("Please enter the complete OTP.");

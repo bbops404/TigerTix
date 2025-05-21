@@ -8,6 +8,7 @@ import * as yup from "yup";
 import OtpInput from "../../components/OtpInput";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 // Validation Schema (Only Email)
 const schema = yup
@@ -49,7 +50,9 @@ const ForgetPassword = () => {
       alert(response.data.message);
       setShowOtpInput(true); // Show OTP input
     } catch (error) {
-      alert(error.response?.data?.message || "Error sending OTP.");
+      if (!handleApiError(error, navigate)) {
+        alert(error.response?.data?.message || "Error sending OTP.");
+      }
     }
   };
 
@@ -68,7 +71,9 @@ const ForgetPassword = () => {
         sessionStorage.setItem("verifiedEmail", email);
         navigate("/change-password");
       } catch (error) {
-        alert(error.response?.data?.message || "Invalid OTP.");
+        if (!handleApiError(error, navigate)) {
+          alert(error.response?.data?.message || "Invalid OTP.");
+        }
       }
     } else {
       alert("Please enter the complete OTP.");

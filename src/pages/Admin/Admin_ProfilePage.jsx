@@ -5,6 +5,7 @@ import Admin_ChangePasswordPopUp from "./Admin_ChangePasswordPopUp";
 import Admin_EditDetailsPopUp from "./Admin_EditDetailsPopUp";
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 const Label = ({ label, value }) => {
   return (
@@ -46,8 +47,10 @@ const Admin_ProfilePage = () => {
           );
         }
       } catch (err) {
-        console.error("Error fetching user details:", err);
-        setError(err.message);
+        if (!handleApiError(err)) {
+          console.error("Error fetching user details:", err);
+          setError(err.message);
+        }
         setLoading(false);
       }
     };

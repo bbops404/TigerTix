@@ -83,6 +83,14 @@ const Layout = ({ children }) => {
     "/verify",
     "/forget-password",
     "/change-password",
+    "/error/400",
+    "/error/401",
+    "/error/403",
+    "/error/404",
+    "/error/500",
+    "/error/502",
+    "/error/503",
+    "/error/504",
   ];
   const isErrorPage = errorRoutes.some((route) =>
     location.pathname.startsWith(route)

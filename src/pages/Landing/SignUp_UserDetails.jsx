@@ -3,6 +3,7 @@ import Header from "../../components/Header";
 import sample_image from "../../assets/sample_image.png";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 import LoginPopup from "./LoginPopup";
 import SuccessModal from "../../components/SuccessModal";
@@ -98,8 +99,10 @@ const SignUp_UserDetails = () => {
         setErrorMessage(response.data.message || "Failed to create account.");
       }
     } catch (error) {
-      console.error("Error during signup:", error);
-      setErrorMessage("Something went wrong. Please try again.");
+      if (!handleApiError(error, navigate)) {
+        console.error("Error during signup:", error);
+        setErrorMessage("Something went wrong. Please try again.");
+      }
     }
   };
 

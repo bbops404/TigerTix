@@ -3,6 +3,7 @@ import { FaUser, FaBell, FaSignOutAlt, FaChevronDown } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import axios from "axios"; // Added missing axios import
 import tigertix_logo from "../assets/tigertix_logo.png";
+import { handleApiError } from "../utils/apiErrorHandler";
 
 const Header_User = () => {
   const [publishedEvents, setPublishedEvents] = useState([]);
@@ -29,7 +30,9 @@ const Header_User = () => {
           console.error("Failed to fetch published events.");
         }
       } catch (error) {
-        console.error("Error fetching published events:", error);
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching published events:", error);
+        }
       } finally {
         setLoading(false); // Set loading to false regardless of outcome
       }
@@ -37,7 +40,7 @@ const Header_User = () => {
 
     // Fetch both user data and published events
     fetchPublishedEvents();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     // Retrieve the username from sessionStorage
@@ -82,19 +85,17 @@ const Header_User = () => {
             navigate(`/event-coming-soon-enduser/${eventId}`);
             break;
           default:
-            // Default fallback
             navigate(`/event-ticketed-enduser/${eventId}`);
         }
       } else {
-        // If we somehow didn't get a successful response, default to ticketed
         navigate(`/event-ticketed-enduser/${eventId}`);
       }
     } catch (error) {
-      console.error("Error determining event type:", error);
-      // Default fallback in case of error
+      if (!handleApiError(error, navigate)) {
+        console.error("Error determining event type:", error);
+      }
       navigate(`/event-ticketed-enduser/${eventId}`);
     } finally {
-      // Reset after a short delay
       setTimeout(() => {
         setIsRedirecting(false);
       }, 500);

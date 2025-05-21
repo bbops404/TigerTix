@@ -5,6 +5,8 @@ import SupportStaff_EditDetailsPopUp from "./SupportStaff_EditDetailsPopUp";
 import Header_SupportStaff from "../../components/SupportStaff/Header_SupportStaff";
 import SideBar_SupportStaff from "../../components/SupportStaff/SideBar_SupportStaff";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
+import { useNavigate } from "react-router-dom";
 
 const Label = ({ label, value }) => {
   return (
@@ -27,6 +29,8 @@ const SupportStaff_ProfilePage = () => {
   const [error, setError] = useState(null);
   const [userDetails, setUserDetails] = useState(null);
 
+  const navigate = useNavigate();
+
   // Fetch user details on component mount
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -46,14 +50,16 @@ const SupportStaff_ProfilePage = () => {
           );
         }
       } catch (err) {
-        console.error("Error fetching user details:", err);
-        setError(err.message);
+        if (!handleApiError(err, navigate)) {
+          console.error("Error fetching user details:", err);
+          setError(err.message);
+        }
         setLoading(false);
       }
     };
 
     fetchUserDetails();
-  }, []);
+  }, [navigate]);
 
   const toggleChangePasswordPopup = () => {
     setShowChangePasswordPopup((prev) => !prev);

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
 import LoginPopup from "./LoginPopup";
 import SuccessModal from "../../components/SuccessModal";
 
@@ -70,14 +71,16 @@ const UpdatePassword = () => {
         alert(response.data.message || "Failed to reset password.");
       }
     } catch (error) {
-      console.error(
-        "Error updating password:",
-        error.response?.data || error.message
-      );
-      alert(
-        error.response?.data?.message ||
-          "An error occurred. Please try again later."
-      );
+      if (!handleApiError(error, navigate)) {
+        console.error(
+          "Error updating password:",
+          error.response?.data || error.message
+        );
+        alert(
+          error.response?.data?.message ||
+            "An error occurred. Please try again later."
+        );
+      }
     }
   };
 

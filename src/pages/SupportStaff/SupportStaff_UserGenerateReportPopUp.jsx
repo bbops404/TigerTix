@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify"; // Import toast from react-toastify
+import { handleApiError } from "../../utils/apiErrorHandler";
+import { useNavigate } from "react-router-dom";
 
 const SupportStaff_UserGenerateReportPopUp = ({
   isOpen,
@@ -8,6 +10,7 @@ const SupportStaff_UserGenerateReportPopUp = ({
   visibleRows,
 }) => {
   const [selectedColumns, setSelectedColumns] = useState([]);
+  const navigate = useNavigate();
 
   if (!isOpen) return null;
 
@@ -54,8 +57,10 @@ const SupportStaff_UserGenerateReportPopUp = ({
       toast.success("Report generated successfully!");
       onClose();
     } catch (error) {
-      console.error("Error generating report:", error);
-      toast.error("Failed to generate report. Please try again.");
+      if (!handleApiError(error, navigate)) {
+        console.error("Error generating report:", error);
+        toast.error("Failed to generate report. Please try again.");
+      }
     }
   };
 

@@ -15,6 +15,7 @@ import {
   FaChevronLeft,
   FaChevronRight,
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 import Header_SupportStaff from "../../components/SupportStaff/Header_SupportStaff";
 import SideBar_SupportStaff from "../../components/SupportStaff/SideBar_SupportStaff";
@@ -23,6 +24,7 @@ import eventPlaceholder from "../../assets/event_placeholder.jpg";
 import SupportStaff_EventReportGenerateReport from "./SupportStaff_EventReportGenerateReport";
 import SupportStaff_EventReportsFilter from "./SupportStaff_EventReportsFilter";
 import SupportStaff_EventReportGenerateSummary from "./SupportStaff_EventReportGenerateSummaryPopUp";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 const eventData = [
   { id: 1, image: eventPlaceholder, name: "UAAP CDC" },
@@ -65,13 +67,14 @@ const SupportStaff_EventReports = () => {
   const [loading, setLoading] = useState(false); // Loading state
   const [error, setError] = useState(""); // Error state
   const [globalFilter, setGlobalFilter] = useState(""); // Global search filter
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchEventSummaryData = async () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/events-summary`, // Updated URL
+          `${import.meta.env.VITE_API_URL}/api/events-summary`,
           {
             withCredentials: true,
             headers: {
@@ -101,18 +104,20 @@ const SupportStaff_EventReports = () => {
           setError("Unexpected response structure. Please contact support.");
         }
       } catch (err) {
-        console.error(
-          "Error fetching event data:",
-          err.response || err.message || err
-        );
-        setError("Failed to fetch event data. Please try again later.");
+        if (!handleApiError(err, navigate)) {
+          console.error(
+            "Error fetching event data:",
+            err.response || err.message || err
+          );
+          setError("Failed to fetch event data. Please try again later.");
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchEventSummaryData();
-  }, []);
+  }, [navigate]);
 
   const columnHelper = createColumnHelper();
   const columns = useMemo(

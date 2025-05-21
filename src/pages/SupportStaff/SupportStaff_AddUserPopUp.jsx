@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { IoArrowBack } from "react-icons/io5";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
+import { useNavigate } from "react-router-dom";
 
 const AddUserModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
@@ -61,6 +63,7 @@ const SupportStaff_AddUserPopUp = ({ showPopup, togglePopup }) => {
   const [role, setRole] = useState("");
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isSuccessModalOpen, setSuccessModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const roles = ["Student", "Employee", "Alumni"];
   const token = sessionStorage.getItem("authToken"); // Get JWT token
@@ -104,18 +107,20 @@ const SupportStaff_AddUserPopUp = ({ showPopup, togglePopup }) => {
         alert(response.data.message || "Something went wrong!");
       }
     } catch (error) {
-      console.error("Error adding user:", error);
+      if (!handleApiError(error, navigate)) {
+        console.error("Error adding user:", error);
 
-      // Handle different types of errors
-      if (error.response) {
-        // Server responded with a status code outside of 2xx
-        alert(error.response.data.message || "Failed to add user.");
-      } else if (error.request) {
-        // Request was made but no response received
-        alert("No response from server. Check your connection.");
-      } else {
-        // Something else happened
-        alert("An unexpected error occurred.");
+        // Handle different types of errors
+        if (error.response) {
+          // Server responded with a status code outside of 2xx
+          alert(error.response.data.message || "Failed to add user.");
+        } else if (error.request) {
+          // Request was made but no response received
+          alert("No response from server. Check your connection.");
+        } else {
+          // Something else happened
+          alert("An unexpected error occurred.");
+        }
       }
     }
   };

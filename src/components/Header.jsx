@@ -4,6 +4,7 @@ import tigertix_logo from "../assets/tigertix_logo.png";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { handleApiError } from "../utils/apiErrorHandler";
 
 const Header = ({
   toggleLoginPopup,
@@ -29,12 +30,14 @@ const Header = ({
           console.error("Failed to fetch published events.");
         }
       } catch (error) {
-        console.error("Error fetching published events:", error);
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching published events:", error);
+        }
       }
     };
 
     fetchPublishedEvents();
-  }, []);
+  }, [navigate]);
 
   const handleEventChange = async (event) => {
     const eventId = event.target.value;
@@ -70,19 +73,17 @@ const Header = ({
             navigate(`/event-coming-soon/${eventId}`);
             break;
           default:
-            // Default fallback
             navigate(`/event-ticketed/${eventId}`);
         }
       } else {
-        // If we somehow didn't get a successful response, default to ticketed
         navigate(`/event-ticketed/${eventId}`);
       }
     } catch (error) {
-      console.error("Error determining event type:", error);
-      // Default fallback in case of error
+      if (!handleApiError(error, navigate)) {
+        console.error("Error determining event type:", error);
+      }
       navigate(`/event-ticketed/${eventId}`);
     } finally {
-      // Reset after a short delay
       setTimeout(() => {
         setIsRedirecting(false);
       }, 500);

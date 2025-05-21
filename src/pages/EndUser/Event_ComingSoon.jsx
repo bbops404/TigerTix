@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"; // For back navigatio
 import Header_User from "../../components/Header_User";
 import { IoChevronBackOutline, IoNotifications } from "react-icons/io5";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 const Event_ComingSoon = () => {
   const { id } = useParams(); // Get the event ID from the URL
@@ -34,15 +35,17 @@ const Event_ComingSoon = () => {
           setError("Failed to fetch event details.");
         }
       } catch (err) {
-        console.error("Error fetching event:", err);
-        setError("Failed to fetch event details. Please try again later.");
+        if (!handleApiError(err, navigate)) {
+          console.error("Error fetching event:", err);
+          setError("Failed to fetch event details. Please try again later.");
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchEvent();
-  }, [id]);
+  }, [id, navigate]);
 
   // Format date for display
   const formatDate = (dateString) => {
