@@ -58,17 +58,6 @@ import AdminPublishEvent from "./pages/Admin/Admin_PublishEvent";
 import AdminScheduleEvent from "./pages/Admin/Admin_ScheduleEvent";
 import ErrorPage from "./pages/Error_Pages/ErrorPage";
 
-const errorRoutes = [
-  "/error/400",
-  "/error/401",
-  "/error/403",
-  "/error/404",
-  "/error/500",
-  "/error/502",
-  "/error/503",
-  "/error/504",
-];
-
 const Layout = ({ children }) => {
   const location = useLocation();
   const hideFooterRoutes = [
@@ -83,21 +72,12 @@ const Layout = ({ children }) => {
     "/verify",
     "/forget-password",
     "/change-password",
-    "/error/400",
-    "/error/401",
-    "/error/403",
-    "/error/404",
-    "/error/500",
-    "/error/502",
-    "/error/503",
-    "/error/504",
   ];
-  const isErrorPage = errorRoutes.some((route) =>
-    location.pathname.startsWith(route)
-  );
-  const shouldShowFooter = !hideFooterRoutes.some((route) =>
-    location.pathname.startsWith(route)
-  ) && !isErrorPage;
+  // Hide footer for all error pages and any in hideFooterRoutes
+  const shouldShowFooter =
+    !hideFooterRoutes.some((route) =>
+      location.pathname.startsWith(route)
+    ) && !location.pathname.startsWith("/error/");
 
   return (
     <>
