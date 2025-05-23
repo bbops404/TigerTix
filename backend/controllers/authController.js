@@ -54,7 +54,7 @@ exports.sendOTP = async (req, res) => {
     await redis.set(`otp:${email}`, otp, "EX", 300);
 
     resend.emails.send({
-      from: `"TigerTix" <${process.env.EMAIL_USER}>`,
+     from: resendhost, // Use only the verified sender email, no display name or quotes
       to: email,
       subject: "Your One-Time Password (OTP)",
       html: `Your OTP code is: ${otp}\n\nThis code will expire in 5 minutes. Do not share it with anyone.`,

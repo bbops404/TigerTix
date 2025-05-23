@@ -375,7 +375,7 @@ exports.addUser = async (req, res) => {
 
     // Send an email to the user with their temporary password
     await resend.emails.send({
-      from: `"TigerTix" <${process.env.EMAIL_USER}>`,
+    from: resendhost, // Use only the verified sender email, no display name or quotes
       to: email,
       subject: "Welcome to TigerTix!",
       html: `

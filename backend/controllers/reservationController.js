@@ -286,7 +286,7 @@ const reservationController = {
           const qrCodeDataUrl = await QRCode.toDataURL(qrValue);
 
           const result = await resend.emails.send({
-            from: process.env.EMAIL_USER, // Use only the verified sender email, no display name or quotes
+            from: resendhost, // Use only the verified sender email, no display name or quotes
             to: user.email,
             subject: "Your Reservation Details",
             html: `
