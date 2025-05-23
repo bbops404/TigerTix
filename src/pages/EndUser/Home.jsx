@@ -6,6 +6,7 @@ import { IoChevronForward, IoChevronBack } from "react-icons/io5";
 import EventCard from "../../components/EventCardEndUser";
 import axios from "axios";
 import { AlertTriangle } from "lucide-react";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 // Violation Warning Modal Component
 const ViolationWarningModal = ({ violationCount, onClose }) => {
@@ -74,7 +75,7 @@ const EmptyStateIllustration = ({ message = "No events available" }) => (
   </div>
 );
 
-function Carousel() {
+function Carousel({ scrollToSection, ticketedRef, comingSoonRef, freeEventsRef }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [ticketedEvents, setTicketedEvents] = useState([]);
   const navigate = useNavigate();
@@ -99,14 +100,16 @@ function Carousel() {
           console.error("Failed to fetch ticketed events.");
         }
       } catch (error) {
-        console.error("Error fetching ticketed events:", error);
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching ticketed events:", error);
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchTicketedEvents();
-  }, []);
+  }, [navigate]);
 
   const prevSlide = () => {
     if (isSliding || ticketedEvents.length <= 1) return;
@@ -169,6 +172,34 @@ function Carousel() {
 
   return (
     <div className="relative w-full h-[700px] overflow-hidden">
+            {/* Event Links */}
+      <div className="absolute top-5 left-1/2 transform -translate-x-1/2 z-10 flex flex-wrap gap-6 md:gap-10 items-center justify-center w-[95vw] max-w-3xl px-2">
+        <span
+          className="text-base md:text-lg font-semibold text-[#F09C32] hover:text-white transition-colors duration-200 cursor-pointer underline-offset-4 hover:underline whitespace-nowrap"
+          onClick={() => scrollToSection(ticketedRef)}
+          tabIndex={0}
+          role="link"
+        >
+          Ticketed Events
+        </span>
+        <span
+          className="text-base md:text-lg font-semibold text-[#F09C32] hover:text-white transition-colors duration-200 cursor-pointer underline-offset-4 hover:underline whitespace-nowrap"
+          onClick={() => scrollToSection(comingSoonRef)}
+          tabIndex={0}
+          role="link"
+        >
+          Coming Soon Events
+        </span>
+        <span
+          className="text-base md:text-lg font-semibold text-[#F09C32] hover:text-white transition-colors duration-200 cursor-pointer underline-offset-4 hover:underline whitespace-nowrap"
+          onClick={() => scrollToSection(freeEventsRef)}
+          tabIndex={0}
+          role="link"
+        >
+          Free Events
+        </span>
+      </div>
+
       <div
         className="flex w-full h-full transition-transform duration-500 ease-in-out"
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
@@ -275,6 +306,12 @@ function EventSection({ title, description, events, loading = false }) {
     }
   };
 
+const scrollToSection = (ref) => {
+  if (ref && ref.current) {
+    ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+};
+
   // Determine if we should center the events (when there are few)
   const shouldCenterEvents = events.length <= 3;
 
@@ -362,7 +399,23 @@ function Home() {
     free: true,
     comingSoon: true,
   });
+
+    // Define scrollToSection function
+  const scrollToSection = (ref) => {
+    if (ref && ref.current) {
+      ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  // For auto scrolling the event section
+  const ticketedRef = useRef(null);
+  const comingSoonRef = useRef(null);
+  const freeEventsRef = useRef(null);
+
   const [error, setError] = useState("");
+
+  const navigate = useNavigate();
+
   useEffect(() => {
     try {
       const data = localStorage.getItem("user");
@@ -429,11 +482,13 @@ function Home() {
             setter(response.data.data);
           }
         } catch (err) {
-          console.error(`Error fetching ${category} events:`, err);
-          setError(
-            (prev) =>
-              prev || "Failed to load some events. Please try again later."
-          );
+          if (!handleApiError(err, navigate)) {
+            console.error(`Error fetching ${category} events:`, err);
+            setError(
+              (prev) =>
+                prev || "Failed to load some events. Please try again later."
+            );
+          }
         } finally {
           setLoading((prev) => ({ ...prev, [loadingKey]: false }));
         }
@@ -448,7 +503,7 @@ function Home() {
     };
 
     fetchEvents();
-  }, []);
+  }, [navigate]);
   // Handler for closing violation warning
   const handleViolationWarningClose = () => {
     setShowViolationWarning(false);
@@ -477,39 +532,46 @@ function Home() {
       )}
 
       {/* Hero Carousel */}
-      <Carousel />
-
-      {/* Ticketed Events Section */}
-      <EventSection
-        title="TICKETED EVENTS"
-        description="Events where tickets must be reserved in advance. Ensure your spot by booking a ticket."
-        events={mapEventData(
-          ticketedEvents,
-          "Reserve Now",
-          "/event-ticketed-enduser"
-        )}
-        loading={loading.ticketed}
+      <Carousel
+        scrollToSection={scrollToSection}
+        ticketedRef={ticketedRef}
+        comingSoonRef={comingSoonRef}
+        freeEventsRef={freeEventsRef}
       />
+
+  {/* Ticketed Events Section */}
+      <div ref={ticketedRef}>
+        <EventSection
+          title="TICKETED EVENTS"
+          description="Events where tickets must be reserved in advance. Ensure your spot by booking a ticket."
+          events={mapEventData(ticketedEvents, "Reserve Now", "/event-ticketed")}
+          loading={loading.ticketed}
+        />
+      </div>
 
       {/* Coming Soon Events Section */}
-      <EventSection
-        title="EVENTS COMING SOON"
-        description="Upcoming events that will require a reservation. Ticket and reservation details are not yet available."
-        events={mapEventData(
-          comingSoonEvents,
-          "View Details",
-          "/event-coming-soon-enduser"
-        )}
-        loading={loading.comingSoon}
-      />
+      <div ref={comingSoonRef}>
+        <EventSection
+          title="COMING SOON EVENTS"
+          description="Upcoming events that will require a reservation. Ticket and reservation details are not yet available."
+          events={mapEventData(
+            comingSoonEvents,
+            "View Details",
+            "/event-coming-soon"
+          )}
+          loading={loading.comingSoon}
+        />
+      </div>
 
       {/* Free Events Section */}
-      <EventSection
-        title="FREE EVENTS"
-        description="UAAP or other IPEA Events that are open to all without the need for a reservation or ticket. Simply show up!"
-        events={mapEventData(freeEvents, "View Details", "/event-free-enduser")}
-        loading={loading.free}
-      />
+      <div ref={freeEventsRef}>
+        <EventSection
+          title="FREE EVENTS"
+          description="UAAP or other IPEA Events that are open to all without the need for a reservation or ticket. Simply show up!"
+          events={mapEventData(freeEvents, "View Details", "/event-free")}
+          loading={loading.free}
+        />
+      </div>
 
       {/* Error message display if needed */}
       {error && (

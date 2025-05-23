@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { IoArrowBack } from "react-icons/io5";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
+import { useNavigate } from "react-router-dom";
 
 const EditUserModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
@@ -71,6 +73,7 @@ const SupportStaff_EditUserPopUp = ({
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isSuccessModalOpen, setSuccessModalOpen] = useState(false);
   const token = "your-auth-token"; // Replace this with your actual token
+  const navigate = useNavigate();
 
   const statuses = ["Active", "Restricted", "Suspended"];
 
@@ -90,7 +93,7 @@ const SupportStaff_EditUserPopUp = ({
           // Update status for each user
           const token = sessionStorage.getItem("authToken");
           const statusResponse = await axios.put(
-            `${import.meta.env.VITE_API_URL}/admin/users/${userId}/status`, // Updated URL
+            `${import.meta.env.VITE_API_URL}/admin/users/${userId}/status`,
             { status: accountStatus.toLowerCase() },
             {
               withCredentials: true,
@@ -109,8 +112,10 @@ const SupportStaff_EditUserPopUp = ({
             console.error(`Failed to update user ${userId}`);
           }
         } catch (error) {
-          console.error(`Error updating user ${userId}:`, error);
-          alert(`Failed to update user ${userId}. Please try again.`);
+          if (!handleApiError(error, navigate)) {
+            console.error(`Error updating user ${userId}:`, error);
+            alert(`Failed to update user ${userId}. Please try again.`);
+          }
         }
       });
 
@@ -119,18 +124,20 @@ const SupportStaff_EditUserPopUp = ({
 
       // Show success modal after all updates are complete
     } catch (error) {
-      console.error("Error updating users:", error);
+      if (!handleApiError(error, navigate)) {
+        console.error("Error updating users:", error);
 
-      // Handle different types of errors
-      if (error.response) {
-        // Server responded with a status code outside of 2xx
-        alert(error.response.data.message || "Failed to update users.");
-      } else if (error.request) {
-        // Request was made but no response received
-        alert("No response from server. Check your connection.");
-      } else {
-        // Something else happened
-        alert("An unexpected error occurred.");
+        // Handle different types of errors
+        if (error.response) {
+          // Server responded with a status code outside of 2xx
+          alert(error.response.data.message || "Failed to update users.");
+        } else if (error.request) {
+          // Request was made but no response received
+          alert("No response from server. Check your connection.");
+        } else {
+          // Something else happened
+          alert("An unexpected error occurred.");
+        }
       }
     }
   };

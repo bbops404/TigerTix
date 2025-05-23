@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { IoArrowBack } from "react-icons/io5";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 const AddUserModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
@@ -89,10 +90,10 @@ const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
           role,
         },
         {
-          withCredentials: true, // ✅ Ensures cookies are sent (if applicable)
+          withCredentials: true,
           headers: {
-            Authorization: `Bearer ${token}`, // ✅ Proper placement of the token
-            "Content-Type": "application/json", // ✅ Explicitly setting content type
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         }
       );
@@ -104,18 +105,17 @@ const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
         alert(response.data.message || "Something went wrong!");
       }
     } catch (error) {
-      console.error("Error adding user:", error);
+      if (!handleApiError(error)) {
+        console.error("Error adding user:", error);
 
-      // Handle different types of errors
-      if (error.response) {
-        // Server responded with a status code outside of 2xx
-        alert(error.response.data.message || "Failed to add user.");
-      } else if (error.request) {
-        // Request was made but no response received
-        alert("No response from server. Check your connection.");
-      } else {
-        // Something else happened
-        alert("An unexpected error occurred.");
+        // Handle different types of errors
+        if (error.response) {
+          alert(error.response.data.message || "Failed to add user.");
+        } else if (error.request) {
+          alert("No response from server. Check your connection.");
+        } else {
+          alert("An unexpected error occurred.");
+        }
       }
     }
   };

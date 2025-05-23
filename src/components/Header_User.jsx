@@ -4,12 +4,18 @@ import { useEffect, useState } from "react";
 import axios from "axios"; // Added missing axios import
 import tigertix_logo from "../assets/tigertix_logo.png";
 
+import { FaBars, FaTimes } from "react-icons/fa";
+
+import { handleApiError } from "../utils/apiErrorHandler";
+
+
 const Header_User = () => {
   const [publishedEvents, setPublishedEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(""); // State for selected event
   const [user, setUser] = useState(null); // State for user data
   const [loading, setLoading] = useState(true); // State for loading
   const [isRedirecting, setIsRedirecting] = useState(false); // State to prevent multiple clicks
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -29,7 +35,9 @@ const Header_User = () => {
           console.error("Failed to fetch published events.");
         }
       } catch (error) {
-        console.error("Error fetching published events:", error);
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching published events:", error);
+        }
       } finally {
         setLoading(false); // Set loading to false regardless of outcome
       }
@@ -37,7 +45,7 @@ const Header_User = () => {
 
     // Fetch both user data and published events
     fetchPublishedEvents();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     // Retrieve the username from sessionStorage
@@ -82,19 +90,17 @@ const Header_User = () => {
             navigate(`/event-coming-soon-enduser/${eventId}`);
             break;
           default:
-            // Default fallback
             navigate(`/event-ticketed-enduser/${eventId}`);
         }
       } else {
-        // If we somehow didn't get a successful response, default to ticketed
         navigate(`/event-ticketed-enduser/${eventId}`);
       }
     } catch (error) {
-      console.error("Error determining event type:", error);
-      // Default fallback in case of error
+      if (!handleApiError(error, navigate)) {
+        console.error("Error determining event type:", error);
+      }
       navigate(`/event-ticketed-enduser/${eventId}`);
     } finally {
-      // Reset after a short delay
       setTimeout(() => {
         setIsRedirecting(false);
       }, 500);
@@ -133,24 +139,35 @@ const Header_User = () => {
     }
   };
 
-  return (
-    <div className="flex bg-custom_yellow py-3 px-8 items-center justify-between font-Poppins shadow-2xl relative">
-      {/* Logo */}
-      <Link to="/home" className="flex items-center">
-        <img
-          src={tigertix_logo}
-          className="w-40 transform transition-transform duration-300 hover:scale-105"
-          alt="Tigertix Logo"
-        />
-      </Link>
+return (
+  <>
+    <div className="flex bg-custom_yellow py-3 px-4 sm:px-8 items-center justify-between font-Poppins shadow-2xl relative">
+      {/* Logo and Mobile Menu Button */}
+      <div className="flex items-center flex-shrink-0">
+        <Link to="/home" className="flex items-center">
+          <img
+            src={tigertix_logo}
+            className="w-32 sm:w-40 transform transition-transform duration-300 hover:scale-105"
+            alt="Tigertix Logo"
+          />
+        </Link>
+        {/* Mobile Menu Button (beside logo) */}
+        <button
+          className="block sm:hidden ml-2 text-2xl text-gray-800"
+          onClick={() => setMenuOpen(true)}
+          aria-label="Open events menu"
+        >
+          <FaBars />
+        </button>
+      </div>
 
-      {/* Dropdown Selection */}
-      <div className="relative group">
+       {/* Dropdown Selection (Desktop only) */}
+      <div className="relative group hidden sm:flex flex-1 justify-center mx-4">
         <select
           value={selectedEvent}
           onChange={handleEventChange}
-          className="font-Poppins text-[15px] font-medium bg-white py-3 px-5 pl-8 rounded-xl text-[#2D2D2D] transition-all duration-300 relative w-[565px] h-[50px] border border-gray-300 cursor-pointer focus:ring-2 focus:ring-yellow-500 focus:outline-none"
-          disabled={isRedirecting || loading} // Added loading check
+          className="font-Poppins text-[15px] font-medium bg-white py-3 px-5 rounded-xl text-[#2D2D2D] transition-all duration-300 w-full sm:w-[200px] md:w-[400px] h-[50px] border border-gray-300 cursor-pointer focus:ring-2 focus:ring-yellow-500 focus:outline-none"
+          disabled={isRedirecting || loading}
         >
           <option value="" disabled>
             {loading
@@ -175,24 +192,63 @@ const Header_User = () => {
           )}
         </select>
       </div>
-
+      
       {/* Right-side content */}
       <div className="flex items-center gap-4">
-        {/* Display the username */}
         <span className="text-gray-800 font-medium">Hi, {userName}!</span>
-
-        {/* Profile Icon - Routes to My Profile */}
         <Link to="/my-profile">
           <FaUser className="text-gray-800 text-lg cursor-pointer hover:text-gray-600" />
         </Link>
-
-        {/* Logout Icon - Calls handleLogout */}
         <FaSignOutAlt
           className="text-gray-800 text-lg cursor-pointer hover:text-gray-600"
           onClick={handleLogout}
         />
       </div>
     </div>
+
+    {/* Mobile Events Modal */}
+    {menuOpen && (
+      <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center">
+        <div className="bg-white rounded-xl p-6 w-11/12 max-w-xs shadow-lg relative">
+          <button
+            className="absolute top-3 right-3 text-xl text-gray-700"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close events menu"
+          >
+            <FaTimes />
+          </button>
+          <h2 className="text-lg font-semibold text-[#2D2D2D] mb-4">Select Event</h2>
+          <ul>
+            {loading ? (
+              <li className="py-2 text-gray-500">Loading events...</li>
+            ) : publishedEvents.length > 0 ? (
+              publishedEvents.map((event) => (
+                <li key={event.id}>
+                  <button
+                    className="w-full text-left py-2 px-3 rounded hover:bg-gray-100"
+                    onClick={async () => {
+                      setMenuOpen(false);
+                      await handleEventChange({ target: { value: event.id } });
+                    }}
+                    disabled={isRedirecting}
+                  >
+                    {event.name} -{" "}
+                    {new Date(event.event_date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </button>
+                </li>
+              ))
+            ) : (
+              <li className="py-2 text-gray-500">No events available yet</li>
+            )}
+          </ul>
+        </div>
+      </div>
+    )}
+  </>
   );
 };
 

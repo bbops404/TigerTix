@@ -14,7 +14,10 @@ import SupportStaff_AddUserPopUp from "./SupportStaff_AddUserPopUp";
 import SupportStaff_EditUserPopUp from "./SupportStaff_EditUserPopUp";
 import SupportStaff_UserGenerateReportPopUp from "./SupportStaff_UserGenerateReportPopUp";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
+// TanStack Table imports
 import {
   useReactTable,
   getCoreRowModel,
@@ -346,12 +349,16 @@ const SupportStaff_UserPage = () => {
         alert(response.data.message || "Something went wrong during deletion.");
       }
     } catch (error) {
-      console.error("Error deleting users:", error);
-      alert("An error occurred while deleting users.");
+      if (!handleApiError(error, navigate)) {
+        console.error("Error deleting users:", error);
+        alert("An error occurred while deleting users.");
+      }
     }
 
     closeDeleteModal();
   };
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -375,12 +382,14 @@ const SupportStaff_UserPage = () => {
 
         setUsers(formattedUsers);
       } catch (error) {
-        console.error("Error fetching users:", error);
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching users:", error);
+        }
       }
     };
 
     fetchUsers();
-  }, [showSuccessModal]);
+  }, [showSuccessModal, navigate]);
 
   // Check different selection states
   const hasNoSelection = selectedUsers.length === 0;

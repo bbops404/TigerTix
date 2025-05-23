@@ -6,6 +6,8 @@ import { FaArrowLeft } from "react-icons/fa";
 import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
+import { useNavigate } from "react-router-dom";
 
 // Import the ConfirmMarkAsClaimedModal that was used in Admin_ClaimedReservationModal
 const ConfirmMarkAsClaimedModal = ({ isOpen, onClose, onConfirm }) => {
@@ -239,6 +241,7 @@ const SupportStaff_ReservationScanQRPopUp = ({
   // Keep track of the scanner instance - don't use React state for this
   // to avoid re-renders and ensure immediate updates
   let scannerInstance = null;
+  const navigate = useNavigate();
 
   // Initialize available cameras when component mounts
   useEffect(() => {
@@ -424,7 +427,7 @@ const SupportStaff_ReservationScanQRPopUp = ({
       console.log("Sending validation request with ID:", reservationId);
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/reservations/validate-qr`, // Updated URL
+        `${API_BASE_URL}/api/reservations/validate-qr`,
         { reservation_id: reservationId },
         {
           withCredentials: true,
@@ -447,8 +450,10 @@ const SupportStaff_ReservationScanQRPopUp = ({
         );
       }
     } catch (err) {
-      console.error("Error processing QR code:", err);
-      setError(err.message || "Failed to process QR code");
+      if (!handleApiError(err, navigate)) {
+        console.error("Error processing QR code:", err);
+        setError(err.message || "Failed to process QR code");
+      }
     } finally {
       setLoading(false);
     }
@@ -484,7 +489,7 @@ const SupportStaff_ReservationScanQRPopUp = ({
       );
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/reservations/claim-qr`, // Updated URL
+        `${API_BASE_URL}/api/reservations/claim-qr`,
         { reservation_id: reservation.reservation_id },
         {
           withCredentials: true,
@@ -509,9 +514,11 @@ const SupportStaff_ReservationScanQRPopUp = ({
         throw new Error(response.data.message || "Failed to mark as claimed");
       }
     } catch (err) {
-      console.error("Error marking as claimed:", err);
-      setError(err.message || "Failed to mark reservation as claimed");
-      toast.error("Failed to mark as claimed");
+      if (!handleApiError(err, navigate)) {
+        console.error("Error marking as claimed:", err);
+        setError(err.message || "Failed to mark reservation as claimed");
+        toast.error("Failed to mark as claimed");
+      }
       return false;
     } finally {
       setProcessingClaim(false);

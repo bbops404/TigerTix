@@ -8,6 +8,7 @@ import * as yup from "yup";
 import OtpInput from "../../components/OtpInput";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 // Validation Schema (Only Email)
 const schema = yup
@@ -49,7 +50,9 @@ const ForgetPassword = () => {
       alert(response.data.message);
       setShowOtpInput(true); // Show OTP input
     } catch (error) {
-      alert(error.response?.data?.message || "Error sending OTP.");
+      if (!handleApiError(error, navigate)) {
+        alert(error.response?.data?.message || "Error sending OTP.");
+      }
     }
   };
 
@@ -68,18 +71,21 @@ const ForgetPassword = () => {
         sessionStorage.setItem("verifiedEmail", email);
         navigate("/change-password");
       } catch (error) {
-        alert(error.response?.data?.message || "Invalid OTP.");
+        if (!handleApiError(error, navigate)) {
+          alert(error.response?.data?.message || "Invalid OTP.");
+        }
       }
     } else {
       alert("Please enter the complete OTP.");
     }
   };
 
-  return (
+    return (
     <div>
       <Header showAuthButtons={false} showDropdown={false} />
-      <div className="flex">
-        <div className="w-1/2 relative h-[90vh]">
+      <div className="flex min-h-[90vh]">
+        {/* Left Image Section - hidden on small screens */}
+        <div className="w-1/2 relative h-[90vh] hidden md:block">
           <img
             src={sample_image}
             alt="UST IPEA"
@@ -88,10 +94,11 @@ const ForgetPassword = () => {
           <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(180deg,rgba(0,0,0,0.7),rgba(255,171,64,0.7))]"></div>
         </div>
 
-        <div className="w-1/2 bg-custom_black flex flex-col items-center justify-center font-Poppins h-[90vh]">
+        {/* Right Form Section - centered and responsive */}
+        <div className="w-full md:w-1/2 bg-custom_black flex flex-col items-center justify-center font-Poppins h-[90vh]">
           <p className="font-bold text-4xl text-white pb-7">Forget Password</p>
 
-          <div className="flex flex-col justify-center bg-custom_yellow p-6 rounded-lg shadow-lg w-[500px] h-auto text-custom_black">
+          <div className="flex flex-col justify-center bg-custom_yellow p-6 rounded-lg shadow-lg w-[90vw] max-w-[400px] h-auto text-custom_black mx-auto">
             {!showOtpInput ? (
               <>
                 <div className="w-full ml-3 pr-4">
