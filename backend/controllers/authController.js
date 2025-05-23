@@ -54,7 +54,7 @@ exports.sendOTP = async (req, res) => {
     await redis.set(`otp:${email}`, otp, "EX", 300);
 
     resend.emails.send({
-      from: resendhost,
+      from: `"TigerTix" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Your One-Time Password (OTP)",
       html: `Your OTP code is: ${otp}\n\nThis code will expire in 5 minutes. Do not share it with anyone.`,
@@ -129,7 +129,7 @@ exports.signUp = async (req, res) => {
 
     // Send email for successfully creating account
     resend.emails.send({
-      from: resendhost,
+      from: `"TigerTix" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Welcome to TigerTix!",
       text: `Hi ${firstName} ${lastName},\n\nYour account has been successfully created on TigerTix.\n\nUsername: ${username}\nRole: ${formattedRole}\n\nThank you for joining us!\n\nBest regards,\nTigerTix Team`,

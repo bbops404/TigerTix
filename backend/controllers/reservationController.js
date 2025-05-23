@@ -285,8 +285,8 @@ const reservationController = {
           const qrValue = `UST-TICKET-${reservation.reservation_id}-${event.name}-${ticket.ticket_type}-1`;
           const qrCodeDataUrl = await QRCode.toDataURL(qrValue);
 
-          await resend.emails.send({
-            from: `"TigerTix" <${process.env.EMAIL_USER}>`,
+          const result = await resend.emails.send({
+            from: process.env.EMAIL_USER, // Use only the verified sender email, no display name or quotes
             to: user.email,
             subject: "Your Reservation Details",
             html: `
@@ -311,6 +311,7 @@ const reservationController = {
               <p>Thank you for using TigerTix!</p>
             `,
           });
+          console.log(`Email send result for ${user.email}:`, result);
         } catch (emailError) {
           console.error(`Failed to send email to ${user.email}:`, emailError);
         }
