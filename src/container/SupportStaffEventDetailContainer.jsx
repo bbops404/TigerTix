@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { handleApiError } from "../utils/apiErrorHandler";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   useReactTable,
@@ -144,7 +145,9 @@ const SupportStaffEventDetailContainer = () => {
                 setTickets(ticketsResponse.data);
               }
             } catch (ticketErr) {
-              console.error("Error fetching tickets separately:", ticketErr);
+              if (!handleApiError(ticketErr, navigate)) {
+                console.error("Error fetching tickets separately:", ticketErr);
+              }
             }
           }
 
@@ -160,7 +163,9 @@ const SupportStaffEventDetailContainer = () => {
                 setClaimingSlots(claimingSlotsResponse.data);
               }
             } catch (claimingErr) {
-              console.error("Error fetching claiming slots:", claimingErr);
+              if (!handleApiError(claimingErr, navigate)) {
+                console.error("Error fetching claiming slots:", claimingErr);
+              }
             }
           }
 
@@ -198,13 +203,17 @@ const SupportStaffEventDetailContainer = () => {
               setReservations([]);
             }
           } catch (error) {
-            console.error("Error fetching reservations:", error);
-            setReservations([]);
+            if (!handleApiError(error, navigate)) {
+              console.error("Error fetching reservations:", error);
+              setReservations([]);
+            }
           }
         }
       } catch (err) {
-        console.error("Error fetching event details:", err);
-        setError("Failed to load event details. Please try again later.");
+        if (!handleApiError(err, navigate)) {
+          console.error("Error fetching event details:", err);
+          setError("Failed to load event details. Please try again later.");
+        }
       } finally {
         setLoading(false);
       }
@@ -213,7 +222,7 @@ const SupportStaffEventDetailContainer = () => {
     if (id) {
       fetchEventDetails();
     }
-  }, [id]);
+  }, [id, navigate]);
 
   const getTicketDetails = () => {
     if (!tickets || tickets.length === 0) {

@@ -14,15 +14,7 @@ import Admin_AddUserPopUp from "./Admin_AddUserPopUp";
 import Admin_EditUserPopUp from "./Admin_EditUserPopUp";
 import Admin_UserGenerateReport from "./Admin_UserGenerateReportPopUp";
 import axios from "axios";
-
-import {
-  useReactTable,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  flexRender,
-  createColumnHelper,
-} from "@tanstack/react-table";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 // This component is referenced but not defined - adding a placeholder
 const Admin_UserFilter = ({ showFilter, setShowFilter }) => {
@@ -320,69 +312,71 @@ const Admin_UserPage = () => {
     try {
       const token = sessionStorage.getItem("authToken");
 
-      // Make sure there are selected users
       if (selectedUsers.length === 0) {
         alert("No users selected for deletion");
         return;
       }
 
-      // Send the selected user IDs in the request body
       const response = await axios.delete(
-        "http://localhost:5002/admin/users/delete",
+        `${import.meta.env.VITE_API_URL}/admin/users/delete`,
         {
-          withCredentials: true, // Ensures cookies are sent (if applicable)
+          withCredentials: true,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           data: {
-            ids: selectedUsers, // Passing selected user IDs
+            ids: selectedUsers,
           },
         }
       );
 
-      // Handle response
       if (response.status === 200) {
-        openSuccessModal(); // Open success modal if deletion is successful
-        // After successful deletion, clear the selected users
+        openSuccessModal();
         setSelectedUsers([]);
       } else {
         alert(response.data.message || "Something went wrong during deletion.");
       }
     } catch (error) {
-      console.error("Error deleting users:", error);
-      alert("An error occurred while deleting users.");
+      if (!handleApiError(error)) {
+        console.error("Error deleting users:", error);
+        alert("An error occurred while deleting users.");
+      }
     }
 
-    closeDeleteModal(); // Close the delete modal after the process
+    closeDeleteModal();
   };
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const token = sessionStorage.getItem("authToken"); //
-        const response = await axios.get("http://localhost:5002/admin/users", {
-          withCredentials: true, // ✅ Ensures cookies are sent (if applicable)
-          headers: {
-            Authorization: `Bearer ${token}`, // ✅ Proper placement of the token
-            "Content-Type": "application/json", // ✅ Explicitly setting content type
-          },
-        });
+        const token = sessionStorage.getItem("authToken");
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/admin/users`,
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
-        // Map the users and combine first_name & last_name
         const formattedUsers = response.data.map((user) => ({
           ...user,
-          fullName: `${user.first_name} ${user.last_name}`.trim(), // Combine first and last name
+          fullName: `${user.first_name} ${user.last_name}`.trim(),
         }));
 
         setUsers(formattedUsers);
       } catch (error) {
-        console.error("Error fetching users:", error);
+        if (!handleApiError(error)) {
+          console.error("Error fetching users:", error);
+        }
       }
     };
 
     fetchUsers();
-  }, [showSuccessModal]); // Refresh the list when users are deleted
+  }, [showSuccessModal]);
 
   // Check different selection states
   const hasNoSelection = selectedUsers.length === 0;
@@ -623,7 +617,7 @@ const Admin_UserPage = () => {
           isOpen={showGenerateReportPopup}
           onClose={closeGenerateReportPopup}
           visibleRows={table.getRowModel().rows.map((row) => row.original)} // Pass visible rows
-          />
+        />
       )}
     </div>
   );

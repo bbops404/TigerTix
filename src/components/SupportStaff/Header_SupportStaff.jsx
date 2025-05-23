@@ -19,13 +19,16 @@ const Header_Admin = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("http://localhost:5002/auth/logout", {
-        method: "POST",
-        credentials: "include", // ✅ Important! Sends cookies with request
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/auth/logout`,
+        {
+          method: "POST",
+          credentials: "include", // ✅ Important! Sends cookies with request
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       const data = await response.json();
 

@@ -1,26 +1,19 @@
-const nodemailer = require("nodemailer");
-const Redis = require("ioredis");
 const bcrypt = require("bcryptjs");
 const { Sequelize } = require("sequelize");
 const jwt = require("jsonwebtoken");
 const User = require("../models/Users");
 
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
+const resendhost = process.env.RESEND_HOST;
+
 require("dotenv").config();
 
-const redis = new Redis();
+const redis = require("../config/redis");
 
 // Generate a 6-digit OTP
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
-
-// Nodemailer transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
 
 // Check if a user exists
 exports.checkUser = async (req, res) => {
@@ -53,11 +46,11 @@ exports.sendOTP = async (req, res) => {
     const otp = generateOTP();
     await redis.set(`otp:${email}`, otp, "EX", 300);
 
-    await transporter.sendMail({
-      from: `"TigerTix OTP Service" <${process.env.EMAIL_USER}>`,
+    resend.emails.send({
+      from: resendhost,
       to: email,
       subject: "Your One-Time Password (OTP)",
-      text: `Your OTP code is: ${otp}\n\nThis code will expire in 5 minutes. Do not share it with anyone.`,
+      html: `Your OTP code is: ${otp}\n\nThis code will expire in 5 minutes. Do not share it with anyone.`,
     });
 
     res.status(200).json({ message: "OTP sent successfully!" });
@@ -119,10 +112,9 @@ exports.signUp = async (req, res) => {
       status: "active",
     });
 
-
-     // Send email for successfully creating account
-     await transporter.sendMail({
-      from: `"TigerTix Support" <${process.env.EMAIL_USER}>`,
+    // Send email for successfully creating account
+    resend.emails.send({
+      from: resendhost,
       to: email,
       subject: "Welcome to TigerTix!",
       text: `Hi ${firstName} ${lastName},\n\nYour account has been successfully created on TigerTix.\n\nUsername: ${username}\nRole: ${formattedRole}\n\nThank you for joining us!\n\nBest regards,\nTigerTix Team`,
@@ -224,7 +216,7 @@ exports.login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // Only send over HTTPS
       sameSite: "Lax",
-      maxAge: 24 * 60 * 60 * 1000, 
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     console.log("✅ Cookie set successfully:", req.cookies); // Debug log
@@ -310,8 +302,8 @@ exports.requestPasswordReset = async (req, res) => {
     const otp = generateOTP();
     await redis.set(`password-reset:${email}`, otp, "EX", 300);
 
-    await transporter.sendMail({
-      from: `"TigerTix Support" <${process.env.EMAIL_USER}>`,
+    resend.emails.send({
+      from: resendhost,
       to: email,
       subject: "Password Reset OTP",
       text: `Your password reset OTP is: ${otp}\n\nIt expires in 5 minutes.`,
@@ -343,4 +335,3 @@ exports.validatePasswordResetOTP = async (req, res) => {
     res.status(500).json({ message: "Server error, please try again." });
   }
 };
-

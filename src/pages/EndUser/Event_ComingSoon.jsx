@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"; // For back navigatio
 import Header_User from "../../components/Header_User";
 import { IoChevronBackOutline, IoNotifications } from "react-icons/io5";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 const Event_ComingSoon = () => {
   const { id } = useParams(); // Get the event ID from the URL
@@ -15,7 +16,7 @@ const Event_ComingSoon = () => {
     const fetchEvent = async () => {
       try {
         setLoading(true);
-        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`; // Replace with your backend URL
 
         // Fetch event details by ID
         const response = await axios.get(
@@ -34,15 +35,17 @@ const Event_ComingSoon = () => {
           setError("Failed to fetch event details.");
         }
       } catch (err) {
-        console.error("Error fetching event:", err);
-        setError("Failed to fetch event details. Please try again later.");
+        if (!handleApiError(err, navigate)) {
+          console.error("Error fetching event:", err);
+          setError("Failed to fetch event details. Please try again later.");
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchEvent();
-  }, [id]);
+  }, [id, navigate]);
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -120,7 +123,7 @@ const Event_ComingSoon = () => {
   }
 
   return (
-    <div className="bg-[#121212] text-white min-h-screen">
+    <div className="bg-[#121212] text-white min-h-screen font-Poppins relative">
       <Header_User />
 
       {/* Back Button (Upper Left) */}
@@ -131,7 +134,6 @@ const Event_ComingSoon = () => {
         <IoChevronBackOutline className="text-3xl" />
       </button>
 
-
       <div className="flex justify-center items-center p-5 mt-10">
         <div className="text-white p-6 flex flex-col md:flex-row max-w-7xl w-full rounded-lg">
           {/* Left Image */}
@@ -141,7 +143,7 @@ const Event_ComingSoon = () => {
                 src={
                   event.image.startsWith("http")
                     ? event.image
-                    : `http://localhost:5002${
+                    : `${import.meta.env.VITE_API_URL}${
                         event.image.startsWith("/") ? "" : "/"
                       }${event.image}`
                 }
@@ -157,7 +159,6 @@ const Event_ComingSoon = () => {
                       "w-full h-full flex items-center justify-center image-fallback";
 
                     fallback.innerHTML = `<span class="text-white text-center p-4 font-Poppins">${
-
                       event.name || "Event image unavailable"
                     }</span>`;
                     container.appendChild(fallback);
@@ -224,13 +225,11 @@ const Event_ComingSoon = () => {
             {/* Be Notified Button */}
             <div className="flex justify-end mt-6">
               <button
-
                 className="font-Poppins font-bold py-3 px-7 min-w-[300px] rounded-lg inline-block mb-2 uppercase transition-all transform hover:scale-105 bg-black text-[#F09C32] flex items-center justify-center space-x-2"
                 onClick={() => alert("You will be notified about this event!")}
               >
                 <span>Be notified!</span>
                 <IoNotifications className="text-2xl bg-white p-1 rounded-full" />
-
               </button>
             </div>
           </div>

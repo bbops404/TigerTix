@@ -238,7 +238,7 @@ const Admin_ReservationScanQRPopUp = ({
   // to avoid re-renders and ensure immediate updates
   let scannerInstance = null;
 
-  const API_BASE_URL = "http://localhost:5002";
+  const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
 
   // Initialize available cameras when component mounts
   useEffect(() => {

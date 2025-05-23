@@ -201,8 +201,7 @@ function EventCardEndUser({
         <div className="bg-white text-black text-xs font-bold py-1 px-2 rounded-2xl w-full text-center">
           {formattedDate} | {formattedTime}
         </div>
-       
-       
+
         {/* Notification Button */}
         {notification && (
           <button
@@ -215,9 +214,6 @@ function EventCardEndUser({
             <IoNotifications className="text-xl text-[#F09C32]" />
           </button>
         )}
-
-
-        
       </div>
 
       <button

@@ -6,6 +6,7 @@ import Admin_AuditTrailsFilter from "./Admin_AuditTrailsFilter";
 
 import Header_Admin from "../../components/Admin/Header_Admin";
 import Sidebar_Admin from "../../components/Admin/SideBar_Admin";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 const AuditTrails = () => {
   const [showFilter, setShowFilter] = useState(false); // State for filter visibility
@@ -20,7 +21,7 @@ const AuditTrails = () => {
         const token = sessionStorage.getItem("authToken"); // Get the token from session storage
         setLoading(true); // Set loading to true before fetching
         const response = await axios.get(
-          "http://localhost:5002/api/audit-trails",
+          `${import.meta.env.VITE_API_URL}/api/audit-trails`,
           {
             withCredentials: true, // Ensures cookies are sent (if applicable)
             headers: {
@@ -32,8 +33,10 @@ const AuditTrails = () => {
         setLogs(response.data.data); // Set logs from the response
         setLoading(false); // Set loading to false after fetching
       } catch (err) {
-        console.error("Error fetching audit trails:", err);
-        setError("Failed to fetch audit trails. Please try again later.");
+        if (!handleApiError(err)) {
+          console.error("Error fetching audit trails:", err);
+          setError("Failed to fetch audit trails. Please try again later.");
+        }
         setLoading(false); // Set loading to false even if there's an error
       }
     };

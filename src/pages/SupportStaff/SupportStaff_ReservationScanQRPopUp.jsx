@@ -6,6 +6,8 @@ import { FaArrowLeft } from "react-icons/fa";
 import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
+import { useNavigate } from "react-router-dom";
 
 // Import the ConfirmMarkAsClaimedModal that was used in Admin_ClaimedReservationModal
 const ConfirmMarkAsClaimedModal = ({ isOpen, onClose, onConfirm }) => {
@@ -216,6 +218,8 @@ const Admin_ClaimedReservationModal = ({
   );
 };
 
+const API_BASE_URL = import.meta.env.VITE_API_URL; // Updated to use environment variable
+
 const SupportStaff_ReservationScanQRPopUp = ({
   showPopup,
   togglePopup,
@@ -237,8 +241,7 @@ const SupportStaff_ReservationScanQRPopUp = ({
   // Keep track of the scanner instance - don't use React state for this
   // to avoid re-renders and ensure immediate updates
   let scannerInstance = null;
-
-  const API_BASE_URL = "http://localhost:5002";
+  const navigate = useNavigate();
 
   // Initialize available cameras when component mounts
   useEffect(() => {
@@ -403,12 +406,9 @@ const SupportStaff_ReservationScanQRPopUp = ({
       console.log("Processing QR Code:", decodedText);
       setLoading(true);
 
-      // Verify it's a valid reservation ID
       let reservationId = decodedText;
 
-      // Try parsing for common QR code formats
       if (decodedText.includes("UST-TICKET-")) {
-        // Format: UST-TICKET-ID-EVENT-TYPE-COUNT
         const parts = decodedText.split("-");
         if (parts.length >= 3) {
           reservationId = parts[2];
@@ -419,12 +419,10 @@ const SupportStaff_ReservationScanQRPopUp = ({
         }
       }
 
-      // Validate that we have an ID
       if (!reservationId) {
         throw new Error("Invalid QR code format");
       }
 
-      // Fetch reservation details from backend
       const token = sessionStorage.getItem("authToken");
       console.log("Sending validation request with ID:", reservationId);
 
@@ -445,8 +443,6 @@ const SupportStaff_ReservationScanQRPopUp = ({
       if (response.data && response.data.success && response.data.data) {
         setReservation(response.data.data);
         setClaimStatus(response.data.data.claiming_status);
-
-        // Show the claimed reservation modal after successful validation
         setShowClaimedModal(true);
       } else {
         throw new Error(
@@ -454,19 +450,10 @@ const SupportStaff_ReservationScanQRPopUp = ({
         );
       }
     } catch (err) {
-      console.error("Error processing QR code:", err);
-
-      if (err.response) {
-        console.error(
-          "Server responded with error status:",
-          err.response.status
-        );
-        console.error("Error response data:", err.response.data);
-      } else if (err.request) {
-        console.error("No response received:", err.request);
+      if (!handleApiError(err, navigate)) {
+        console.error("Error processing QR code:", err);
+        setError(err.message || "Failed to process QR code");
       }
-
-      setError(err.message || "Failed to process QR code");
     } finally {
       setLoading(false);
     }
@@ -518,54 +505,20 @@ const SupportStaff_ReservationScanQRPopUp = ({
       if (response.data.success) {
         setClaimStatus("claimed");
         setReservation((prev) => ({ ...prev, claiming_status: "claimed" }));
-
-        // Show success toast
-        toast.success("Reservation marked as claimed!", {
-          style: {
-            backgroundColor: "#FFFFFF",
-            color: "#000",
-            fontWeight: "bold",
-            borderRadius: "8px",
-            padding: "10px",
-            marginTop: "70px",
-          },
-          autoClose: 2000,
-        });
-
-        // Call the callback function if provided to refresh parent component
+        toast.success("Reservation marked as claimed!");
         if (typeof onSuccessfulClaim === "function") {
           onSuccessfulClaim();
         }
-
         return true;
       } else {
         throw new Error(response.data.message || "Failed to mark as claimed");
       }
     } catch (err) {
-      console.error("Error marking as claimed:", err);
-
-      if (err.response) {
-        console.error("Server response error:", err.response.status);
-        console.error("Error response data:", err.response.data);
-      } else if (err.request) {
-        console.error("No response received:", err.request);
+      if (!handleApiError(err, navigate)) {
+        console.error("Error marking as claimed:", err);
+        setError(err.message || "Failed to mark reservation as claimed");
+        toast.error("Failed to mark as claimed");
       }
-
-      setError(err.message || "Failed to mark reservation as claimed");
-
-      // Show error toast
-      toast.error("Failed to mark as claimed", {
-        style: {
-          backgroundColor: "#FFFFFF",
-          color: "#000",
-          fontWeight: "bold",
-          borderRadius: "8px",
-          padding: "10px",
-          marginTop: "70px",
-        },
-        autoClose: 2000,
-      });
-
       return false;
     } finally {
       setProcessingClaim(false);

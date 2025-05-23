@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Header_User from "../../components/Header_User";
 import TigerTicket from "../../assets/TigerTicket.svg";
 import { IoChevronBackOutline } from "react-icons/io5";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 const Event_Ticketed_EndUser = () => {
   const { id } = useParams();
@@ -18,7 +19,7 @@ const Event_Ticketed_EndUser = () => {
     const fetchEventAndCheckReservation = async () => {
       try {
         setLoading(true);
-        const API_BASE_URL = "http://localhost:5002";
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
 
         // Fetch event details
         const eventResponse = await fetch(
@@ -66,8 +67,10 @@ const Event_Ticketed_EndUser = () => {
           setError("Failed to fetch event details.");
         }
       } catch (err) {
-        console.error("Error fetching event:", err);
-        setError("Failed to fetch event details. Please try again later.");
+        if (!handleApiError(err, navigate)) {
+          console.error("Error fetching event:", err);
+          setError("Failed to fetch event details. Please try again later.");
+        }
       } finally {
         setReservationChecked(true);
         setLoading(false);
@@ -75,7 +78,7 @@ const Event_Ticketed_EndUser = () => {
     };
 
     fetchEventAndCheckReservation();
-  }, [id]);
+  }, [id, navigate]);
 
   const handleReserveClick = () => {
     // Check user status before allowing reservation
@@ -205,7 +208,7 @@ const Event_Ticketed_EndUser = () => {
   }
 
   return (
-    <div className="bg-[#121212] text-white min-h-screen">
+    <div className="bg-[#121212] text-white min-h-screen font-Poppins">
       <Header_User />
 
       {/* Back Button (Upper Left) */}
@@ -225,7 +228,7 @@ const Event_Ticketed_EndUser = () => {
                 src={
                   event.image.startsWith("http")
                     ? event.image
-                    : `http://localhost:5002${
+                    : `${import.meta.env.VITE_API_URL}${
                         event.image.startsWith("/") ? "" : "/"
                       }${event.image}`
                 }

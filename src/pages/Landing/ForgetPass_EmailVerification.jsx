@@ -8,6 +8,7 @@ import * as yup from "yup";
 import OtpInput from "../../components/OtpInput";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 // Validation Schema (Only Email)
 const schema = yup
@@ -40,13 +41,18 @@ const ForgetPassword = () => {
   const onSubmit = async (data) => {
     try {
       setEmail(data.email); // Store email
-      const response = await axios.post("http://localhost:5002/auth/request-password-reset", {
-        email: data.email,
-      });
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/auth/request-password-reset`,
+        {
+          email: data.email,
+        }
+      );
       alert(response.data.message);
       setShowOtpInput(true); // Show OTP input
     } catch (error) {
-      alert(error.response?.data?.message || "Error sending OTP.");
+      if (!handleApiError(error, navigate)) {
+        alert(error.response?.data?.message || "Error sending OTP.");
+      }
     }
   };
 
@@ -54,15 +60,20 @@ const ForgetPassword = () => {
   const handleConfirmOtp = async () => {
     if (otp.length === 6) {
       try {
-        const response = await axios.post("http://localhost:5002/auth/validate-password-reset-otp", {
-          email,
-          otp,
-        });
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/auth/validate-password-reset-otp`,
+          {
+            email,
+            otp,
+          }
+        );
         alert(response.data.message);
         sessionStorage.setItem("verifiedEmail", email);
         navigate("/change-password");
       } catch (error) {
-        alert(error.response?.data?.message || "Invalid OTP.");
+        if (!handleApiError(error, navigate)) {
+          alert(error.response?.data?.message || "Invalid OTP.");
+        }
       }
     } else {
       alert("Please enter the complete OTP.");
@@ -95,7 +106,8 @@ const ForgetPassword = () => {
                     Enter your UST Email
                   </p>
                   <p className="text-custom_black/85 mb-4 text-[12px] font-light">
-                    Enter your email address to receive a verification code and confirm that your email exists.
+                    Enter your email address to receive a verification code and
+                    confirm that your email exists.
                   </p>
                 </div>
 
@@ -129,9 +141,13 @@ const ForgetPassword = () => {
             ) : (
               <>
                 <div className="w-full ml-3 pr-4">
-                  <p className="text-custom_black/85 mb-2 text-lg font-semibold">Enter OTP</p>
+                  <p className="text-custom_black/85 mb-2 text-lg font-semibold">
+                    Enter OTP
+                  </p>
                   <p className="text-custom_black/85 mb-4 text-[12px] font-light">
-                    A verification code has been sent to <strong>{email}</strong>. Please enter the code below to confirm your email.
+                    A verification code has been sent to{" "}
+                    <strong>{email}</strong>. Please enter the code below to
+                    confirm your email.
                   </p>
                 </div>
 

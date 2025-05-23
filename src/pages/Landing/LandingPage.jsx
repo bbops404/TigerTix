@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
+import axios from "axios"; // For API calls
+import { handleApiError } from "../../utils/apiErrorHandler";
 import { useNavigate } from "react-router-dom";
 import EventCard from "../../components/EventCard";
 import Header from "../../components/Header";
 import LoginPopup from "./LoginPopup";
 import { IoChevronForward, IoChevronBack } from "react-icons/io5";
-import axios from "axios"; // For API calls
 
 // Empty state illustration component for when no events are available
 const EmptyStateIllustration = ({ message = "No events available" }) => (
@@ -27,7 +28,7 @@ function Carousel({ scrollToSection, ticketedRef, comingSoonRef, freeEventsRef }
     const fetchTicketedEvents = async () => {
       try {
         setIsLoading(true);
-        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`; // Updated to use environment variable
         const response = await axios.get(
           `${API_BASE_URL}/api/events/published-ticketed`,
           {
@@ -41,14 +42,16 @@ function Carousel({ scrollToSection, ticketedRef, comingSoonRef, freeEventsRef }
           console.error("Failed to fetch ticketed events.");
         }
       } catch (error) {
-        console.error("Error fetching ticketed events:", error);
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching ticketed events:", error);
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchTicketedEvents();
-  }, []);
+  }, [navigate]);
 
   const prevSlide = () => {
     if (isSliding || ticketedEvents.length <= 1) return;
@@ -332,6 +335,7 @@ function LandingPage() {
     comingSoon: true,
   });
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   // For auto scrolling the event section
   const ticketedRef = useRef(null);
@@ -381,7 +385,7 @@ function LandingPage() {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+      const API_BASE_URL = `${import.meta.env.VITE_API_URL}`; // Updated to use environment variable
       const timestamp = new Date().getTime(); // Prevent caching
 
       // Helper function to fetch events with loading state management
@@ -396,11 +400,13 @@ function LandingPage() {
             setter(response.data.data);
           }
         } catch (err) {
-          console.error(`Error fetching ${category} events:`, err);
-          setError(
-            (prev) =>
-              prev || "Failed to load some events. Please try again later."
-          );
+          if (!handleApiError(err, navigate)) {
+            console.error(`Error fetching ${category} events:`, err);
+            setError(
+              (prev) =>
+                prev || "Failed to load some events. Please try again later."
+            );
+          }
         } finally {
           setLoading((prev) => ({ ...prev, [loadingKey]: false }));
         }
@@ -415,7 +421,7 @@ function LandingPage() {
     };
 
     fetchEvents();
-  }, []);
+  }, [navigate]);
 
   // Map event data for event sections
   const mapEventData = (events, buttonText, linkPrefix) => {

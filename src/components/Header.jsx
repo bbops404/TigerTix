@@ -3,7 +3,11 @@ import tigertix_logo from "../assets/tigertix_logo.png";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import axios from "axios";
+
 import { FaBars, FaTimes } from "react-icons/fa";
+
+import { handleApiError } from "../utils/apiErrorHandler";
+
 
 const Header = ({
   toggleLoginPopup,
@@ -19,7 +23,7 @@ const Header = ({
   useEffect(() => {
     const fetchPublishedEvents = async () => {
       try {
-        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`; // Replace with your backend URL
         const response = await axios.get(
           `${API_BASE_URL}/api/events/published`
         );
@@ -30,12 +34,14 @@ const Header = ({
           console.error("Failed to fetch published events.");
         }
       } catch (error) {
-        console.error("Error fetching published events:", error);
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching published events:", error);
+        }
       }
     };
 
     fetchPublishedEvents();
-  }, []);
+  }, [navigate]);
 
   const handleEventChange = async (event) => {
     const eventId = event.target.value;
@@ -45,7 +51,13 @@ const Header = ({
     setIsRedirecting(true);
 
     try {
-      const API_BASE_URL = "http://localhost:5002";
+
+      // We need to get the full event details from any endpoint that will return them
+      // Since we know from the controller code that any of the endpoints will return the event
+      // regardless of its actual type, we can just use one endpoint
+      const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
+
+
       const response = await axios.get(
         `${API_BASE_URL}/api/events/ticketed/${eventId}`
       );
@@ -69,7 +81,11 @@ const Header = ({
         navigate(`/event-ticketed/${eventId}`);
       }
     } catch (error) {
-      console.error("Error determining event type:", error);
+
+      if (!handleApiError(error, navigate)) {
+        console.error("Error determining event type:", error);
+      }
+
       navigate(`/event-ticketed/${eventId}`);
     } finally {
       setTimeout(() => {
@@ -79,6 +95,7 @@ const Header = ({
   };
 
   return (
+
     <>
       <div className="flex bg-custom_yellow py-3 px-4 sm:px-8 items-center justify-between font-Poppins shadow-2xl relative">
         {/* Logo and Mobile Menu Button */}
@@ -103,6 +120,7 @@ const Header = ({
         </div>
 
         {/* Dropdown Selection (Desktop only) */}
+
         {showDropdown && (
           <div className="relative group hidden sm:flex flex-1 justify-center mx-4">
             <select
@@ -132,7 +150,9 @@ const Header = ({
           </div>
         )}
 
+
         {/* Right-side content */}
+
         {showAuthButtons && (
           <div className="flex gap-3 sm:gap-5">
               <button

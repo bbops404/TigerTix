@@ -54,9 +54,9 @@ import SupportStaffUser from "./pages/SupportStaff/SupportStaff_UserPage";
 import SupportStaffEventManagement from "./pages/SupportStaff/SupportStaff_EventsManagement";
 import SupportStaffEventDetailContainer from "./container/SupportStaffEventDetailContainer";
 
-// (Add support staff routes here when available)
 import AdminPublishEvent from "./pages/Admin/Admin_PublishEvent";
 import AdminScheduleEvent from "./pages/Admin/Admin_ScheduleEvent";
+import ErrorPage from "./pages/Error_Pages/ErrorPage";
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -75,12 +75,15 @@ const Layout = ({ children }) => {
     "/reservation-receipt",
     "/reservation" 
   ];
-  const shouldShowFooter = !hideFooterRoutes.some((route) =>
-    location.pathname.startsWith(route)
-  );
+  // Hide footer for all error pages and any in hideFooterRoutes
+  const shouldShowFooter =
+    !hideFooterRoutes.some((route) =>
+      location.pathname.startsWith(route)
+    ) && !location.pathname.startsWith("/error/");
 
   return (
     <>
+      {/* Optionally hide header here too if you want */}
       {children}
       {shouldShowFooter && <Footer />}
     </>
@@ -199,6 +202,22 @@ function App() {
             <Route path="/about-us" element={<AboutUs />} />
             <Route path="/contact-us" element={<ContactUs />} />
             <Route path="/faqs" element={<FAQs />} />
+
+            {/* ========================== ERROR PAGES ========================== */}
+            <Route path="/error/400" element={<ErrorPage code={400} />} />
+            <Route path="/error/401" element={<ErrorPage code={401} />} />
+            <Route path="/error/403" element={<ErrorPage code={403} />} />
+            <Route path="/error/404" element={<ErrorPage code={404} />} />
+            <Route path="/error/500" element={<ErrorPage code={500} />} />
+            <Route path="/error/502" element={<ErrorPage code={502} />} />
+            <Route path="/error/503" element={<ErrorPage code={503} />} />
+            <Route path="/error/504" element={<ErrorPage code={504} />} />
+
+            {/* 404 Not Found (catch-all) */}
+            <Route
+              path="*"
+              element={<ErrorPage code={404} />}
+            />
           </Routes>
         </Layout>
       </BrowserRouter>

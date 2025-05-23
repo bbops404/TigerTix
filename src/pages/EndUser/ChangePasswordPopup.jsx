@@ -8,7 +8,6 @@ const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
   const [error, setError] = useState("");
 
   const handleChangePassword = async () => {
-
     const token = sessionStorage.getItem("authToken");
     if (newPassword !== confirmPassword) {
       setError("New passwords do not match!");
@@ -18,14 +17,14 @@ const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
     try {
       const userId = sessionStorage.getItem("userId"); // Retrieve user ID from sessionStorage
       const response = await axios.put(
-        `http://localhost:5002/api/users/${userId}/change-password`, // Updated endpoint
+        `${import.meta.env.VITE_API_URL}/api/users/${userId}/change-password`, // Updated endpoint
         {
           currentPassword,
           newPassword,
         },
         {
-                    withCredentials: true, // Ensures cookies are sent (if applicable)
-          
+          withCredentials: true, // Ensures cookies are sent (if applicable)
+
           headers: {
             Authorization: `Bearer ${token}`, // Include token if required
             "Content-Type": "application/json",

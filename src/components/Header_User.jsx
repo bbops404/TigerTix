@@ -3,7 +3,11 @@ import { FaUser, FaBell, FaSignOutAlt, FaChevronDown } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import axios from "axios"; // Added missing axios import
 import tigertix_logo from "../assets/tigertix_logo.png";
+
 import { FaBars, FaTimes } from "react-icons/fa";
+
+import { handleApiError } from "../utils/apiErrorHandler";
+
 
 const Header_User = () => {
   const [publishedEvents, setPublishedEvents] = useState([]);
@@ -21,7 +25,7 @@ const Header_User = () => {
     // Fetch published events
     const fetchPublishedEvents = async () => {
       try {
-        const API_BASE_URL = "http://localhost:5002"; // Replace with your backend URL
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`; // Replace with your backend URL
         const response = await fetch(`${API_BASE_URL}/api/events/published`);
         const data = await response.json();
 
@@ -31,7 +35,9 @@ const Header_User = () => {
           console.error("Failed to fetch published events.");
         }
       } catch (error) {
-        console.error("Error fetching published events:", error);
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching published events:", error);
+        }
       } finally {
         setLoading(false); // Set loading to false regardless of outcome
       }
@@ -39,7 +45,7 @@ const Header_User = () => {
 
     // Fetch both user data and published events
     fetchPublishedEvents();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     // Retrieve the username from sessionStorage
@@ -61,7 +67,7 @@ const Header_User = () => {
 
     try {
       // We need to get the full event details from any endpoint that will return them
-      const API_BASE_URL = "http://localhost:5002";
+      const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
 
       const response = await axios.get(
         `${API_BASE_URL}/api/events/ticketed/${eventId}`
@@ -84,19 +90,17 @@ const Header_User = () => {
             navigate(`/event-coming-soon-enduser/${eventId}`);
             break;
           default:
-            // Default fallback
             navigate(`/event-ticketed-enduser/${eventId}`);
         }
       } else {
-        // If we somehow didn't get a successful response, default to ticketed
         navigate(`/event-ticketed-enduser/${eventId}`);
       }
     } catch (error) {
-      console.error("Error determining event type:", error);
-      // Default fallback in case of error
+      if (!handleApiError(error, navigate)) {
+        console.error("Error determining event type:", error);
+      }
       navigate(`/event-ticketed-enduser/${eventId}`);
     } finally {
-      // Reset after a short delay
       setTimeout(() => {
         setIsRedirecting(false);
       }, 500);
@@ -105,13 +109,16 @@ const Header_User = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("http://localhost:5002/auth/logout", {
-        method: "POST",
-        credentials: "include", // ✅ Important! Sends cookies with request
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/auth/logout`,
+        {
+          method: "POST",
+          credentials: "include", // ✅ Important! Sends cookies with request
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       const data = await response.json();
 
