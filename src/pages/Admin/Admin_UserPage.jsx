@@ -15,6 +15,7 @@ import Admin_EditUserPopUp from "./Admin_EditUserPopUp";
 import Admin_UserGenerateReport from "./Admin_UserGenerateReportPopUp";
 import axios from "axios";
 import { handleApiError } from "../../utils/apiErrorHandler";
+import { createColumnHelper } from '@tanstack/react-table';
 
 // This component is referenced but not defined - adding a placeholder
 const Admin_UserFilter = ({ showFilter, setShowFilter }) => {
