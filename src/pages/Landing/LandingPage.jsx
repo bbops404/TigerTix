@@ -17,7 +17,7 @@ const EmptyStateIllustration = ({ message = "No events available" }) => (
   </div>
 );
 
-function Carousel() {
+function Carousel({ scrollToSection, ticketedRef, comingSoonRef, freeEventsRef }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [ticketedEvents, setTicketedEvents] = useState([]);
   const navigate = useNavigate();
@@ -37,7 +37,6 @@ function Carousel() {
         );
 
         if (response.data.success) {
-          console.log("Fetched Events:", response.data.data); // Log the fetched events
           setTicketedEvents(response.data.data);
         } else {
           console.error("Failed to fetch ticketed events.");
@@ -115,6 +114,34 @@ function Carousel() {
 
   return (
     <div className="relative w-full h-[700px] overflow-hidden">
+      {/* Event Links */}
+      <div className="absolute top-5 left-1/2 transform -translate-x-1/2 z-10 flex flex-wrap gap-6 md:gap-10 items-center justify-center w-[95vw] max-w-3xl px-2">
+        <span
+          className="text-base md:text-lg font-semibold text-[#F09C32] hover:text-white transition-colors duration-200 cursor-pointer underline-offset-4 hover:underline whitespace-nowrap"
+          onClick={() => scrollToSection(ticketedRef)}
+          tabIndex={0}
+          role="link"
+        >
+          Ticketed Events
+        </span>
+        <span
+          className="text-base md:text-lg font-semibold text-[#F09C32] hover:text-white transition-colors duration-200 cursor-pointer underline-offset-4 hover:underline whitespace-nowrap"
+          onClick={() => scrollToSection(comingSoonRef)}
+          tabIndex={0}
+          role="link"
+        >
+          Coming Soon Events
+        </span>
+        <span
+          className="text-base md:text-lg font-semibold text-[#F09C32] hover:text-white transition-colors duration-200 cursor-pointer underline-offset-4 hover:underline whitespace-nowrap"
+          onClick={() => scrollToSection(freeEventsRef)}
+          tabIndex={0}
+          role="link"
+        >
+          Free Events
+        </span>
+      </div>
+
       <div
         className="flex w-full h-full transition-transform duration-500 ease-in-out"
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
@@ -181,7 +208,8 @@ function Carousel() {
   );
 }
 
-function EventSection({ title, description, events, loading = false }) {
+const EventSection = React.forwardRef(
+  ({ title, description, events, loading = false }, ref ) => {
   const navigate = useNavigate();
   const scrollContainerRef = useRef(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -288,8 +316,10 @@ function EventSection({ title, description, events, loading = false }) {
     </section>
   );
 }
+);
 
 function LandingPage() {
+
   // 🔹 State for login popup
   const [loginPopup, setLoginPopup] = useState(false);
 
@@ -306,6 +336,18 @@ function LandingPage() {
   });
   const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  // For auto scrolling the event section
+  const ticketedRef = useRef(null);
+  const comingSoonRef = useRef(null);
+  const freeEventsRef = useRef(null);
+
+  const scrollToSection = (ref) => {
+    console.log("Scrolling to section:", ref); // Debugging log
+    if (ref && ref.current) {
+      ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   useEffect(() => {
     // Create a fixed-size wrapper to prevent layout shifts
@@ -332,7 +374,7 @@ function LandingPage() {
     setLoginPopup((prev) => !prev);
   };
 
-  // 🔹 Check if login popup should be shown on load
+  // Check if login popup should be shown on load
   useEffect(() => {
     const shouldShowLogin = localStorage.getItem("showLoginPopup");
     if (shouldShowLogin === "true") {
@@ -405,35 +447,44 @@ function LandingPage() {
         />
       )}
 
-      <Carousel />
+      {/* Pass scrollToSection to Carousel */}
+      <Carousel 
+          scrollToSection={scrollToSection}
+          ticketedRef={ticketedRef}
+          comingSoonRef={comingSoonRef}
+          freeEventsRef={freeEventsRef}
+       />
 
-      {/* Ticketed Events Section */}
-      <EventSection
-        title="TICKETED EVENTS"
-        description="Events where tickets must be reserved in advance. Ensure your spot by booking a ticket."
-        events={mapEventData(ticketedEvents, "Reserve Now", "/event-ticketed")}
-        loading={loading.ticketed}
-      />
+      <div ref={ticketedRef}>
+  <EventSection
+    title="TICKETED EVENTS"
+    description="Events where tickets must be reserved in advance. Ensure your spot by booking a ticket."
+    events={mapEventData(ticketedEvents, "Reserve Now", "/event-ticketed")}
+    loading={loading.ticketed}
+  />
+</div>
 
-      {/* Coming Soon Events Section */}
-      <EventSection
-        title="EVENTS COMING SOON"
-        description="Upcoming events that will require a reservation. Ticket and reservation details are not yet available."
-        events={mapEventData(
-          comingSoonEvents,
-          "View Details",
-          "/event-coming-soon"
-        )}
-        loading={loading.comingSoon}
-      />
+<div ref={comingSoonRef}>
+  <EventSection
+    title="COMING SOON EVENTS"
+    description="Upcoming events that will require a reservation. Ticket and reservation details are not yet available."
+    events={mapEventData(
+      comingSoonEvents,
+      "View Details",
+      "/event-coming-soon"
+    )}
+    loading={loading.comingSoon}
+  />
+</div>
 
-      {/* Free Events Section */}
-      <EventSection
-        title="FREE EVENTS"
-        description="UAAP or other IPEA Events that are open to all without the need for a reservation or ticket. Simply show up!"
-        events={mapEventData(freeEvents, "View Details", "/event-free")}
-        loading={loading.free}
-      />
+<div ref={freeEventsRef}>
+  <EventSection
+    title="FREE EVENTS"
+    description="UAAP or other IPEA Events that are open to all without the need for a reservation or ticket. Simply show up!"
+    events={mapEventData(freeEvents, "View Details", "/event-free")}
+    loading={loading.free}
+  />
+</div>
 
       {/* Error message display if needed */}
       {error && (

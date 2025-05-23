@@ -47,7 +47,7 @@ const initScheduler = (io) => {
   // ========================================================
   // 2. RESERVATION STATUS UPDATE - EVERY 5 MINUTES
   // ========================================================
-  cron.schedule("*/5 * * * *", async () => {
+  cron.schedule("* * * * *", async () => {
     console.log("🕒 [5m] Running: Reservation status updater");
 
     try {

@@ -72,6 +72,8 @@ const Layout = ({ children }) => {
     "/verify",
     "/forget-password",
     "/change-password",
+    "/reservation-receipt",
+    "/reservation" 
   ];
   // Hide footer for all error pages and any in hideFooterRoutes
   const shouldShowFooter =
@@ -163,7 +165,7 @@ function App() {
             </Route>
 
             {/* ========================== SUPPORT STAFF PAGES ========================== */}
-            <Route element={<ProtectedRoutes role="support staff" />}>
+            <Route element={<ProtectedRoutes role="support_staff" />}>
               <Route
                 path="/support-staff-dashboard"
                 element={<SupportStaffDashboard />}
