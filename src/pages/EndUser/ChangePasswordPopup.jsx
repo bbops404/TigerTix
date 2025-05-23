@@ -7,10 +7,25 @@ const ChangePasswordPopup = ({ showPopup, togglePopup }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
 
+  // Password policy: min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special char
+  const isPasswordValid = (password) => {
+    const policy =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]).{8,}$/;
+    return policy.test(password);
+  };
+
   const handleChangePassword = async () => {
     const token = sessionStorage.getItem("authToken");
     if (newPassword !== confirmPassword) {
       setError("New passwords do not match!");
+      return;
+    }
+
+    // Enforce password policy on frontend
+    if (!isPasswordValid(newPassword)) {
+      setError(
+        "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character."
+      );
       return;
     }
 

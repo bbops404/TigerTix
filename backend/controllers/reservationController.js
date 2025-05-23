@@ -5,8 +5,12 @@ const Event = db.Event; // Add this
 const User = db.User; // Add this
 const ClaimingSlot = db.ClaimingSlot; // Add this
 const { createAuditTrail } = require("./auditTrailController");
-const { Resend } = require("resend"); // Add this
-const resend = new Resend(process.env.RESEND_API_KEY); // Add this
+
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
+const resendhost = process.env.RESEND_HOST;
+
+
 const QRCode = require("qrcode"); // Add this at the top
 
 const sequelize = db.sequelize; // Add this for transaction

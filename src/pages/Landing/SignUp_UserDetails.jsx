@@ -43,6 +43,13 @@ const SignUp_UserDetails = () => {
 
   const userRole = role.toLowerCase();
 
+  // Password policy: min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special char
+  const isPasswordValid = (password) => {
+    const policy =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]).{8,}$/;
+    return policy.test(password);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const verifiedEmail = sessionStorage.getItem("verifiedEmail");
@@ -63,6 +70,14 @@ const SignUp_UserDetails = () => {
       !role
     ) {
       setErrorMessage("Please fill in all fields.");
+      return;
+    }
+
+    // Enforce password policy on frontend
+    if (!isPasswordValid(password)) {
+      setErrorMessage(
+        "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character."
+      );
       return;
     }
 
