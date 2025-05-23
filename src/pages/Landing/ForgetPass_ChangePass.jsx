@@ -82,16 +82,16 @@ const schema = yup
       {loginPopup && <LoginPopup toggleLoginPopup={toggleLoginPopup} />}
       <div className="flex">
         {/* Left Image Section */}
-        <div className="w-1/2 relative h-[90vh]">
+        <div className="w-1/2 relative h-[90vh] hidden md:block">
           <img src={sample_image} alt="UST IPEA" className="w-full h-full object-cover" />
           <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(180deg,rgba(0,0,0,0.7),rgba(255,171,64,0.7))]"></div>
         </div>
 
         {/* Right Form Section */}
-        <div className="w-1/2 bg-custom_black flex flex-col items-center justify-center font-Poppins h-[90vh]">
+        <div className="w-full md:w-1/2 bg-custom_black flex flex-col items-center justify-center font-Poppins h-[90vh]">
           <p className="font-bold text-4xl text-white pb-7">Create New Password</p>
 
-          <div className="flex flex-col justify-center bg-custom_yellow p-6 rounded-lg shadow-lg w-[500px] h-auto text-custom_black">
+          <div className="flex flex-col justify-center bg-custom_yellow p-6 rounded-lg shadow-lg w-[90vw] max-w-[500px] h-auto text-custom_black mx-auto">
             <div className="w-full ml-3 pr-4">
               <p className="text-custom_black/85 mb-2 text-lg font-semibold text-center">
                 Enter a New Password
@@ -99,7 +99,7 @@ const schema = yup
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col items-center w-full">
               {/* New Password Input Field */}
-              <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 border-[#D8DADC] h-10 w-72 mb-3">
+              <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 border-[#D8DADC] h-10 w-full sm:w-64 md:w-72 mb-3">
                 <input
                   type="password"
                   {...register("newPassword")}
@@ -112,7 +112,7 @@ const schema = yup
               )}
 
               {/* Confirm Password Input Field */}
-              <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 border-[#D8DADC] h-10 w-72 mb-3">
+              <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 border-[#D8DADC] h-10 w-full sm:w-64 md:w-72 mb-3">
                 <input
                   type="password"
                   {...register("confirmPassword")}
@@ -125,9 +125,14 @@ const schema = yup
               )}
 
               {/* Submit Button */}
-              <button type="submit" className="bg-custom_black text-white px-4 py-2 mt-5 w-72 text-sm rounded-md font-semibold hover:text-custom_yellow transition-all duration-300 transform hover:scale-105">
-                UPDATE
-              </button>
+              <div className="flex justify-center w-full">
+                <button
+                  type="submit"
+                  className="bg-custom_black text-white px-4 py-2 mt-5 w-full sm:w-64 md:w-72 text-sm rounded-md font-semibold hover:text-custom_yellow transition-all duration-300 transform hover:scale-105"
+                >
+                  UPDATE
+                </button>
+              </div>
             </form>
 
             <SuccessModal

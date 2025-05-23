@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../../components/Header_User";
 import ReservationEventCard from "../../components/ReservationEventCard";
-import { IoChevronBackOutline } from "react-icons/io5";
+import { IoChevronBackOutline, IoChevronDownCircle } from "react-icons/io5";
 import ConfirmationEventModal from "../../components/ConfirmationEventModal";
 import {
   fetchEventById,
@@ -36,6 +36,36 @@ const Reservation = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [isFading, setIsFading] = useState(false);
+  const [showDownButton, setShowDownButton] = useState(true);
+  const topRef = useRef(null);
+
+  const summaryRef = useRef(null);
+
+  const scrollToSummary = () => {
+    if (summaryRef.current) {
+      setIsFading(true);
+      summaryRef.current.scrollIntoView({ behavior: "smooth" });
+      setTimeout(() => {
+        setShowDownButton(false);
+        setIsFading(false);
+      }, 500); // Match with fade-out duration
+    }
+  };
+
+    // Show the button again when user scrolls above the summary
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!summaryRef.current) return;
+      const summaryTop = summaryRef.current.getBoundingClientRect().top + window.scrollY;
+      if (window.scrollY + 100 < summaryTop) {
+        setShowDownButton(true);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -667,7 +697,7 @@ const Reservation = () => {
 
                 {/* Right Column - Reservation Summary */}
                 <div className="w-full lg:w-1/2 p-4">
-                  <h2 className="font-bold text-2xl lg:text-3xl text-center">
+                  <h2 className="font-bold text-2xl lg:text-3xl text-center" ref={summaryRef}>
                     RESERVATION SUMMARY
                   </h2>
                   <div className="mt-6 p-4 border bg-gray-200 text-black text-center text-lg lg:text-xl">
@@ -791,6 +821,35 @@ const Reservation = () => {
         )}
       </div>
 
+      {/* Downward Button */}
+      {showSummary && (
+        <button
+          onClick={() => {
+            if (showDownButton) {
+              scrollToSummary();
+            } else {
+              // Scroll to top of reservation section
+              if (topRef.current) {
+                topRef.current.scrollIntoView({ behavior: "smooth" });
+              } else {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+              setShowDownButton(true);
+            }
+          }}
+          className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 text-[#F09C32] font-bold py-2 px-4 rounded-full transition-all duration-500
+            hover:scale-125
+            ${isFading ? "opacity-0 pointer-events-none" : "opacity-100"}
+          `}
+          style={{ zIndex: 1000 }}
+        >
+          {showDownButton ? (
+            <IoChevronDownCircle className="text-5xl drop-shadow-lg" />
+          ) : (
+            <IoChevronDownCircle className="text-5xl drop-shadow-lg rotate-180" />
+          )}
+        </button>
+      )}
       {/* Confirmation Modal - only shown when clicking CONFIRM in summary */}
       <ConfirmationEventModal
         isOpen={showConfirmModal}

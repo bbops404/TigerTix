@@ -100,7 +100,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
 // ✅ Redirect based on user role
 if (data.user.role === "admin") {
   navigate("/admin-dashboard", { replace: true });
-} else if (data.user.role === "support staff") {
+} else if (data.user.role === "support_staff") {
   navigate("/support-staff-dashboard", { replace: true });
 } else if (["student", "employee", "alumni"].includes(data.user.role)) {
   navigate("/home", { replace: true });
@@ -140,13 +140,13 @@ if (data.user.role === "admin") {
     setShowPassword(!showPassword);
   };
 
-  return (
+return (
     <>
       {loginPopup && (
         <div className="font-Poppins fixed top-0 left-0 w-full h-full z-50 bg-black bg-opacity-50 flex justify-center items-center backdrop-blur-sm">
           <div
             ref={loginPopupRef}
-            className="relative flex flex-col justify-center items-center space-y-2 bg-custom_yellow p-6 rounded-lg shadow-lg w-1/3 min-h-[480px]"
+  className="relative flex flex-col justify-center items-center space-y-2 bg-custom_yellow p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg box-border overflow-auto"
           >
             <button
               onClick={toggleLoginPopup}
@@ -164,7 +164,7 @@ if (data.user.role === "admin") {
             error.type === "login" ||
             error.type === "network" ? (
               <div
-                className="text-sm w-[300px] bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded relative mb-2"
+                className="text-sm w-full max-w-[300px] bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded relative mb-2"
                 role="alert"
               >
                 <span className="block sm:inline">{error.message}</span>
@@ -172,7 +172,7 @@ if (data.user.role === "admin") {
             ) : null}
 
             {/* Email Input */}
-            <div className="text-left w-[300px]">
+            <div className="text-left w-full max-w-[300px]">
               <p className="text-custom_black mb-1 text-sm">Email</p>
               <div
                 className={`bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 
@@ -205,7 +205,7 @@ if (data.user.role === "admin") {
             </div>
 
             {/* Password Input with Toggle */}
-            <div className="text-left w-[300px]">
+            <div className="text-left w-full max-w-[300px]">
               <p className="text-custom_black mb-1 text-sm">Password</p>
               <div
                 className={`bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 
@@ -252,7 +252,7 @@ if (data.user.role === "admin") {
             </div>
 
             {/* Forgot Password */}
-            <div className="text-left w-[300px] pb-3">
+            <div className="text-left w-full max-w-[300px] pb-3">
               <button
                 className="text-xs text-custom_black hover:underline focus:outline-none"
                 onClick={() => navigate("/forget-password")}
@@ -263,7 +263,7 @@ if (data.user.role === "admin") {
 
             {/* Login Button */}
             <button
-              className="bg-custom_black text-white px-4 py-2 w-[300px] rounded-md font-semibold hover:text-custom_yellow"
+              className="bg-custom_black text-white px-4 py-2 w-full max-w-[300px] rounded-md font-semibold hover:text-custom_yellow"
               onClick={handleLogin}
             >
               Login

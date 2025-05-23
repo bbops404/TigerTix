@@ -72,6 +72,8 @@ const Layout = ({ children }) => {
     "/verify",
     "/forget-password",
     "/change-password",
+    "/reservation-receipt",
+    "/reservation" 
   ];
   const shouldShowFooter = !hideFooterRoutes.some((route) =>
     location.pathname.startsWith(route)
@@ -160,7 +162,7 @@ function App() {
             </Route>
 
             {/* ========================== SUPPORT STAFF PAGES ========================== */}
-            <Route element={<ProtectedRoutes role="support staff" />}>
+            <Route element={<ProtectedRoutes role="support_staff" />}>
               <Route
                 path="/support-staff-dashboard"
                 element={<SupportStaffDashboard />}

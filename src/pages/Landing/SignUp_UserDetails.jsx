@@ -109,9 +109,9 @@ const SignUp_UserDetails = () => {
       )}
       {loginPopup && <LoginPopup toggleLoginPopup={toggleLoginPopup} />}
 
-      <div className="flex">
-        {/* Left Image Section */}
-        <div className="w-1/2 relative h-[90vh]">
+      <div className="flex min-h-[90vh]">
+        {/* Left Image Section - hidden on small screens */}
+        <div className="w-1/2 relative h-[90vh] hidden md:block">
           <img
             src={sample_image}
             alt="UST IPEA"
@@ -120,11 +120,11 @@ const SignUp_UserDetails = () => {
           <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(180deg,rgba(0,0,0,0.7),rgba(255,171,64,0.7))]"></div>
         </div>
 
-        {/* Right Form Section */}
-        <div className="w-1/2 bg-custom_black flex flex-col items-center justify-center font-Poppins h-[90vh]">
+        {/* Right Form Section - centered and responsive */}
+        <div className="w-full md:w-1/2 bg-custom_black flex flex-col items-center justify-center font-Poppins h-[90vh]">
           <p className="font-bold text-4xl text-white pb-7">Sign Up</p>
 
-          <div className="flex flex-col justify-center bg-custom_yellow p-6 rounded-lg shadow-lg w-[500px] h-auto text-custom_black">
+          <div className="flex flex-col justify-center bg-custom_yellow p-6 rounded-lg shadow-lg w-[90vw] max-w-[500px] h-auto text-custom_black mx-auto">
             <div className="w-full ml-3 pr-4">
               <p className="text-custom_black/85 mb-2 text-lg font-semibold">
                 Create your Tigertix Account!
@@ -154,7 +154,7 @@ const SignUp_UserDetails = () => {
 
                 <div className="flex flex-col">
                   <p className="text-xs">First Name</p>
-                  <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-md border-2 border-[#D8DADC] h-8 w-56">
+                  <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-md border-2 border-[#D8DADC] h-8 w-full sm:w-40 md:w-56">
                     <input
                       className="focus:outline-none text-xs w-full text-gray-600"
                       placeholder="Enter your First Name"
@@ -180,7 +180,7 @@ const SignUp_UserDetails = () => {
                 </div>
                 <div className="flex flex-col">
                   <p className="text-xs">Last Name</p>
-                  <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-md border-2 border-[#D8DADC] h-8 w-56">
+                  <div className="bg-white flex px-2 py-3 gap-2 items-center rounded-md border-2 border-[#D8DADC] h-8 w-full sm:w-40 md:w-56">
                     <input
                       className="focus:outline-none text-xs w-full text-gray-600"
                       placeholder="Enter your Last Name"
@@ -245,25 +245,27 @@ const SignUp_UserDetails = () => {
               </div>
 
               {/* Submit Button */}
-              <button
-  type="submit"
-  onClick={handleSubmit}
-  className="bg-custom_black text-white px-4 py-2 mt-5 w-72 text-sm rounded-md font-semibold hover:text-custom_yellow transition-all duration-300 transform hover:scale-105 mx-auto"
->
-  Make Account!
-</button>
+              <div className="flex justify-center w-full">
+                <button
+                  type="submit"
+                  onClick={handleSubmit}
+                  className="bg-custom_black text-white px-4 py-2 mt-5 w-full sm:w-64 md:w-72 text-sm rounded-md font-semibold hover:text-custom_yellow transition-all duration-300 transform hover:scale-105"
+                >
+                  Make Account!
+                </button>
+              </div>
 
-<SuccessModal
-  isOpen={isSuccessModalOpen}
-  onClose={() => setIsSuccessModalOpen(false)}
-  onRedirect={() => {
-    setIsSuccessModalOpen(false);
-    navigate("/");
-    setTimeout(() => setLoginPopup(true), 500);
-  }}
-  title="Success!"
-  message="Your account has been created successfully. Please log in."
-/>
+              <SuccessModal
+                isOpen={isSuccessModalOpen}
+                onClose={() => setIsSuccessModalOpen(false)}
+                onRedirect={() => {
+                  setIsSuccessModalOpen(false);
+                  navigate("/");
+                  setTimeout(() => setLoginPopup(true), 500);
+                }}
+                title="Success!"
+                message="Your account has been created successfully. Please log in."
+              />
 
 
 
