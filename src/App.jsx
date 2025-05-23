@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import ProtectedRoutes from "./ProtectedRoutes"; // Import the protected route
 import PublicRoutes from "./PublicRoutes";
 
@@ -72,6 +74,8 @@ const Layout = ({ children }) => {
     "/verify",
     "/forget-password",
     "/change-password",
+    "/reservation-receipt",
+    "/reservation" 
   ];
   // Hide footer for all error pages and any in hideFooterRoutes
   const shouldShowFooter =
@@ -163,7 +167,7 @@ function App() {
             </Route>
 
             {/* ========================== SUPPORT STAFF PAGES ========================== */}
-            <Route element={<ProtectedRoutes role="support staff" />}>
+            <Route element={<ProtectedRoutes role="support_staff" />}>
               <Route
                 path="/support-staff-dashboard"
                 element={<SupportStaffDashboard />}
@@ -218,6 +222,18 @@ function App() {
             />
           </Routes>
         </Layout>
+        <ToastContainer
+          position="bottom-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="dark"
+        />
       </BrowserRouter>
     </QueryClientProvider>
   );

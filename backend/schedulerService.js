@@ -47,7 +47,7 @@ const initScheduler = (io) => {
   // ========================================================
   // 2. RESERVATION STATUS UPDATE - EVERY 5 MINUTES
   // ========================================================
-  cron.schedule("*/5 * * * *", async () => {
+  cron.schedule("* * * * *", async () => {
     console.log("🕒 [5m] Running: Reservation status updater");
 
     try {
@@ -73,10 +73,10 @@ const initScheduler = (io) => {
   });
 
   // ========================================================
-  // 3. UPCOMING STATUS CHANGES DETECTOR - EVERY 5 MINUTES
+  // 3. UPCOMING STATUS CHANGES DETECTOR - EVERY MINUTE
   // ========================================================
-  cron.schedule("*/5 * * * *", async () => {
-    console.log("🕒 [5m] Running: Check for upcoming event status changes");
+  cron.schedule("* * * * *", async () => {
+    console.log("🕒 [1m] Running: Check for upcoming event status changes");
 
     try {
       const now = new Date();
@@ -101,7 +101,16 @@ const initScheduler = (io) => {
             },
             {
               visibility: "unpublished",
-              status: "scheduled",
+              [Op.or]: [
+                {
+                  status: "scheduled",
+                  event_type: "ticketed",
+                },
+                {
+                  status: "open",
+                  event_type: "free",
+                }
+              ],
               display_start_date: { [Op.not]: null },
               display_start_time: { [Op.not]: null },
             },

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSearch, FaArchive, FaClock, FaSyncAlt } from "react-icons/fa";
+import { FaSearch, FaClock } from "react-icons/fa";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Admin_EventManagementFilter from "./Admin_EventsManagementFilter";
@@ -31,7 +31,6 @@ const LoadingStateDisplay = () => {
 
             {/* Placeholder for buttons */}
             <div className="flex gap-2">
-              <div className="w-24 h-10 bg-gray-800 animate-pulse rounded-md"></div>
               <div className="w-24 h-10 bg-gray-800 animate-pulse rounded-md"></div>
               <div className="w-28 h-10 bg-gray-800 animate-pulse rounded-md"></div>
             </div>
@@ -101,6 +100,7 @@ const formatTimeAgo = (timestamp) => {
     return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
   }
 };
+
 // Function to check if an event has a future display date
 const isFutureScheduledEvent = (event) => {
   if (
@@ -209,7 +209,6 @@ const Admin_EventsManagement = ({
   onPublishNow,
   onOpenReservation,
   onCloseReservation,
-  onRefreshEvents,
   findEventById,
   onNavigateToEdit,
 }) => {
@@ -217,6 +216,9 @@ const Admin_EventsManagement = ({
   const [activeTab, setActiveTab] = useState("published");
   const [showFilter, setShowFilter] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilters, setActiveFilters] = useState({
+    eventCategory: "",
+  });
 
   // State to control which popup is visible
   const [activePopup, setActivePopup] = useState(null);
@@ -241,7 +243,7 @@ const Admin_EventsManagement = ({
     switch (activeTab) {
       case "published":
         return {
-          OPEN: events.OPEN || [],
+          PUBLISHED: events.OPEN || [],
           SCHEDULED: events.SCHEDULED || [],
           "COMING SOON": events["COMING SOON"] || [],
           COMPLETED:
@@ -267,14 +269,69 @@ const Admin_EventsManagement = ({
     }
   };
 
-  // Filter events by search term
-  const filterEventsBySearchTerm = (eventsObject) => {
-    if (!searchTerm) return eventsObject;
+  // Extract all events from the current tab into a flat array
+  const getAllEventsFromCurrentTab = () => {
+    const tabEvents = getEventsByTab();
+    let allEvents = [];
+    
+    Object.keys(tabEvents).forEach(category => {
+      allEvents = [...allEvents, ...tabEvents[category]];
+    });
+    
+    return allEvents;
+  };
+
+  // Apply filters to events
+  const applyFilters = (events, filters) => {
+    return events.filter(event => {
+      // Filter by category
+      if (filters.eventCategory && event.eventCategory !== filters.eventCategory) {
+        return false;
+      }
+      return true;
+    });
+  };
+
+  // Filter events by search term and any active filters
+  const filterEventsBySearchAndFilters = (eventsObject) => {
+    if (!searchTerm && !activeFilters.eventCategory) return eventsObject;
 
     const result = {};
 
     Object.keys(eventsObject).forEach((category) => {
-      result[category] = eventsObject[category].filter(
+      // First filter by search term
+      let filteredEvents = eventsObject[category].filter(
+        (event) =>
+          !searchTerm ||
+          event.eventName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (event.venue &&
+            event.venue.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (event.eventCategory &&
+            event.eventCategory
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()))
+      );
+      
+      // Then apply category filters
+      filteredEvents = applyFilters(filteredEvents, activeFilters);
+      
+      result[category] = filteredEvents;
+    });
+
+    return result;
+  };
+
+  // Get all events that match the search term and filters across all categories
+  const getSearchResults = () => {
+    const allEvents = getAllEventsFromCurrentTab();
+    
+    if (!searchTerm && !activeFilters.eventCategory) return [];
+    
+    // First filter by search term
+    let filtered = allEvents;
+    
+    if (searchTerm) {
+      filtered = filtered.filter(
         (event) =>
           event.eventName.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (event.venue &&
@@ -284,9 +341,16 @@ const Admin_EventsManagement = ({
               .toLowerCase()
               .includes(searchTerm.toLowerCase()))
       );
-    });
+    }
+    
+    // Then apply additional filters
+    return applyFilters(filtered, activeFilters);
+  };
 
-    return result;
+  // Handler for applying filters
+  const handleApplyFilters = (filters) => {
+    console.log("Applying filters:", filters);
+    setActiveFilters(filters);
   };
 
   // Handler for edit actions
@@ -394,6 +458,7 @@ const Admin_EventsManagement = ({
   const handleViewEventDetails = (eventId) => {
     navigate(`/events/detail/${eventId}`);
   };
+  
   const handleConfirmUnpublish = async (eventId) => {
     console.log(`Unpublishing event with ID: ${eventId}`);
     const success = await onUnpublishEvent(eventId);
@@ -500,11 +565,174 @@ const Admin_EventsManagement = ({
   // Reset filters
   const handleResetFilters = () => {
     setSearchTerm("");
-    // Reset any other filters here
+    setActiveFilters({
+      eventCategory: "",
+    });
   };
 
   // Get and filter events for display
-  const filteredEvents = filterEventsBySearchTerm(getEventsByTab());
+  const filteredEvents = filterEventsBySearchAndFilters(getEventsByTab());
+  const searchResults = getSearchResults();
+  const isSearchOrFilterActive = searchTerm.trim() !== "" || activeFilters.eventCategory !== "";
+
+  // Show active filter indicator
+  const getActiveFilterIndicator = () => {
+    if (activeFilters.eventCategory) {
+      return (
+        <div className="inline-flex items-center px-3 py-1 bg-[#FFAB40]/20 border border-[#FFAB40] rounded-full text-sm mr-2 mb-2">
+          <span className="mr-2">Category: {activeFilters.eventCategory}</span>
+          <button 
+            onClick={() => setActiveFilters({...activeFilters, eventCategory: ""})}
+            className="text-sm hover:text-[#FFAB40]"
+          >
+            ✕
+          </button>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Render event card with status indicators
+  const renderEventCard = (event) => (
+    <div key={event.id} className="flex-shrink-0 mb-6">
+      <div className="flex flex-col">
+        <EventCard
+          key={event.id}
+          event={event}
+          cardStyle={event.status.toLowerCase()}
+          onEdit={handleEditEvent}
+          onDelete={handleDeleteEvent}
+          onUnpublish={handleUnpublishEvent}
+          onPublishNow={handlePublishNow}
+          onOpenReservation={handleOpenReservation}
+          onCloseReservation={handleCloseReservation}
+          onViewDetails={handleViewEventDetails}
+          onNavigateToEdit={onNavigateToEdit}
+        />
+        {isFutureScheduledEvent(event) && (
+          <div className="mt-2 bg-yellow-900/30 border border-yellow-600 rounded-md p-2 text-xs">
+            <div className="flex items-center text-gray-300">
+              <FaClock className="mr-1" />
+              <span>
+                Display scheduled in:{" "}
+                {calculateTimeUntilDisplay(event)}
+              </span>
+            </div>
+            <div className="text-gray-300 mt-1">
+              Will display on: {formatDisplayDate(event)}
+            </div>
+          </div>
+        )}
+
+        {/* Status indicator for recently updated events */}
+        {event.statusUpdatedAt &&
+          isRecentlyUpdated(event) && (
+            <div className="mt-2 bg-blue-900/30 border border-blue-600 rounded-md p-2 text-xs">
+              <div className="flex items-center text-blue-400">
+                <span>
+                  Status updated:{" "}
+                  {formatTimeAgo(event.statusUpdatedAt)}
+                </span>
+              </div>
+            </div>
+          )}
+      </div>
+    </div>
+  );
+
+  // Render search results in a grid (4 per row)
+  const renderSearchResults = () => {
+    if (!isSearchOrFilterActive) return null;
+    
+    if (searchResults.length === 0) {
+      return (
+        <div className="mb-10">
+          <h3 className="text-lg font-bold border-b border-gray-600 pb-2 mb-4">
+            Results
+          </h3>
+          <div className="min-h-[100px] text-gray-400 flex items-center justify-center">
+            No events found matching your criteria
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="mb-10">
+        <h3 className="text-lg font-bold border-b border-gray-600 pb-2 mb-4">
+          Results ({searchResults.length})
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {searchResults.map(event => renderEventCard(event))}
+        </div>
+      </div>
+    );
+  };
+
+  // Render standard event categories in carousels
+  const renderEventCategories = () => {
+    if (isSearchOrFilterActive) return null;
+    
+    return Object.keys(filteredEvents).map((category) => (
+      <div key={category} className="mb-10">
+        <h3 className="text-lg font-bold border-b border-gray-600 pb-2 mb-4">
+          {category}
+          {category === "UNPUBLISHED" &&
+            filteredEvents[category].some(isFutureScheduledEvent) && (
+              <span className="ml-2 text-xs font-normal text-gray-400">
+                (Contains events scheduled for future display)
+              </span>
+            )}
+        </h3>
+
+        {filteredEvents[category].length > 0 ? (
+          <div className="relative group overflow-hidden">
+            {/* Left scroll button */}
+            <button
+              onClick={() => scrollLeft(`event-container-${category}`)}
+              className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black text-white rounded-full p-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Scroll left"
+            >
+              <FaChevronLeft />
+            </button>
+
+            {/* Right scroll button */}
+            <button
+              onClick={() => scrollRight(`event-container-${category}`)}
+              className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black text-white rounded-full p-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Scroll right"
+            >
+              <FaChevronRight />
+            </button>
+
+            {/* Scroll indicators */}
+            <div className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-[#1E1E1E] to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#1E1E1E] to-transparent z-10 pointer-events-none"></div>
+
+            {/* Scrollable container - with updated styling */}
+            <div
+              id={`event-container-${category}`}
+              className="flex gap-6 overflow-x-auto pb-6 pt-2 px-2"
+              style={{
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                scrollBehavior: "smooth",
+                WebkitOverflowScrolling: "touch",
+                maxWidth: "100%",
+              }}
+            >
+              {filteredEvents[category].map(event => renderEventCard(event))}
+            </div>
+          </div>
+        ) : (
+          <div className="min-h-[100px] text-gray-400 flex items-center justify-center">
+            No events available
+          </div>
+        )}
+      </div>
+    ));
+  };
 
   if (loading && !initialized) {
     return <LoadingStateDisplay />;
@@ -522,8 +750,6 @@ const Admin_EventsManagement = ({
 
         {/* Main Content Wrapper */}
         <div className="flex-1 px-10 py-10 w-screen overflow-hidden">
-          {/* Tab Navigation */}
-
           {/* Error Message */}
           {error && (
             <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
@@ -547,18 +773,6 @@ const Admin_EventsManagement = ({
 
             {/* Buttons */}
             <div className="flex gap-2">
-              {/* Add manual refresh button */}
-              <button
-                className="px-4 py-2 bg-[#FFAB40] text-black rounded-md hover:bg-[#FFC661] transition duration-300 flex items-center"
-                onClick={onRefreshEvents}
-                title="Refresh event statuses"
-                disabled={loading}
-              >
-                <FaSyncAlt
-                  className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
-                />
-                Refresh
-              </button>
               <button
                 className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
                 onClick={handleResetFilters}
@@ -566,7 +780,11 @@ const Admin_EventsManagement = ({
                 Reset
               </button>
               <button
-                className="px-4 py-2 bg-white text-black rounded-md hover:bg-[#FFAB40] hover:text-black transition duration-300"
+                className={`px-4 py-2 rounded-md transition duration-300 ${
+                  showFilter || activeFilters.eventCategory 
+                    ? "bg-[#FFAB40] text-black" 
+                    : "bg-white text-black hover:bg-[#FFAB40] hover:text-black"
+                }`}
                 onClick={() => setShowFilter(!showFilter)}
               >
                 Sort/Filter by
@@ -574,128 +792,41 @@ const Admin_EventsManagement = ({
             </div>
           </div>
 
+          {/* Active filters display */}
+          {activeFilters.eventCategory && (
+            <div className="mb-4">
+              <div className="flex flex-wrap">{getActiveFilterIndicator()}</div>
+            </div>
+          )}
+
           <EventTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
-          {shouldShowAddEvent() && <AddEventButton onAddEvent={onAddEvent} />}
+          {shouldShowAddEvent() && !isSearchOrFilterActive && <AddEventButton onAddEvent={onAddEvent} />}
 
-          {/* Event Sections for the active tab */}
-          {Object.keys(filteredEvents).map((category) => (
-            <div key={category} className="mb-10">
-              <h3 className="text-lg font-bold border-b border-gray-600 pb-2 mb-4">
-                {category}
-                {category === "UNPUBLISHED" &&
-                  filteredEvents[category].some(isFutureScheduledEvent) && (
-                    <span className="ml-2 text-xs font-normal text-gray-400">
-                      (Contains events scheduled for future display)
-                    </span>
-                  )}
-              </h3>
+          {/* Render search results or normal event categories */}
+          {renderSearchResults()}
+          {renderEventCategories()}
 
-              {filteredEvents[category].length > 0 ? (
-                <div className="relative group overflow-hidden">
-                  {/* Left scroll button */}
-                  <button
-                    onClick={() => scrollLeft(`event-container-${category}`)}
-                    className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black text-white rounded-full p-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label="Scroll left"
-                  >
-                    <FaChevronLeft />
-                  </button>
-
-                  {/* Right scroll button */}
-                  <button
-                    onClick={() => scrollRight(`event-container-${category}`)}
-                    className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black text-white rounded-full p-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label="Scroll right"
-                  >
-                    <FaChevronRight />
-                  </button>
-
-                  {/* Scroll indicators */}
-                  <div className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-[#1E1E1E] to-transparent z-10 pointer-events-none"></div>
-                  <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#1E1E1E] to-transparent z-10 pointer-events-none"></div>
-
-                  {/* Scrollable container - with updated styling */}
-                  <div
-                    id={`event-container-${category}`}
-                    className="flex gap-6 overflow-x-auto pb-6 pt-2 px-2"
-                    style={{
-                      scrollbarWidth: "none",
-                      msOverflowStyle: "none",
-                      scrollBehavior: "smooth",
-                      WebkitOverflowScrolling: "touch",
-                      maxWidth: "100%",
-                    }}
-                  >
-                    {filteredEvents[category].map((event) => (
-                      <div key={event.id} className="flex-shrink-0">
-                        <div className="flex flex-col">
-                          <EventCard
-                            key={event.id}
-                            event={event}
-                            cardStyle={event.status.toLowerCase()}
-                            onEdit={handleEditEvent}
-                            onDelete={handleDeleteEvent}
-                            onUnpublish={handleUnpublishEvent}
-                            onPublishNow={handlePublishNow}
-                            onOpenReservation={handleOpenReservation}
-                            onCloseReservation={handleCloseReservation}
-                            onViewDetails={handleViewEventDetails}
-                            onNavigateToEdit={onNavigateToEdit}
-                          />
-                          {isFutureScheduledEvent(event) && (
-                            <div className="mt-2 bg-yellow-900/30 border border-yellow-600 rounded-md p-2 text-xs">
-                              <div className="flex items-center text-gray-300">
-                                <FaClock className="mr-1" />
-                                <span>
-                                  Display scheduled in:{" "}
-                                  {calculateTimeUntilDisplay(event)}
-                                </span>
-                              </div>
-                              <div className="text-gray-300 mt-1">
-                                Will display on: {formatDisplayDate(event)}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Status indicator for recently updated events */}
-                          {event.statusUpdatedAt &&
-                            isRecentlyUpdated(event) && (
-                              <div className="mt-2 bg-blue-900/30 border border-blue-600 rounded-md p-2 text-xs">
-                                <div className="flex items-center text-blue-400">
-                                  <FaSyncAlt className="mr-1" />
-                                  <span>
-                                    Status updated:{" "}
-                                    {formatTimeAgo(event.statusUpdatedAt)}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="min-h-[100px] text-gray-400 flex items-center justify-center">
-                  No events available
-                </div>
-              )}
-            </div>
-          ))}
-
-          {/* Add overlay loading indicator for refreshes after initialization */}
+          {/* Loading overlay only shown during initial loading */}
           {loading && initialized && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-[#2C2C2C] p-6 rounded-lg shadow-lg flex flex-col items-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FFAB40] mb-4"></div>
-                <p className="text-white">Refreshing events...</p>
+                <p className="text-white">Loading events...</p>
               </div>
             </div>
           )}
           {renderPopup()}
         </div>
       </div>
+
+      {/* Filter component */}
+      <Admin_EventManagementFilter 
+        showFilter={showFilter} 
+        setShowFilter={setShowFilter} 
+        onApplyFilters={handleApplyFilters}
+      />
+      
       <ToastContainer
         position="bottom-right"
         autoClose={3000}

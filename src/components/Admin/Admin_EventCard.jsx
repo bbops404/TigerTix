@@ -21,12 +21,15 @@ const Admin_EventCard = ({
   onOpenReservation,
   onCloseReservation,
   onPublishNow,
-  onNavigateToEdit, // New prop for handling navigation to edit page
+  onNavigateToEdit,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  
+  // Event name reference
+  const eventNameRef = useRef(null);
 
   // State to track if image loaded successfully
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -42,6 +45,14 @@ const Admin_EventCard = ({
       setImageError(false);
     }
   }, [event.imagePreview]);
+
+  // Check if the event name is too long and needs animation
+  useEffect(() => {
+    if (eventNameRef.current) {
+      const element = eventNameRef.current;
+      // This effect now just captures the ref for potential future use
+    }
+  }, [event.eventName]);
 
   // Close the dropdown when mouse leaves the card
   useEffect(() => {
@@ -295,13 +306,42 @@ const Admin_EventCard = ({
       >
         {/* Event content positioned at the bottom of the gradient */}
         <div className="absolute bottom-3 left-3 right-3">
-          {/* Event Title with truncation */}
-          <h3
-            className="text-lg font-bold text-white uppercase truncate shadow-md"
-            title={event.eventName}
-          >
-            {event.eventName}
-          </h3>
+          {/* Event Title with sliding effect on hover */}
+          <div className="relative overflow-hidden">
+            {/* Regular truncated event name (shown when card is not hovered) */}
+            {!isHovered && (
+              <h3
+                className="text-lg font-bold text-white uppercase shadow-md truncate"
+                title={event.eventName}
+              >
+                {event.eventName}
+              </h3>
+            )}
+            
+            {/* Animated event name (shown when card is hovered) */}
+            {isHovered && (
+              <div className="relative">
+                <h3
+                  ref={eventNameRef}
+                  className="text-lg font-bold text-white uppercase shadow-md whitespace-nowrap"
+                  style={{
+                    animation: "marquee 6s linear infinite", // Faster animation (reduced from 8s)
+                    display: "inline-block",
+                    paddingRight: "50px" // Add space after text for better readability during animation
+                  }}
+                >
+                  {event.eventName}
+                </h3>
+              </div>
+            )}
+            
+            {/* Full event name tooltip that appears on hover */}
+            {isHovered && (
+              <div className="absolute top-0 left-0 transform -translate-y-full bg-black/90 text-white p-2 rounded z-30 shadow-lg max-w-xs">
+                {event.eventName}
+              </div>
+            )}
+          </div>
 
           {/* Category tag */}
           <div className="mt-1 mb-2">
@@ -447,6 +487,18 @@ const Admin_EventCard = ({
           isHovered ? "border-[#FFAB40]/50" : ""
         }`}
       ></div>
+      
+      {/* Add marquee animation via inline style with reduced pauses */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes marquee {
+            0% { transform: translateX(0); }
+            5% { transform: translateX(0); } /* Shorter pause at beginning (reduced from 10%) */
+            95% { transform: translateX(calc(-100% + 250px)); } /* Shorter pause at end */
+            100% { transform: translateX(calc(-100% + 250px)); }
+          }
+        `
+      }} />
     </div>
   );
 };

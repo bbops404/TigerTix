@@ -34,7 +34,7 @@ const MyProfile = () => {
       try {
         const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
 
-        const response = await axios.get(`${API_BASE_URL}/users/me`, {
+        const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
           withCredentials: true,
         });
 
@@ -107,22 +107,22 @@ const MyProfile = () => {
       <div className="container mx-auto px-4 pt-20 pb-16">
         {/* Profile container with avatar */}
         <div className="relative flex flex-col items-center mt-10">
-          {/* Avatar circle */}
-          <div className="absolute -top-16 w-60 h-60 border-4 border-[#FFAB40] bg-white rounded-full flex items-center justify-center shadow-lg z-10">
-            <VscAccount size={200} className="text-[#FFAB40]" />
-          </div>
+            {/* Avatar circle */}
+            <div className="absolute -top-16 w-40 h-40 sm:w-48 sm:h-48 md:w-60 md:h-60 border-4 border-[#FFAB40] bg-white rounded-full flex items-center justify-center shadow-lg z-10">
+              <VscAccount size={120} className="text-[#FFAB40] sm:size-[150px] md:size-[200px]" />
+            </div>
 
           {/* Profile card */}
-          <div className="w-11/12 mt-32 bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="pt-12 flex flex-col md:flex-row">
+          <div className="w-full sm:w-11/12 mt-32 bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="pt-12 flex flex-col md:flex-row">
               {/* Left sidebar */}
-              <div className="w-full md:w-[30%] px-6 py-6">
-                <div className="flex flex-col gap-6">
-                  <button className="font-Poppins w-full py-2 px-5 justify-center cursor-pointer transition duration-300 flex rounded-full bg-[#FFAB40] shadow-md">
+              <div className="w-full md:w-[30%] px-4 sm:px-6 py-4 sm:py-6">
+                <div className="flex flex-col gap-4 sm:gap-6">
+                  <button className="font-Poppins w-full py-2 px-4 sm:px-5 justify-center cursor-pointer transition duration-300 flex rounded-full bg-[#FFAB40] shadow-md">
                     Account Details
                   </button>
                   <button
-                    className="font-Poppins w-full py-2 px-5 justify-center cursor-pointer hover:bg-[#FFAB40] transition duration-300 flex rounded-full bg-[#F1F1F1] shadow-md"
+                    className="font-Poppins w-full py-2 px-4 sm:px-5 justify-center cursor-pointer hover:bg-[#FFAB40] transition duration-300 flex rounded-full bg-[#F1F1F1] shadow-md"
                     onClick={navigateToReservations}
                   >
                     My Reservations
