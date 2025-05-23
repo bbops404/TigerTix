@@ -104,7 +104,7 @@ const LoginPopup = ({ loginPopup, toggleLoginPopup }) => {
         // ✅ Redirect based on user role
         if (data.user.role === "admin") {
           navigate("/admin-dashboard", { replace: true });
-        } else if (data.user.role === "support staff") {
+        } else if (data.user.role === "support_staff") {
           navigate("/support-staff-dashboard", { replace: true });
         } else if (["student", "employee", "alumni"].includes(data.user.role)) {
           navigate("/home", { replace: true });
