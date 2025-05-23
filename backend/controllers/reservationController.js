@@ -4,21 +4,14 @@ const Ticket = db.Ticket;
 const Event = db.Event; // Add this
 const User = db.User; // Add this
 const ClaimingSlot = db.ClaimingSlot; // Add this
-const nodemailer = require("nodemailer");
 const { createAuditTrail } = require("./auditTrailController");
 const { Resend } = require("resend"); // Add this
 const resend = new Resend(process.env.RESEND_API_KEY); // Add this
+const QRCode = require("qrcode"); // Add this at the top
 
 const sequelize = db.sequelize; // Add this for transaction
 
-// Nodemailer transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+
 
 const reservationController = {
   // Create a new reservation
@@ -280,6 +273,14 @@ const reservationController = {
 
       for (const user of users) {
         try {
+          // Find the reservation for this user to get reservationId
+          const reservation = reservations.find(
+            (r) => r.user_id === user.user_id
+          );
+          // Use the same QR code value as the frontend
+          const qrValue = `UST-TICKET-${reservation.reservation_id}-${event.name}-${ticket.ticket_type}-1`;
+          const qrCodeDataUrl = await QRCode.toDataURL(qrValue);
+
           await resend.emails.send({
             from: `"TigerTix" <${process.env.EMAIL_USER}>`,
             to: user.email,
@@ -292,8 +293,16 @@ const reservationController = {
                 <li><strong>Event:</strong> ${event.name}</li>
                 <li><strong>Ticket Type:</strong> ${ticket.ticket_type}</li>
                 <li><strong>Claiming Time:</strong> ${claimingSlot.claiming_date} (${claimingSlot.start_time} - ${claimingSlot.end_time})</li>
+                <li><strong>Reservation ID:</strong> ${reservation.reservation_id}</li>
               </ul>
-              <p>Please log in to your account to view your reservations and ensure all details are correct.</p>
+              <h3>How to Claim Your Ticket:</h3>
+              <ol>
+                <li>Go to the event venue during your chosen claiming time.</li>
+                <li>Present the QR code below to the staff for verification.</li>
+                <li>Bring a valid ID for identity confirmation.</li>
+              </ol>
+              <p><strong>QR Code for Claiming:</strong></p>
+              <img src="${qrCodeDataUrl}" alt="Reservation QR Code" style="width:180px;height:180px;" />
               <p><strong>Reminder:</strong> You must claim your tickets during the chosen claiming time. Failure to do so may result in restrictions on your account.</p>
               <p>Thank you for using TigerTix!</p>
             `,
@@ -554,7 +563,7 @@ const reservationController = {
       // Update the reservation status to "claimed"
       reservation.reservation_status = "claimed";
       await reservation.save();
-      consolemo.log("User data for audit log:", req.user);
+      consoleemo.log("User data for audit log:", req.user);
 
       try {
         await createAuditTrail({
