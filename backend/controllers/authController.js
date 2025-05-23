@@ -15,6 +15,13 @@ const redis = require("../config/redis");
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
+// Password policy: min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special char
+function isPasswordValid(password) {
+  const policy =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]).{8,}$/;
+  return policy.test(password);
+}
+
 // Check if a user exists
 exports.checkUser = async (req, res) => {
   try {
@@ -93,6 +100,14 @@ exports.signUp = async (req, res) => {
       !formattedRole
     ) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Enforce password policy
+    if (!isPasswordValid(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.",
+      });
     }
 
     const existingUser = await User.findOne({ where: { email } });
@@ -319,11 +334,27 @@ exports.requestPasswordReset = async (req, res) => {
 // Validate Password Reset OTP
 exports.validatePasswordResetOTP = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email, otp, newPassword } = req.body;
     const storedOtp = await redis.get(`password-reset:${email}`);
 
     if (!storedOtp || storedOtp !== otp) {
       return res.status(400).json({ message: "Invalid or expired OTP." });
+    }
+
+    // If newPassword is provided, enforce password policy
+    if (newPassword !== undefined) {
+      if (!isPasswordValid(newPassword)) {
+        return res.status(400).json({
+          message:
+            "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.",
+        });
+      }
+      // Update password if needed (assuming you want to reset here)
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await User.update(
+        { password_hash: hashedPassword },
+        { where: { email } }
+      );
     }
 
     await redis.del(`password-reset:${email}`);
