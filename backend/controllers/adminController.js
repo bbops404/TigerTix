@@ -11,7 +11,7 @@ const { createAuditTrail } = require("./auditTrailController");
 const crypto = require("crypto");
 const { Resend } = require("resend");
 const resend = new Resend(process.env.RESEND_API_KEY);
-
+const resendhost = process.env.RESEND_HOST;
 
 const authenticate = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -375,7 +375,7 @@ exports.addUser = async (req, res) => {
 
     // Send an email to the user with their temporary password
     await resend.emails.send({
-    from: resendhost, // Use only the verified sender email, no display name or quotes
+      from: resendhost, // Use only the verified sender email, no display name or quotes
       to: email,
       subject: "Welcome to TigerTix!",
       html: `
