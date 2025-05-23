@@ -97,7 +97,8 @@ const autoStatusCheck = {
     // Check for events with display period started (future scheduled)
     if (
       event.visibility === "unpublished" &&
-      event.status === "scheduled" &&
+      ((event.status === "scheduled" && event.event_type === "ticketed") ||
+       (event.status === "open" && event.event_type === "free")) &&
       event.display_start_date &&
       event.display_start_time
     ) {

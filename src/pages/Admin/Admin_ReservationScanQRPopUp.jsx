@@ -39,7 +39,6 @@ const ConfirmMarkAsClaimedModal = ({ isOpen, onClose, onConfirm }) => {
   );
 };
 
-// Admin_ClaimedReservationModal component adapted for integration
 const Admin_ClaimedReservationModal = ({
   reservations,
   onClose,

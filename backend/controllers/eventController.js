@@ -5,40 +5,60 @@ const Ticket = db.Ticket;
 const ClaimingSlot = db.ClaimingSlot;
 const fs = require("fs");
 const path = require("path");
-const multer = require("multer");
 const { createAuditTrail } = require("./auditTrailController");
+const multer = require("multer");
+const multerS3 = require("multer-s3");
+const { S3Client, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 
-// Configure multer for image uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = "uploads/events";
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+const s3 = new S3Client({
+  region: process.env.BUCKET_REGION,
+  credentials: {
+    accessKeyId: process.env.ACCESS_KEY,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
   },
 });
 
+const bucketName = process.env.BUCKET_NAME;
+
+// Configure multer for image uploads
 const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: function (req, file, cb) {
-    const filetypes = /jpeg|jpg|png|gif/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-    if (mimetype && extname) {
-      return cb(null, true);
+  storage: multerS3({
+    s3: s3,
+    bucket: bucketName,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    metadata: function (req, file, cb) {
+      cb(null, { fieldName: file.fieldname });
+    },
+    key: function (req, file, cb) {
+      console.log("Processing file for S3:", {
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size
+      });
+      
+      // Determine if this is a venue map upload
+      const isVenueMap = file.fieldname === "venueMap";
+      
+      // Create a unique filename with timestamp and original name
+      const filename = isVenueMap 
+        ? `venue/${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`
+        : `events/${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+        
+      console.log("Generated S3 key:", filename);
+      cb(null, filename);
     }
-    cb(new Error("Only image files are allowed!"));
+  }),
+  limits: { 
+    fileSize: 5 * 1024 * 1024 // 5MB
   },
-}).single("image");
+  fileFilter: function (req, file, cb) {
+    // Accept images only
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+      return cb(new Error("Only image files are allowed!"), false);
+    }
+    cb(null, true);
+  }
+});
 
 const eventController = {
   // Get all events (with filtering options)
@@ -147,6 +167,8 @@ const eventController = {
         reservation_start_time,
         reservation_end_date,
         reservation_end_time,
+        venueMap,
+        venueMapS3Key,
       } = req.body;
 
       // Validate required fields
@@ -167,7 +189,7 @@ const eventController = {
           defaultVisibility = "published";
           break;
         case "free":
-          defaultStatus = "closed";
+          defaultStatus = "open";
           defaultVisibility = "published";
           break;
         case "ticketed":
@@ -201,6 +223,8 @@ const eventController = {
           reservation_start_time,
           reservation_end_date,
           reservation_end_time,
+          venue_map: venueMap || null,
+          venueMapS3Key: venueMapS3Key || null,
         },
         { transaction }
       );
@@ -334,6 +358,8 @@ const eventController = {
         reservation_end_date,
         reservation_start_time,
         reservation_end_time,
+        venueMap,
+        venueMapS3Key,
       } = req.body;
 
       const event = await Event.findByPk(id);
@@ -389,14 +415,12 @@ const eventController = {
         display_end_date: display_end_date || event.display_end_date,
         display_start_time: display_start_time || event.display_start_time,
         display_end_time: display_end_time || event.display_end_time,
-        reservation_start_date:
-          reservation_start_date || event.reservation_start_date,
-        reservation_start_time:
-          reservation_start_time || event.reservation_start_time,
-        reservation_end_date:
-          reservation_end_date || event.reservation_end_date,
-        reservation_end_time:
-          reservation_end_time || event.reservation_end_time,
+        reservation_start_date: reservation_start_date || event.reservation_start_date,
+        reservation_start_time: reservation_start_time || event.reservation_start_time,
+        reservation_end_date: reservation_end_date || event.reservation_end_date,
+        reservation_end_time: reservation_end_time || event.reservation_end_time,
+        venue_map: venueMap || event.venue_map,
+        venueMapS3Key: venueMapS3Key || event.venueMapS3Key,
       });
 
       // Add audit log if the event is published
@@ -942,44 +966,149 @@ const eventController = {
     }
   },
 
-  // Upload event image
   uploadEventImage: (req, res) => {
-    upload(req, res, function (err) {
-      if (err instanceof multer.MulterError) {
-        // A Multer error occurred when uploading.
-        if (err.code === "LIMIT_FILE_SIZE") {
-          return res.status(400).json({
-            success: false,
-            message: "File too large. Maximum file size is 5MB.",
-          });
-        }
-        return res.status(400).json({
-          success: false,
-          message: err.message,
-        });
-      } else if (err) {
-        // An unknown error occurred when uploading.
-        return res.status(500).json({
-          success: false,
-          message: err.message,
+    console.log("Received upload request");
+    console.log("Request headers:", req.headers);
+    console.log("Request body:", req.body);
+    
+    upload.single("image")(req, res, function (err) {
+      if (err) {
+        console.error("Upload error:", err);
+        return res.status(400).json({ 
+          success: false, 
+          message: err.message || "Error uploading file",
+          error: err.toString(),
+          details: {
+            name: err.name,
+            code: err.code,
+            stack: err.stack
+          }
         });
       }
-
+  
       if (!req.file) {
-        return res.status(400).json({
-          success: false,
+        console.error("No file in request");
+        return res.status(400).json({ 
+          success: false, 
           message: "No file uploaded",
+          details: {
+            body: req.body,
+            files: req.files
+          }
         });
       }
-
-      const imageUrl = `/uploads/events/${req.file.filename}`;
+  
+      console.log("File uploaded successfully:", {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        location: req.file.location,
+        key: req.file.key
+      });
 
       return res.status(200).json({
         success: true,
         message: "Image uploaded successfully",
-        imageUrl: imageUrl,
+        imageUrl: req.file.location,
+        s3Key: req.file.key,
       });
     });
+  },
+
+  // Add venue map upload handler
+  uploadVenueMap: (req, res) => {
+    console.log("Received venue map upload request");
+    
+    upload.single("venueMap")(req, res, function (err) {
+      if (err) {
+        console.error("Venue map upload error:", err);
+        return res.status(400).json({ 
+          success: false, 
+          message: err.message || "Error uploading venue map",
+          error: err.toString()
+        });
+      }
+  
+      if (!req.file) {
+        console.error("No venue map file in request");
+        return res.status(400).json({ 
+          success: false, 
+          message: "No venue map uploaded"
+        });
+      }
+  
+      console.log("Venue map uploaded successfully:", {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        location: req.file.location,
+        key: req.file.key
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Venue map uploaded successfully",
+        imageUrl: req.file.location,
+        s3Key: req.file.key,
+      });
+    });
+  },
+  
+  deleteEventImage: async (req, res) => {
+    const { key } = req.body;
+    if (!key) {
+      return res.status(400).json({ success: false, message: "Missing S3 key" });
+    }
+  
+    try {
+      const command = new DeleteObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+      });
+  
+      await s3.send(command);
+  
+      return res.status(200).json({
+        success: true,
+        message: "Image deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting image from S3:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error deleting image from S3",
+        error: error.message,
+      });
+    }
+  },
+
+  // Add venue map deletion handler
+  deleteVenueMap: async (req, res) => {
+    const { key } = req.body;
+    if (!key) {
+      return res.status(400).json({ success: false, message: "Missing S3 key" });
+    }
+  
+    try {
+      const command = new DeleteObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+      });
+  
+      await s3.send(command);
+  
+      return res.status(200).json({
+        success: true,
+        message: "Venue map deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting venue map from S3:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error deleting venue map from S3",
+        error: error.message,
+      });
+    }
   },
 
   // Auto update event statuses based on dates

@@ -15,7 +15,21 @@ const db = require("./models");
 const pool = require("./config/db");
 const { initScheduler } = require("./schedulerService");
 const app = express();
+const { S3Client } = require("@aws-sdk/client-s3");
 const port = process.env.PORT || 5002;
+const bucketName = process.env.BUCKET_NAME;
+const bucketRegion = process.env.BUCKET_REGION;
+const accessKey = process.env.ACCESS_KEY;
+const secretAccessKey = process.env.SECRET_ACCESS_KEY;
+
+
+const s3Client = new S3Client({
+  region: bucketRegion,
+  credentials: {
+    accessKeyId: accessKey,
+    secretAccessKey: secretAccessKey,
+  },
+});
 
 // ========================================================
 // REDIS DATABASE SETUP
@@ -102,6 +116,15 @@ app.use((req, res, next) => {
   req.io = io;
   next();
 });
+
+// ========================================================
+// AWS S3 SETUP
+// ========================================================
+app.use((req, res, next) => {
+  req.s3Client = s3Client;
+  next();
+});
+
 
 // ========================================================
 // EXPRESS MIDDLEWARE CONFIGURATION

@@ -12,6 +12,7 @@ const Event_Ticketed_EndUser = () => {
   const [hasReservation, setHasReservation] = useState(false);
   const [reservationChecked, setReservationChecked] = useState(false);
   const [userStatus, setUserStatus] = useState(null);
+  const [showVenueMap, setShowVenueMap] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,6 +31,7 @@ const Event_Ticketed_EndUser = () => {
         const eventData = await eventResponse.json();
 
         if (eventData.success) {
+          console.log("Event data received:", eventData.data);
           setEvent(eventData.data);
 
           // Get current user details
@@ -180,6 +182,45 @@ const Event_Ticketed_EndUser = () => {
     return "RESERVE";
   };
 
+  // Map Modal Component
+  const MapModal = () => {
+    if (!showVenueMap) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div className="bg-[#1E1E1E] rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden">
+          <div className="flex justify-between items-center p-4 border-b border-gray-600">
+            <h3 className="text-white text-xl font-semibold">Event Venue Map</h3>
+            <button
+              onClick={() => setShowVenueMap(false)}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="p-4 overflow-auto max-h-[calc(90vh-100px)]">
+            {event?.venue_map ? (
+              <img 
+                src={event.venue_map} 
+                alt="Venue Map" 
+                className="w-full h-auto rounded-lg"
+              />
+            ) : (
+              <div className="text-center text-gray-400 py-8">
+                <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                <p>No map data available</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Render loading state
   if (loading) {
     return (
@@ -286,6 +327,21 @@ const Event_Ticketed_EndUser = () => {
                 {event.status.toUpperCase()}
               </span>
             </p>
+            {/* venue map */}
+            {event?.venue_map && (
+              <div className="mt-4 flex">
+                <button 
+                  onClick={() => setShowVenueMap(true)}
+                  className="bg-[#FFAB40] text-black text-[13px] px-5 py-2 rounded-full hover:bg-[#FFB74D] transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  View Venue Map
+                </button>
+              </div>
+            )}
             <hr className="border-t border-gray-400 my-4" />
             <p className="text-base mb-2 font-Poppins">
               <strong>Tickets</strong>
@@ -387,6 +443,9 @@ const Event_Ticketed_EndUser = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Map Modal */}
+      {showVenueMap && <MapModal />}
     </div>
   );
 };
