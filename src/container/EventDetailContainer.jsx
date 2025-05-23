@@ -14,6 +14,7 @@ import {
   FaSort,
   FaSortUp,
   FaSortDown,
+  FaTimes,
 } from "react-icons/fa";
 import eventService from "../pages/Services/eventService";
 import adminReservationService from "../pages/Services/adminReservationService"; // Import the adminReservationService
@@ -87,6 +88,7 @@ const EventDetailContainer = () => {
     pageIndex: 0,
     pageSize: 10,
   });
+  const [showVenueMap, setShowVenueMap] = useState(false);
 
   // Handle local image error for robust image loading
   const handleLocalImageError = (e) => {
@@ -129,13 +131,18 @@ const EventDetailContainer = () => {
 
         // Fetch event details
         const eventResponse = await eventService.events.getById(id);
+        console.log("Event API Response:", eventResponse); // Debug log
 
         if (eventResponse && eventResponse.data) {
           // Store original image path for debugging
           const originalImagePath = eventResponse.data.image;
+          const originalVenueMapPath = eventResponse.data.venue_map;
+          console.log("Original Venue Map Path:", originalVenueMapPath); // Debug log
 
-          // Format the image URL correctly
+          // Format the image URLs correctly
           const formattedImageUrl = formatImageUrl(originalImagePath);
+          const formattedVenueMapUrl = formatImageUrl(originalVenueMapPath);
+          console.log("Formatted Venue Map URL:", formattedVenueMapUrl); // Debug log
 
           // Transform event data for UI compatibility
           const eventData = {
@@ -149,6 +156,7 @@ const EventDetailContainer = () => {
             eventType: eventResponse.data.event_type,
             eventCategory: eventResponse.data.category,
             imagePreview: formattedImageUrl,
+            venueMapUrl: formattedVenueMapUrl,
             status: eventResponse.data.status,
             visibility: eventResponse.data.visibility,
 
@@ -166,6 +174,7 @@ const EventDetailContainer = () => {
             created_at: new Date(eventResponse.data.createdAt).toLocaleString(),
             updated_at: new Date(eventResponse.data.updatedAt).toLocaleString(),
           };
+          console.log("Event Data with Venue Map:", eventData); // Debug log
 
           setEvent(eventData);
 
@@ -539,6 +548,54 @@ const EventDetailContainer = () => {
   // Calculate summary
   const reservationSummary = getReservationSummary();
 
+  // Map Modal Component
+  const MapModal = () => {
+    if (!showVenueMap || !event?.venueMapUrl) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div className="bg-[#1E1E1E] rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden">
+          <div className="flex justify-between items-center p-4 border-b border-gray-600">
+            <h3 className="text-white text-xl font-semibold">Event Venue Map</h3>
+            <button
+              onClick={() => setShowVenueMap(false)}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <FaTimes className="w-6 h-6" />
+            </button>
+          </div>
+          <div className="p-4 overflow-auto max-h-[calc(90vh-100px)]">
+            {event.venueMapUrl ? (
+              <img 
+                src={event.venueMapUrl} 
+                alt="Venue Map" 
+                className="w-full h-auto rounded-lg"
+                onError={(e) => {
+                  console.error("Venue map failed to load:", e);
+                  e.target.style.display = "none";
+                  const container = e.target.parentNode;
+                  if (!container.querySelector(".venue-map-placeholder")) {
+                    const placeholder = document.createElement("div");
+                    placeholder.className = "venue-map-placeholder bg-[#333333] p-8 text-center text-white rounded-lg";
+                    placeholder.textContent = "Venue map not available";
+                    container.appendChild(placeholder);
+                  }
+                }}
+              />
+            ) : (
+              <div className="text-center text-gray-400 py-8">
+                <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                <p>No map data available</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
@@ -762,15 +819,30 @@ const EventDetailContainer = () => {
                       </p>
                     </div>
 
-                    <div className="flex">
-                      <p className="text-white text-sm font-semibold">
-                        Event Type:
-                      </p>
-                      <p className="text-white text-sm font-light ml-2">
-                        {eventType === "ticketed" && "Ticketed Event"}
-                        {eventType === "coming_soon" && "Coming Soon Event"}
-                        {eventType === "free" && "Free Event"}
-                      </p>
+                    <div className="flex flex-col space-y-4">
+                      <div className="flex">
+                        <p className="text-white text-sm font-semibold">
+                          Event Type:
+                        </p>
+                        <p className="text-white text-sm font-light ml-2">
+                          {eventType === "ticketed" && "Ticketed Event"}
+                          {eventType === "coming_soon" && "Coming Soon Event"}
+                          {eventType === "free" && "Free Event"}
+                        </p>
+                      </div>
+                      {event?.venueMapUrl && (
+                        <div className="mt-4 flex">
+                        <button 
+                          onClick={() => setShowVenueMap(true)}
+                          className="bg-[#FFAB40] text-black text-[13px] px-5 py-2 rounded-full hover:bg-[#FFB74D] transition-colors flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                          </svg>
+                          View Venue Map
+                        </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -832,22 +904,22 @@ const EventDetailContainer = () => {
                     <div>
                       <div className="overflow-x-auto">
                         <table className="w-full">
-                          <thead className="bg-[#FFAB40] text-custom_black">
+                          <thead>
                             <tr>
-                              <th className="py-2 px-3 text-left text-sm ">
+                              <th className="py-2 px-3  text-center  text-sm bg-[#FFAB40] text-custom_black">
                                 Tier
                               </th>
-                              <th className="py-2 px-3 text-left text-sm ">
+                              <th className="py-2 px-3  text-center  text-sm bg-[#FFAB40] text-custom_black">
                                 Price
                               </th>
-                              <th className="py-2 px-3 text-left text-sm ">
-                                Total
+                              <th className="py-2 px-3  text-center  text-sm bg-[#FFAB40] text-custom_black">
+                                Total Number of Tickets
                               </th>
-                              <th className="py-2 px-3 text-left text-sm ">
-                                Available
-                              </th>
-                              <th className="py-2 px-3 text-left text-sm ">
+                              <th className="py-2 px-3  text-center  text-sm bg-[#FFAB40] text-custom_black">
                                 Max Per User
+                              </th>
+                              <th className="py-2 px-3 text-center text-sm bg-[#FFAB40] text-custom_black">
+                                Available Tickets Left
                               </th>
                             </tr>
                           </thead>
@@ -858,21 +930,20 @@ const EventDetailContainer = () => {
                                   key={index}
                                   className="border-t border-[#333333]"
                                 >
-                                  <td className="py-2 px-3 text-sm text-white">
+                                  <td className="py-2 px-3 text-sm text-white  text-center ">
                                     {ticket.seat_type || "Standard"}
                                   </td>
-
-                                  <td className="py-2 px-3 text-sm text-white">
+                                  <td className="py-2 px-3 text-sm text-white  text-center ">
                                     ₱{parseFloat(ticket.price || 0).toFixed(2)}
                                   </td>
-                                  <td className="py-2 px-3 text-sm text-white">
+                                  <td className="py-2 px-3 text-sm text-white  text-center ">
                                     {ticket.total_quantity || 0}
                                   </td>
-                                  <td className="py-2 px-3 text-sm text-white">
-                                    {ticket.remaining_quantity || 0}
-                                  </td>
-                                  <td className="py-2 px-3 text-sm text-white">
+                                  <td className="py-2 px-3 text-sm text-white text-center">
                                     {ticket.max_per_user || 1}
+                                  </td>
+                                  <td className="py-2 px-3 text-sm font-bold text-[#FFAB40] text-center bg-white/10">
+                                    {ticket.remaining_quantity || 0}
                                   </td>
                                 </tr>
                               ))
@@ -890,18 +961,9 @@ const EventDetailContainer = () => {
                         </table>
                       </div>
 
-                      <div className="mt-4 border-t border-gray-700 pt-4">
-                        <p className="uppercase text-white font-medium">
-                          TOTAL NUMBER OF TICKETS:{" "}
-                          <span className="text-[#FFAB40]">
-                            {ticketInfo.totalTickets}{" "}
-                            {eventType === "coming_soon"
-                              ? "Planned"
-                              : "Available"}{" "}
-                            Tickets
-                          </span>
-                        </p>
-                      </div>
+                    
+
+           
                     </div>
                   )}
                 </div>
@@ -919,22 +981,22 @@ const EventDetailContainer = () => {
                   <div className=" rounded-lg p-4 border border-gray-800">
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead className="bg-[#FFAB40]">
+                        <thead>
                           <tr>
-                            <th className="py-2 px-3 text-left text-sm text-custom_black">
+                            <th className="py-2 px-3 text-center text-sm bg-[#FFAB40] text-custom_black">
                               Date
                             </th>
-                            <th className="py-2 px-3 text-left text-sm text-custom_black">
+                            <th className="py-2 px-3 text-center text-sm bg-[#FFAB40] text-custom_black">
                               Time
                             </th>
-                            <th className="py-2 px-3 text-left text-sm text-custom_black">
+                            <th className="py-2 px-3 text-center text-sm bg-[#FFAB40] text-custom_black">
                               Venue
                             </th>
-                            <th className="py-2 px-3 text-left text-sm text-custom_black">
+                            <th className="py-2 px-3 text-center text-sm bg-[#FFAB40] text-custom_black">
                               Max Claimers
                             </th>
-                            <th className="py-2 px-3 text-left text-sm text-custom_black">
-                              Current Claimers
+                            <th className="py-2 px-3 text-center text-sm bg-[#FFAB40] text-custom_black">
+                              Queue Total
                             </th>
                           </tr>
                         </thead>
@@ -944,7 +1006,7 @@ const EventDetailContainer = () => {
                               key={index}
                               className="border-t border-[#333333]"
                             >
-                              <td className="py-2 px-3 text-sm text-white">
+                              <td className="py-2 px-3 text-sm text-white text-center">
                                 {new Date(
                                   slot.claiming_date
                                 ).toLocaleDateString("en-US", {
@@ -953,7 +1015,7 @@ const EventDetailContainer = () => {
                                   day: "numeric",
                                 })}
                               </td>
-                              <td className="py-2 px-3 text-sm text-white">
+                              <td className="py-2 px-3 text-sm text-white text-center">
                                 {new Date(
                                   `1970-01-01T${slot.start_time}`
                                 ).toLocaleTimeString("en-US", {
@@ -968,13 +1030,13 @@ const EventDetailContainer = () => {
                                   minute: "2-digit",
                                 })}
                               </td>
-                              <td className="py-2 px-3 text-sm text-white">
+                              <td className="py-2 px-3 text-sm text-white text-center">
                                 {slot.venue}
                               </td>
-                              <td className="py-2 px-3 text-sm text-white">
+                              <td className="py-2 px-3 text-sm text-white text-center">
                                 {slot.max_claimers}
                               </td>
-                              <td className="py-2 px-3 text-sm text-white">
+                              <td className="py-2 px-3 text-sm font-bold text-[#FFAB40] text-center bg-white/10">
                                 {slot.current_claimers || 0}
                               </td>
                             </tr>
@@ -1261,34 +1323,34 @@ const EventDetailContainer = () => {
                   <div className="mt-3 flex justify-end text-sm">
                     <div className="flex space-x-4 text-right">
                       <div>
-                        <span className="text-custom_yellow font-medium">
+                        <span className="text-gray-400">pending:</span>
+                        <span className="text-custom_yellow font-medium ml-1">
                           {reservationSummary.pending}
                         </span>
-                        <span className="text-gray-400 ml-1">pending</span>
                       </div>
                       <div>
-                        <span className="text-custom_yellow  font-medium">
+                        <span className="text-gray-400">claimed:</span>
+                        <span className="text-custom_yellow font-medium ml-1">
                           {reservationSummary.claimed}
                         </span>
-                        <span className="text-gray-400 ml-1">claimed</span>
                       </div>
                       <div>
-                        <span className="text-custom_yellow  font-medium">
+                        <span className="text-gray-400">unclaimed:</span>
+                        <span className="text-custom_yellow font-medium ml-1">
                           {reservationSummary.unclaimed}
                         </span>
-                        <span className="text-gray-400 ml-1">unclaimed</span>
                       </div>
                       <div>
-                        <span className="text-custom_yellow  font-medium">
+                        <span className="text-gray-400">cancelled:</span>
+                        <span className="text-custom_yellow font-medium ml-1">
                           {reservationSummary.cancelled}
                         </span>
-                        <span className="text-gray-400 ml-1">cancelled</span>
                       </div>
                       <div>
-                        <span className="text-custom_yellow  font-medium">
+                        <span className="text-gray-400">Total Reservations:</span>
+                        <span className="text-custom_yellow font-medium ml-1">
                           {reservationSummary.total}
                         </span>
-                        <span className="text-gray-400 ml-1">total</span>
                       </div>
                     </div>
                   </div>
@@ -1363,6 +1425,9 @@ const EventDetailContainer = () => {
           </div>
         </div>
       </div>
+
+      {/* Render the Map Modal */}
+      <MapModal />
     </div>
   );
 };

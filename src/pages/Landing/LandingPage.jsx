@@ -391,9 +391,17 @@ function LandingPage() {
       // Helper function to fetch events with loading state management
       const fetchEventCategory = async (category, setter, loadingKey) => {
         try {
+          const token = sessionStorage.getItem("authToken");
           const response = await axios.get(
             `${API_BASE_URL}/api/events/${category}`,
-            { params: { page: 1, limit: 5, timestamp } }
+            { 
+              params: { page: 1, limit: 5, timestamp },
+              headers: {
+                Authorization: token ? `Bearer ${token}` : undefined,
+                "Content-Type": "application/json"
+              },
+              withCredentials: true
+            }
           );
 
           if (response.data.success) {
