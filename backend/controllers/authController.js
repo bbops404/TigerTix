@@ -53,11 +53,36 @@ exports.sendOTP = async (req, res) => {
     const otp = generateOTP();
     await redis.set(`otp:${email}`, otp, "EX", 300);
 
-    resend.emails.send({
-     from: resendhost, // Use only the verified sender email, no display name or quotes
+    // Styled HTML OTP email
+    const otpHtml = `
+      <div style="background: #f6f8fa; min-height: 100vh; padding: 0; margin: 0;">
+        <div style="max-width: 420px; margin: 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px #0001; overflow: hidden;">
+          <div style="background: linear-gradient(90deg, #FFAB40 0%, #FFD699 100%); padding: 24px 0 12px 0; text-align: center;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/UST_seal.png" alt="TigerTix" style="height: 48px; margin-bottom: 8px;" />
+            <div style="font-size: 18px; font-weight: bold; color: #222;">TigerTix</div>
+            <div style="font-size: 13px; color: #333; margin-top: 4px;">${new Date().toLocaleDateString()}</div>
+          </div>
+          <div style="padding: 32px 24px 24px 24px; text-align: center;">
+            <h2 style="font-size: 22px; font-weight: bold; margin-bottom: 8px; color: #222;">Your OTP</h2>
+            <p style="font-size: 16px; color: #444; margin-bottom: 18px;">
+              Thank you for choosing TigerTix.<br>
+              Use the following OTP to complete your registration.<br>
+              OTP is valid for <b>5 minutes</b>.<br>
+              <span style="color: #C15454; font-size: 13px;">Do not share this code with anyone.</span>
+            </p>
+            <div style="font-size: 32px; letter-spacing: 18px; font-weight: bold; color: #C15454; margin: 24px 0 16px 0;">
+              ${otp.split("").join(" ")}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    await resend.emails.send({
+      from: resendhost,
       to: email,
-      subject: "Your One-Time Password (OTP)",
-      html: `Your OTP code is: ${otp}\n\nThis code will expire in 5 minutes. Do not share it with anyone.`,
+      subject: "Your TigerTix OTP Code",
+      html: otpHtml,
     });
 
     res.status(200).json({ message: "OTP sent successfully!" });
@@ -363,6 +388,55 @@ exports.validatePasswordResetOTP = async (req, res) => {
       .json({ message: "OTP verified. You may now reset your password." });
   } catch (error) {
     console.error("Error validating password reset OTP:", error);
+    res.status(500).json({ message: "Server error, please try again." });
+  }
+};
+
+
+
+// Reset Password
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: "Email and new password are required." });
+    }
+
+    // Enforce password policy
+    if (!isPasswordValid(newPassword)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.",
+      });
+    }
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await User.update(
+      { password_hash: hashedPassword },
+      { where: { email } }
+    );
+
+    // Send confirmation email
+    resend.emails.send({
+      from: resendhost,
+      to: email,
+      subject: "Your Password Has Been Reset",
+      text: `Hi ${user.first_name},\n\nYour password has been successfully reset.\n\nIf you did not request this change, please contact support immediately.\n\nBest regards,\nTigerTix Team`,
+      html: `<p>Hi <strong>${user.first_name}</strong>,</p>
+             <p>Your password has been successfully reset.</p>
+             <p>If you did not request this change, please contact support immediately.</p>
+             <p>Best regards,<br><strong>TigerTix Team</strong></p>`,
+    });
+
+    res.status(200).json({ message: "Password reset successfully." });
+  } catch (error) {
+    console.error("Error resetting password:", error);
     res.status(500).json({ message: "Server error, please try again." });
   }
 };

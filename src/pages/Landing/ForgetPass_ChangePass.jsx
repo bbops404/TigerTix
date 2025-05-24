@@ -15,8 +15,15 @@ const schema = yup
   .object({
     newPassword: yup
       .string()
-      .min(6, "Password must be at least 6 characters")
-      .required("New Password is required"),
+      .required("New Password is required")
+      .min(8, "Password must be at least 8 characters")
+      .matches(/[a-z]/, "Password must contain at least one lowercase letter")
+      .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .matches(/\d/, "Password must contain at least one digit")
+      .matches(
+        /[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]/,
+        "Password must contain at least one special character"
+      ),
     confirmPassword: yup
       .string()
       .oneOf([yup.ref("newPassword"), null], "Passwords must match")
