@@ -288,10 +288,10 @@ const reservationController = {
           const qrTicketCount = isMainReserver ? totalQuantity : 1;
           const qrValue = `UST-TICKET-${reservation.reservation_id}-${event.name}-${ticket.ticket_type}-${qrTicketCount}`;
 
-          // Generate QR code as a PNG buffer
-          const qrCodeBuffer = await QRCode.toBuffer(qrValue, { type: "png" });
+          // Generate QR code as a Data URL (base64 PNG)
+          const qrCodeDataUrl = await QRCode.toDataURL(qrValue);
 
-          // Compose the email HTML and reference the QR code as an attachment
+          // Compose the email HTML and embed the QR code as an <img>
           const emailHtml = `
             <h1>Reservation Confirmation</h1>
             <p>Dear ${user.first_name} ${user.last_name},</p>
@@ -305,11 +305,11 @@ const reservationController = {
             <h3>How to Claim Your Ticket:</h3>
             <ol>
               <li>Go to the event venue during your chosen claiming time.</li>
-              <li>Present the QR code attached to this email to the staff for verification.</li>
+              <li>Present the QR code below to the staff for verification.</li>
               <li>Bring a valid ID for identity confirmation.</li>
             </ol>
             <p><strong>QR Code for Claiming:</strong></p>
-            <img src="cid:qr-code-image" alt="Reservation QR Code" style="width:180px;height:180px;" />
+            <img src="${qrCodeDataUrl}" alt="Reservation QR Code" style="width:180px;height:180px;" />
             <p><strong>Reminder:</strong> You must claim your tickets during the chosen claiming time. Failure to do so may result in restrictions on your account.</p>
             <p>Thank you for using TigerTix!</p>
           `;
@@ -319,14 +319,7 @@ const reservationController = {
             to: user.email,
             subject: "Your Reservation Details",
             html: emailHtml,
-            attachments: [
-              {
-                filename: "qr-code.png",
-                content: qrCodeBuffer,
-                contentType: "image/png",
-                cid: "qr-code-image", // This must match the cid in the <img src="cid:...">
-              },
-            ],
+            // Remove attachments property
           });
           console.log(`Email send result for ${user.email}:`, result);
         } catch (emailError) {
