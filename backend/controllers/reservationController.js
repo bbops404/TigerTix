@@ -281,11 +281,22 @@ const reservationController = {
           const reservation = reservations.find(
             (r) => r.user_id === user.user_id
           );
-          // Use the same QR code value as the frontend
+          
+          // Generate QR code value
           const qrValue = `UST-TICKET-${reservation.reservation_id}-${event.name}-${ticket.ticket_type}-1`;
-          const qrCodeDataUrl = await QRCode.toDataURL(qrValue);
+          
+          // Generate QR code as base64 string with proper MIME type
+          const qrCodeDataUrl = await QRCode.toDataURL(qrValue, {
+            errorCorrectionLevel: 'H',
+            margin: 1,
+            width: 180,
+            color: {
+              dark: '#000000',
+              light: '#ffffff'
+            }
+          });
 
-          // Compose the email HTML similar to the frontend receipt
+          // Compose the email HTML with the embedded QR code
           const emailHtml = `
             <div style="font-family: Arial, sans-serif; background: #f4f4f4; padding: 24px;">
               <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; padding: 32px;">

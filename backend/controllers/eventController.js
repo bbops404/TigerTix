@@ -190,7 +190,7 @@ const eventController = {
           break;
         case "free":
           defaultStatus = "open";
-          defaultVisibility = "published";
+          defaultVisibility = "unpublished";
           break;
         case "ticketed":
           defaultStatus = status || "scheduled";
