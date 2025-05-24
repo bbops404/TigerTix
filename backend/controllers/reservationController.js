@@ -17,10 +17,10 @@ const sequelize = db.sequelize; // Add this for transaction
 
 // Initialize S3 client
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
+  region: process.env.BUCKET_REGION,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    accessKeyId: process.env.ACCESS_KEY,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY
   }
 });
 
@@ -28,15 +28,14 @@ const s3Client = new S3Client({
 async function uploadQRCodeToS3(qrCodeBuffer, fileName) {
   try {
     const command = new PutObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME,
+      Bucket: process.env.BUCKET_NAME,
       Key: `qr-code/${fileName}`,
       Body: qrCodeBuffer,
-      ContentType: 'image/png',
-      ACL: 'public-read'
+      ContentType: 'image/png'
     });
 
     await s3Client.send(command);
-    return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/qr-code/${fileName}`;
+    return `https://${process.env.BUCKET_NAME}.s3.${process.env.BUCKET_REGION}.amazonaws.com/qr-code/${fileName}`;
   } catch (error) {
     console.error('Error uploading QR code to S3:', error);
     throw error;

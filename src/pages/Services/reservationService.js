@@ -12,6 +12,18 @@ const apiClient = axios.create({
   },
 });
 
+// Add request interceptor for authentication
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = sessionStorage.getItem("authToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Enhanced error handling helper
 const handleApiError = (error, defaultMessage, fallbackData = null) => {
   console.error(`${defaultMessage}:`, error);
