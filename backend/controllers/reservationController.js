@@ -348,12 +348,19 @@ const reservationController = {
 
       // Send emails
       console.log("Sending confirmation emails...");
+      console.log("Resend configuration:", {
+        apiKey: process.env.RESEND_API_KEY ? "Present" : "Missing",
+        host: process.env.RESEND_HOST
+      });
+
       for (const user of users) {
         try {
           // Find the reservation for this user to get reservationId
           const reservation = reservations.find(
             (r) => r.user_id === user.user_id
           );
+          
+          console.log(`Preparing email for user ${user.email} with reservation ID ${reservation.reservation_id}`);
           
           // Compose the email HTML with the stored QR code URL
           const emailHtml = `
@@ -399,16 +406,29 @@ const reservationController = {
             </div>
           `;
 
-          console.log(`Sending email to ${user.email}...`);
+          console.log(`Attempting to send email to ${user.email}...`);
+          console.log("Email configuration:", {
+            from: resendhost,
+            to: user.email,
+            subject: "Your TigerTix Reservation Receipt",
+            hasHtml: !!emailHtml
+          });
+
           const result = await resend.emails.send({
             from: resendhost,
             to: user.email,
             subject: "Your TigerTix Reservation Receipt",
             html: emailHtml
           });
+
           console.log(`Email send result for ${user.email}:`, result);
         } catch (emailError) {
           console.error(`Failed to send email to ${user.email}:`, emailError);
+          console.error("Error details:", {
+            message: emailError.message,
+            stack: emailError.stack,
+            code: emailError.code
+          });
         }
       }
 
