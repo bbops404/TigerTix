@@ -358,7 +358,7 @@ exports.addUser = async (req, res) => {
       return res.status(400).json({ message: "Username is already taken." });
     }
 
-    // Generate a temporary password
+    // Generate a 2
     const temporaryPassword = crypto.randomBytes(8).toString("hex"); // 16-character random password
     const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 

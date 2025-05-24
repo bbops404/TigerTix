@@ -281,59 +281,52 @@ const reservationController = {
           const reservation = reservations.find(
             (r) => r.user_id === user.user_id
           );
-          // Use the same QR code value as the frontend
-          const qrValue = `UST-TICKET-${reservation.reservation_id}-${event.name}-${ticket.ticket_type}-1`;
-          const qrCodeDataUrl = await QRCode.toDataURL(qrValue);
+          // Determine ticket count for QR code:
+          // - If user is the main reserver, use totalQuantity (number of tickets reserved)
+          // - Otherwise, use 1
+          const isMainReserver = user.user_id === main_reserver_id;
+          const qrTicketCount = isMainReserver ? totalQuantity : 1;
+          const qrValue = `UST-TICKET-${reservation.reservation_id}-${event.name}-${ticket.ticket_type}-${qrTicketCount}`;
 
-          // Compose the email HTML similar to the frontend receipt
+          // Generate QR code as a PNG buffer
+          const qrCodeBuffer = await QRCode.toBuffer(qrValue, { type: "png" });
+
+          // Compose the email HTML and reference the QR code as an attachment
           const emailHtml = `
-            <div style="font-family: Arial, sans-serif; background: #f4f4f4; padding: 24px;">
-              <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; padding: 32px;">
-                <h1 style="text-align:center; color:#222; margin-bottom: 24px;">Reservation Receipt</h1>
-                <div style="display: flex; flex-wrap: wrap; gap: 24px;">
-                  <div style="flex: 1 1 200px; text-align: center;">
-                    <div style="font-weight: bold; margin-bottom: 8px;">YOUR QR CODE:</div>
-                    <img src="${qrCodeDataUrl}" alt="Reservation QR Code" style="width:180px;height:180px; margin-bottom: 12px;" />
-                    <div style="margin-top: 8px; font-size: 16px;">
-                      <b>RESERVATION ID:</b> <span style="color:#F09C32;">${reservation.reservation_id}</span>
-                    </div>
-                    <div style="margin-top: 8px; font-size: 12px; color: #555;">
-                      Please present this QR code when claiming your ticket(s)
-                    </div>
-                  </div>
-                  <div style="flex: 2 1 300px; font-size: 15px;">
-                    <div><b>Name:</b> ${user.first_name} ${user.last_name}</div>
-                    <div><b>Email:</b> ${user.email}</div>
-                    <div><b>Event:</b> ${event.name}</div>
-                    <div><b>Event Date:</b> ${event.event_date || "TBA"}</div>
-                    <div><b>Event Time:</b> ${event.event_time || "TBA"}</div>
-                    <div><b>Venue:</b> ${event.venue || "TBA"}</div>
-                    <div><b>Ticket Type:</b> ${ticket.ticket_type}</div>
-                    <div><b>Reserved Tickets:</b> ${user.email}</div>
-                    <div><b>Batch:</b> ${claimingSlot.claiming_date} (${claimingSlot.start_time} - ${claimingSlot.end_time})</div>
-                    <div><b>Claiming Venue:</b> ${claimingSlot.venue || "IPEA"}</div>
-                    <div><b>Price Per Person:</b> ₱${parseFloat(ticket.price).toFixed(2)}</div>
-                    <div><b>Total Amount:</b> ₱${parseFloat(ticket.price).toFixed(2)}</div>
-                  </div>
-                </div>
-                <div style="margin-top: 32px; text-align: center;">
-                  <b>Important Reminders</b>
-                  <ul style="text-align: left; margin: 12px auto; max-width: 500px; color: #444;">
-                    <li>You must bring a valid UST ID when claiming your ticket.</li>
-                    <li>All ticket holders must present their UST ID for verification.</li>
-                    <li>Ticket claiming deadline: 3 hours before the event starts.</li>
-                    <li>Unclaimed tickets may result in account restrictions for future events.</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            <h1>Reservation Confirmation</h1>
+            <p>Dear ${user.first_name} ${user.last_name},</p>
+            <p>Your reservation has been successfully created. Here are the details:</p>
+            <ul>
+              <li><strong>Event:</strong> ${event.name}</li>
+              <li><strong>Ticket Type:</strong> ${ticket.ticket_type}</li>
+              <li><strong>Claiming Time:</strong> ${claimingSlot.claiming_date} (${claimingSlot.start_time} - ${claimingSlot.end_time})</li>
+              <li><strong>Reservation ID:</strong> ${reservation.reservation_id}</li>
+            </ul>
+            <h3>How to Claim Your Ticket:</h3>
+            <ol>
+              <li>Go to the event venue during your chosen claiming time.</li>
+              <li>Present the QR code attached to this email to the staff for verification.</li>
+              <li>Bring a valid ID for identity confirmation.</li>
+            </ol>
+            <p><strong>QR Code for Claiming:</strong></p>
+            <img src="cid:qr-code-image" alt="Reservation QR Code" style="width:180px;height:180px;" />
+            <p><strong>Reminder:</strong> You must claim your tickets during the chosen claiming time. Failure to do so may result in restrictions on your account.</p>
+            <p>Thank you for using TigerTix!</p>
           `;
 
           const result = await resend.emails.send({
-            from: resendhost, // Use only the verified sender email
+            from: resendhost,
             to: user.email,
-            subject: "Your TigerTix Reservation Receipt",
+            subject: "Your Reservation Details",
             html: emailHtml,
+            attachments: [
+              {
+                filename: "qr-code.png",
+                content: qrCodeBuffer,
+                contentType: "image/png",
+                cid: "qr-code-image", // This must match the cid in the <img src="cid:...">
+              },
+            ],
           });
           console.log(`Email send result for ${user.email}:`, result);
         } catch (emailError) {
