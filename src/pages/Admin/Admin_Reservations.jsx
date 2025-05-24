@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   FaSearch,
   FaFilter,
@@ -22,6 +22,64 @@ import {
   flexRender,
   createColumnHelper,
 } from "@tanstack/react-table";
+
+// Info Popup Component
+const InfoPopup = ({ isVisible, content, position }) => {
+  if (!isVisible) return null;
+
+  return (
+    <div 
+      className="absolute z-50 bg-white text-black p-3 rounded-lg shadow-lg border border-gray-300 w-64"
+      style={{
+        bottom: `calc(100% + 10px)`,
+        left: '50%',
+        transform: 'translateX(-50%)'
+      }}
+    >
+      <div className="text-sm">
+        <h4 className="font-semibold text-[#F09C32] mb-2">{content.title}</h4>
+        <p className="mb-2">{content.description}</p>
+        <div className="text-xs text-gray-600">
+          <p><strong>Requirements:</strong> {content.requirements}</p>
+          <p><strong>Action:</strong> {content.action}</p>
+        </div>
+      </div>
+      {/* Arrow pointing up */}
+      <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white"></div>
+    </div>
+  );
+};
+
+// Info Button Component
+const InfoButton = ({ content }) => {
+  const [showPopup, setShowPopup] = useState(false);
+  const buttonRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    setShowPopup(true);
+  };
+
+  const handleMouseLeave = () => {
+    setShowPopup(false);
+  };
+
+  return (
+    <div className="relative">
+      <button 
+        ref={buttonRef}
+        className="w-5 h-5 rounded-full bg-[#F09C32] text-[#1E1E1E] text-sm flex items-center justify-center hover:bg-[#CD8428] transition-colors duration-200"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        i
+      </button>
+      <InfoPopup 
+        isVisible={showPopup} 
+        content={content} 
+      />
+    </div>
+  );
+};
 
 // Confirmation Modal for Reinstating reservations
 const ConfirmReinstateModal = ({ isOpen, onClose, onConfirm }) => {
@@ -324,6 +382,7 @@ const RestoreUnclaimedModal = ({ reservations, onClose, onConfirm }) => {
     </>
   );
 };
+
 const ConfirmMarkAsClaimedModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
   return (
@@ -512,6 +571,28 @@ const Admin_Reservations = () => {
   // Add state for Claim Modal
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [selectedClaimData, setSelectedClaimData] = useState([]);
+
+  // Info content for each button
+  const infoContent = {
+    reinstate: {
+      title: "Reinstate Button",
+      description: "Reinstates unclaimed reservations back to pending status, allowing users to claim them again.",
+      requirements: "Select one or more reservations with 'Unclaimed' status",
+      action: "Changes status from 'Unclaimed' to 'Pending'"
+    },
+    restore: {
+      title: "Restore Unclaimed Button", 
+      description: "Restores unclaimed reservations to the available ticket pool for other users to reserve.",
+      requirements: "Select one or more reservations with 'Unclaimed' status",
+      action: "Removes reservation and makes tickets available for new reservations"
+    },
+    markClaimed: {
+      title: "Mark as Claimed Button",
+      description: "Manually marks pending reservations as claimed when tickets are collected in person.",
+      requirements: "Select one or more reservations with 'Pending' status", 
+      action: "Changes status from 'Pending' to 'Claimed'"
+    }
+  };
 
   // Function to fetch all reservations
   const fetchReservations = async () => {
@@ -1232,6 +1313,20 @@ const Admin_Reservations = () => {
             <div className="flex items-center gap-2">
               <button
                 className="px-2 py-1 bg-gray-700 text-white rounded"
+                onClick={() => table.setPageIndex(0)}
+                disabled={!table.getCanPreviousPage()}
+              >
+                {"<<"}
+              </button>
+              <button
+                className="px-2 py-1 bg-gray-700 text-white rounded"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                {"<"}
+              </button>
+              <button
+                className="px-2 py-1 bg-gray-700 text-white rounded"
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
               >
@@ -1272,7 +1367,8 @@ const Admin_Reservations = () => {
             >
               Scan QR Code
             </button>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              <InfoButton content={infoContent.reinstate} />
               <button
                 className={`px-4 py-2 bg-[#C15454] text-white rounded-md ${
                   hasUnclaimedSelected && !actionLoading
@@ -1284,6 +1380,7 @@ const Admin_Reservations = () => {
               >
                 {actionLoading ? "Processing..." : "Reinstate"}
               </button>
+              <InfoButton content={infoContent.restore} />
               <button
                 className={`px-4 py-2 bg-[#C15454] text-white rounded-md ${
                   hasUnclaimedSelected && !actionLoading
@@ -1295,6 +1392,7 @@ const Admin_Reservations = () => {
               >
                 {actionLoading ? "Processing..." : "Restore Unclaimed"}
               </button>
+              <InfoButton content={infoContent.markClaimed} />
               <button
                 className={`px-4 py-2 bg-[#59A051] text-white rounded-md ${
                   hasPendingSelected && !actionLoading
