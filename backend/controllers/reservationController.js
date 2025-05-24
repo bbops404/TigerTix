@@ -297,8 +297,12 @@ const reservationController = {
             color: {
               dark: '#000000',
               light: '#ffffff'
-            }
+            },
+            type: 'image/png'
           });
+
+          // Ensure the QR code data URL is properly formatted
+          const qrCodeImage = qrCodeDataUrl.replace(/^data:image\/png;base64,/, '');
 
           // Compose the email HTML with the embedded QR code
           const emailHtml = `
@@ -308,7 +312,7 @@ const reservationController = {
                 <div style="display: flex; flex-wrap: wrap; gap: 24px;">
                   <div style="flex: 1 1 200px; text-align: center;">
                     <div style="font-weight: bold; margin-bottom: 8px;">YOUR QR CODE:</div>
-                    <img src="${qrCodeDataUrl}" alt="Reservation QR Code" style="width:180px;height:180px; margin-bottom: 12px;" />
+                    <img src="data:image/png;base64,${qrCodeImage}" alt="Reservation QR Code" style="width:180px;height:180px; margin-bottom: 12px;" />
                     <div style="margin-top: 8px; font-size: 16px;">
                       <b>RESERVATION ID:</b> <span style="color:#F09C32;">${reservation.reservation_id}</span>
                     </div>
