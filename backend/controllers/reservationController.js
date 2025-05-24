@@ -282,10 +282,14 @@ const reservationController = {
             (r) => r.user_id === user.user_id
           );
           
-          // Generate QR code value
-          const qrValue = `UST-TICKET-${reservation.reservation_id}-${event.name}-${ticket.ticket_type}-1`;
+          // Determine ticket count for QR code:
+          // - If user is the main reserver, use totalQuantity (number of tickets reserved)
+          // - Otherwise, use 1
+          const isMainReserver = user.user_id === main_reserver_id;
+          const qrTicketCount = isMainReserver ? totalQuantity : 1;
+          const qrValue = `UST-TICKET-${reservation.reservation_id}-${event.name}-${ticket.ticket_type}-${qrTicketCount}`;
           
-          // Generate QR code as base64 string with proper MIME type
+          // Generate QR code as base64 string with proper MIME type and enhanced settings
           const qrCodeDataUrl = await QRCode.toDataURL(qrValue, {
             errorCorrectionLevel: 'H',
             margin: 1,
@@ -320,11 +324,11 @@ const reservationController = {
                     <div><b>Event Time:</b> ${event.event_time || "TBA"}</div>
                     <div><b>Venue:</b> ${event.venue || "TBA"}</div>
                     <div><b>Ticket Type:</b> ${ticket.ticket_type}</div>
-                    <div><b>Reserved Tickets:</b> ${user.email}</div>
+                    <div><b>Number of Tickets:</b> ${qrTicketCount}</div>
                     <div><b>Batch:</b> ${claimingSlot.claiming_date} (${claimingSlot.start_time} - ${claimingSlot.end_time})</div>
                     <div><b>Claiming Venue:</b> ${claimingSlot.venue || "IPEA"}</div>
                     <div><b>Price Per Person:</b> ₱${parseFloat(ticket.price).toFixed(2)}</div>
-                    <div><b>Total Amount:</b> ₱${parseFloat(ticket.price).toFixed(2)}</div>
+                    <div><b>Total Amount:</b> ₱${(parseFloat(ticket.price) * qrTicketCount).toFixed(2)}</div>
                   </div>
                 </div>
                 <div style="margin-top: 32px; text-align: center;">
@@ -341,10 +345,10 @@ const reservationController = {
           `;
 
           const result = await resend.emails.send({
-            from: resendhost, // Use only the verified sender email
+            from: resendhost,
             to: user.email,
             subject: "Your TigerTix Reservation Receipt",
-            html: emailHtml,
+            html: emailHtml
           });
           console.log(`Email send result for ${user.email}:`, result);
         } catch (emailError) {
