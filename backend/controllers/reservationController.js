@@ -49,8 +49,10 @@ const reservationController = {
     const transaction = await db.sequelize.transaction();
 
     try {
-      const { main_reserver_id, user_ids, event_id, ticket_id, claiming_id } =
-        req.body;
+      console.log("Starting reservation creation...");
+      console.log("User from request:", req.user);
+      
+      const { main_reserver_id, user_ids, event_id, ticket_id, claiming_id } = req.body;
 
       // For debug purposes
       console.log(
@@ -60,6 +62,7 @@ const reservationController = {
 
       // Validate required fields
       if (!event_id || !ticket_id || !claiming_id) {
+        console.log("Missing required fields:", { event_id, ticket_id, claiming_id });
         await transaction.rollback();
         return res.status(400).json({
           message: "Missing required reservation details",
@@ -81,6 +84,7 @@ const reservationController = {
         // Single reservation for the main reserver
         usersToReserveFor = [main_reserver_id];
       } else {
+        console.log("No valid user IDs provided");
         await transaction.rollback();
         return res.status(400).json({
           success: false,
@@ -96,6 +100,7 @@ const reservationController = {
       // Check if the event exists
       const event = await Event.findByPk(event_id);
       if (!event) {
+        console.log(`Event not found with ID: ${event_id}`);
         await transaction.rollback();
         return res.status(404).json({
           success: false,
@@ -105,6 +110,7 @@ const reservationController = {
 
       // Validate event status - only 'open' events can be reserved
       if (event.status !== "open") {
+        console.log(`Event status is not open. Current status: ${event.status}`);
         await transaction.rollback();
         return res.status(400).json({
           success: false,
@@ -120,6 +126,7 @@ const reservationController = {
         );
 
         if (currentDate > reservationEndDateTime) {
+          console.log("Reservation period has ended");
           await transaction.rollback();
           return res.status(400).json({
             success: false,
@@ -129,6 +136,7 @@ const reservationController = {
       }
 
       // NEW: Check for user restrictions and violations
+      console.log("Fetching user data for:", usersToReserveFor);
       const users = await User.findAll({
         where: { user_id: usersToReserveFor },
         attributes: [
@@ -149,6 +157,7 @@ const reservationController = {
           (id) => !foundUserIds.includes(id)
         );
 
+        console.log("Missing users:", missingUserIds);
         await transaction.rollback();
         return res.status(404).json({
           success: false,
@@ -174,6 +183,7 @@ const reservationController = {
       });
 
       if (restrictedUsers.length > 0) {
+        console.log("Found restricted users:", restrictedUsers);
         await transaction.rollback();
 
         // Format restriction messages
@@ -199,18 +209,16 @@ const reservationController = {
 
         return res.status(403).json({
           success: false,
-          message:
-            "One or more users have restrictions and cannot make reservations",
+          message: "One or more users have restrictions and cannot make reservations",
           restricted_users: restrictions,
         });
       }
 
-      // If we reach here, continue with the rest of the reservation process
-      // Rest of the existing createReservation method follows...
-
       // Check if the ticket exists and has enough remaining quantity
+      console.log("Checking ticket availability...");
       const ticket = await Ticket.findByPk(ticket_id);
       if (!ticket) {
+        console.log(`Ticket not found with ID: ${ticket_id}`);
         await transaction.rollback();
         return res.status(404).json({
           success: false,
@@ -220,6 +228,7 @@ const reservationController = {
 
       const totalQuantity = usersToReserveFor.length; // Total tickets needed (1 per user)
       if (ticket.remaining_quantity < totalQuantity) {
+        console.log(`Not enough tickets. Available: ${ticket.remaining_quantity}, Requested: ${totalQuantity}`);
         await transaction.rollback();
         return res.status(400).json({
           success: false,
@@ -228,6 +237,7 @@ const reservationController = {
       }
 
       // Check for existing reservations for the same event and users
+      console.log("Checking for existing reservations...");
       const existingReservations = await Reservation.findAll({
         where: {
           user_id: usersToReserveFor,
@@ -237,19 +247,20 @@ const reservationController = {
 
       if (existingReservations.length > 0) {
         const duplicateUsers = existingReservations.map((res) => res.user_id);
-
+        console.log("Found duplicate reservations for users:", duplicateUsers);
         await transaction.rollback();
         return res.status(400).json({
           success: false,
-          message:
-            "One or more users already have a reservation for this event",
+          message: "One or more users already have a reservation for this event",
           duplicate_users: duplicateUsers,
         });
       }
 
       // Check the claiming slot
+      console.log("Checking claiming slot...");
       const claimingSlot = await ClaimingSlot.findByPk(claiming_id);
       if (!claimingSlot) {
+        console.log(`Claiming slot not found with ID: ${claiming_id}`);
         await transaction.rollback();
         return res.status(404).json({
           success: false,
@@ -262,68 +273,82 @@ const reservationController = {
         claimingSlot.current_claimers + totalQuantity >
         claimingSlot.max_claimers
       ) {
+        console.log(`Claiming slot is full. Current: ${claimingSlot.current_claimers}, Max: ${claimingSlot.max_claimers}, Requested: ${totalQuantity}`);
         await transaction.rollback();
         return res.status(400).json({
           success: false,
-          message:
-            "This claiming slot does not have enough space for your reservation",
+          message: "This claiming slot does not have enough space for your reservation",
         });
       }
 
       // Create individual reservations for each user
+      console.log("Creating reservations...");
       const reservations = [];
       for (const user_id of usersToReserveFor) {
-        const isMainReserver = user_id === main_reserver_id;
-        const qrTicketCount = isMainReserver ? totalQuantity : 1;
-        const qrValue = `UST-TICKET-${Date.now()}-${event.name}-${ticket.ticket_type}-${qrTicketCount}`;
-        
-        // Generate QR code as buffer
-        const qrCodeBuffer = await QRCode.toBuffer(qrValue, {
-          errorCorrectionLevel: 'H',
-          margin: 1,
-          width: 180,
-          color: {
-            dark: '#000000',
-            light: '#ffffff'
-          },
-          type: 'png'
-        });
+        try {
+          const isMainReserver = user_id === main_reserver_id;
+          const qrTicketCount = isMainReserver ? totalQuantity : 1;
+          const qrValue = `UST-TICKET-${Date.now()}-${event.name}-${ticket.ticket_type}-${qrTicketCount}`;
+          
+          // Generate QR code as buffer
+          console.log("Generating QR code...");
+          const qrCodeBuffer = await QRCode.toBuffer(qrValue, {
+            errorCorrectionLevel: 'H',
+            margin: 1,
+            width: 180,
+            color: {
+              dark: '#000000',
+              light: '#ffffff'
+            },
+            type: 'png'
+          });
 
-        // Generate unique filename for the QR code
-        const fileName = `qr-${Date.now()}-${user_id}.png`;
-        
-        // Upload QR code to S3 and get the URL
-        const qrCodeUrl = await uploadQRCodeToS3(qrCodeBuffer, fileName);
+          // Generate unique filename for the QR code
+          const fileName = `qr-${Date.now()}-${user_id}.png`;
+          
+          // Upload QR code to S3 and get the URL
+          console.log("Uploading QR code to S3...");
+          const qrCodeUrl = await uploadQRCodeToS3(qrCodeBuffer, fileName);
 
-        const newReservation = await Reservation.create(
-          {
-            user_id,
-            event_id,
-            ticket_id,
-            claiming_id,
-            quantity: 1, // Each user gets 1 ticket
-            reservation_status: "pending", // Default status
-            qr_code: qrCodeUrl // Store the QR code URL
-          },
-          { transaction }
-        );
-        reservations.push(newReservation);
+          console.log("Creating reservation in database...");
+          const newReservation = await Reservation.create(
+            {
+              user_id,
+              event_id,
+              ticket_id,
+              claiming_id,
+              quantity: 1, // Each user gets 1 ticket
+              reservation_status: "pending", // Default status
+              qr_code: qrCodeUrl // Store the QR code URL
+            },
+            { transaction }
+          );
+          reservations.push(newReservation);
+        } catch (error) {
+          console.error("Error creating reservation for user:", user_id, error);
+          throw error;
+        }
       }
 
       // Update claiming slot's current_claimers count
+      console.log("Updating claiming slot...");
       await claimingSlot.increment("current_claimers", {
         by: totalQuantity,
         transaction,
       });
 
       // Update the ticket's remaining quantity
+      console.log("Updating ticket quantity...");
       await ticket.decrement("remaining_quantity", {
         by: totalQuantity,
         transaction,
       });
 
       await transaction.commit(); // Commit the transaction
+      console.log("Transaction committed successfully");
 
+      // Send emails
+      console.log("Sending confirmation emails...");
       for (const user of users) {
         try {
           // Find the reservation for this user to get reservationId
@@ -375,6 +400,7 @@ const reservationController = {
             </div>
           `;
 
+          console.log(`Sending email to ${user.email}...`);
           const result = await resend.emails.send({
             from: resendhost,
             to: user.email,
@@ -399,6 +425,7 @@ const reservationController = {
         success: false,
         message: "Internal server error",
         error: error.message,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined
       });
     }
   },
