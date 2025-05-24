@@ -10,12 +10,38 @@ const { Resend } = require("resend");
 const resend = new Resend(process.env.RESEND_API_KEY);
 const resendhost = process.env.RESEND_HOST;
 
-
 const QRCode = require("qrcode"); // Add this at the top
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
 const sequelize = db.sequelize; // Add this for transaction
 
+// Initialize S3 client
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  }
+});
 
+// Function to upload QR code to S3
+async function uploadQRCodeToS3(qrCodeBuffer, fileName) {
+  try {
+    const command = new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: `qr-code/${fileName}`,
+      Body: qrCodeBuffer,
+      ContentType: 'image/png',
+      ACL: 'public-read'
+    });
+
+    await s3Client.send(command);
+    return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/qr-code/${fileName}`;
+  } catch (error) {
+    console.error('Error uploading QR code to S3:', error);
+    throw error;
+  }
+}
 
 const reservationController = {
   // Create a new reservation
@@ -247,6 +273,28 @@ const reservationController = {
       // Create individual reservations for each user
       const reservations = [];
       for (const user_id of usersToReserveFor) {
+        const isMainReserver = user_id === main_reserver_id;
+        const qrTicketCount = isMainReserver ? totalQuantity : 1;
+        const qrValue = `UST-TICKET-${Date.now()}-${event.name}-${ticket.ticket_type}-${qrTicketCount}`;
+        
+        // Generate QR code as buffer
+        const qrCodeBuffer = await QRCode.toBuffer(qrValue, {
+          errorCorrectionLevel: 'H',
+          margin: 1,
+          width: 180,
+          color: {
+            dark: '#000000',
+            light: '#ffffff'
+          },
+          type: 'png'
+        });
+
+        // Generate unique filename for the QR code
+        const fileName = `qr-${Date.now()}-${user_id}.png`;
+        
+        // Upload QR code to S3 and get the URL
+        const qrCodeUrl = await uploadQRCodeToS3(qrCodeBuffer, fileName);
+
         const newReservation = await Reservation.create(
           {
             user_id,
@@ -255,6 +303,7 @@ const reservationController = {
             claiming_id,
             quantity: 1, // Each user gets 1 ticket
             reservation_status: "pending", // Default status
+            qr_code: qrCodeUrl // Store the QR code URL
           },
           { transaction }
         );
@@ -282,29 +331,7 @@ const reservationController = {
             (r) => r.user_id === user.user_id
           );
           
-          // Determine ticket count for QR code:
-          // - If user is the main reserver, use totalQuantity (number of tickets reserved)
-          // - Otherwise, use 1
-          const isMainReserver = user.user_id === main_reserver_id;
-          const qrTicketCount = isMainReserver ? totalQuantity : 1;
-          const qrValue = `UST-TICKET-${reservation.reservation_id}-${event.name}-${ticket.ticket_type}-${qrTicketCount}`;
-          
-          // Generate QR code as base64 string with proper MIME type and enhanced settings
-          const qrCodeDataUrl = await QRCode.toDataURL(qrValue, {
-            errorCorrectionLevel: 'H',
-            margin: 1,
-            width: 180,
-            color: {
-              dark: '#000000',
-              light: '#ffffff'
-            },
-            type: 'image/png'
-          });
-
-          // Ensure the QR code data URL is properly formatted
-          const qrCodeImage = qrCodeDataUrl.replace(/^data:image\/png;base64,/, '');
-
-          // Compose the email HTML with the embedded QR code
+          // Compose the email HTML with the stored QR code URL
           const emailHtml = `
             <div style="font-family: Arial, sans-serif; background: #f4f4f4; padding: 24px;">
               <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; padding: 32px;">
@@ -312,7 +339,7 @@ const reservationController = {
                 <div style="display: flex; flex-wrap: wrap; gap: 24px;">
                   <div style="flex: 1 1 200px; text-align: center;">
                     <div style="font-weight: bold; margin-bottom: 8px;">YOUR QR CODE:</div>
-                    <img src="data:image/png;base64,${qrCodeImage}" alt="Reservation QR Code" style="width:180px;height:180px; margin-bottom: 12px;" />
+                    <img src="${reservation.qr_code}" alt="Reservation QR Code" style="width:180px;height:180px; margin-bottom: 12px;" />
                     <div style="margin-top: 8px; font-size: 16px;">
                       <b>RESERVATION ID:</b> <span style="color:#F09C32;">${reservation.reservation_id}</span>
                     </div>
