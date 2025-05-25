@@ -36,14 +36,50 @@ const autoStatusCheck = {
       eventId: event.id,
       eventName: event.name,
       currentStatus: event.status,
+      currentVisibility: event.visibility,
       utcTime: now.toISOString(),
       phTime: phTime.toISOString(),
       timezone: PHILIPPINE_TIMEZONE,
+      publishedDate: event.published_date,
+      publishedTime: event.published_time,
       reservationStart: event.reservation_start_date && event.reservation_start_time ? 
         `${event.reservation_start_date}T${event.reservation_start_time}` : null,
       reservationEnd: event.reservation_end_date && event.reservation_end_time ? 
         `${event.reservation_end_date}T${event.reservation_end_time}` : null
     });
+
+    // Check if event should be published
+    if (event.visibility === "unpublished" && event.published_date && event.published_time) {
+      const publishedDateTime = new Date(
+        `${event.published_date}T${event.published_time}`
+      );
+      const phPublishedDateTime = new Date(
+        publishedDateTime.toLocaleString('en-US', { timeZone: PHILIPPINE_TIMEZONE })
+      );
+
+      console.log("⏰ Checking published date:", {
+        eventId: event.id,
+        publishedDateTime: phPublishedDateTime.toISOString(),
+        utcTime: now.toISOString(),
+        phTime: phTime.toISOString(),
+        timezone: PHILIPPINE_TIMEZONE,
+        shouldPublish: phTime >= phPublishedDateTime
+      });
+
+      if (phTime >= phPublishedDateTime) {
+        console.log("✅ Event should be published:", {
+          eventId: event.id,
+          eventName: event.name,
+          reason: "Published date and time has been reached"
+        });
+        return {
+          id: event.id,
+          oldVisibility: event.visibility,
+          newVisibility: "published",
+          reason: "Published date and time has been reached"
+        };
+      }
+    }
 
     //Check for scheduled events that should be opened
     if (
@@ -97,7 +133,47 @@ const autoStatusCheck = {
                 reason: "Reservation period has started",
               };
             }
+          } else {
+            // If no end date is set, just open the event
+            console.log("✅ Event should be opened (no end date):", {
+              eventId: event.id,
+              eventName: event.name,
+              reason: "Reservation period has started (no end date specified)"
+            });
+            return {
+              id: event.id,
+              oldStatus: event.status,
+              newStatus: "open",
+              reason: "Reservation period has started (no end date specified)",
+            };
           }
+        }
+      }
+    }
+
+    // Also check for published events that should be opened
+    if (
+      event.visibility === "published" &&
+      event.status === "scheduled" &&
+      event.event_type === "ticketed"
+    ) {
+      if (event.reservation_start_date && event.reservation_start_time) {
+        const reservationStartDateObj = new Date(
+          `${event.reservation_start_date}T${event.reservation_start_time}`
+        );
+
+        if (phTime >= reservationStartDateObj) {
+          console.log("✅ Published event should be opened:", {
+            eventId: event.id,
+            eventName: event.name,
+            reason: "Reservation period has started for published event"
+          });
+          return {
+            id: event.id,
+            oldStatus: event.status,
+            newStatus: "open",
+            reason: "Reservation period has started for published event",
+          };
         }
       }
     }
