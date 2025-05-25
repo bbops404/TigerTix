@@ -21,7 +21,7 @@ const initScheduler = (io) => {
   // ========================================================
   // 1. EVENT STATUS UPDATE - EVERY MINUTE
   // ========================================================
-  cron.schedule("* * * * *", async () => {
+  const eventStatusJob = cron.schedule("* * * * *", async () => {
     console.log("🕒 [1m] Running: Event status updater");
 
     try {
@@ -47,12 +47,11 @@ const initScheduler = (io) => {
   // ========================================================
   // 2. RESERVATION STATUS UPDATE - EVERY 5 MINUTES
   // ========================================================
-  cron.schedule("* * * * *", async () => {
+  const reservationStatusJob = cron.schedule("*/5 * * * *", async () => {
     console.log("🕒 [5m] Running: Reservation status updater");
 
     try {
-      const results =
-        await updateReservationStatusService.updatePendingToUnclaimed();
+      const results = await updateReservationStatusService.updatePendingToUnclaimed();
 
       if (results.updated > 0) {
         console.log(`✅ ${results.updated} reservations marked as unclaimed`);
@@ -75,7 +74,7 @@ const initScheduler = (io) => {
   // ========================================================
   // 3. UPCOMING STATUS CHANGES DETECTOR - EVERY MINUTE
   // ========================================================
-  cron.schedule("* * * * *", async () => {
+  const upcomingChangesJob = cron.schedule("* * * * *", async () => {
     console.log("🕒 [1m] Running: Check for upcoming event status changes");
 
     try {
@@ -216,7 +215,10 @@ const initScheduler = (io) => {
     }
   });
 
-  cron.schedule("*/5 * * * *", async () => {
+  // ========================================================
+  // 4. USER RESTRICTION CHECK - EVERY 5 MINUTES
+  // ========================================================
+  const userRestrictionJob = cron.schedule("*/5 * * * *", async () => {
     console.log("🕒 Running scheduled user restriction check...");
     try {
       const restrictedUsers = await db.User.findAll({
@@ -288,6 +290,22 @@ const initScheduler = (io) => {
       console.error("❌ Error during scheduled user restriction check:", error);
     }
   });
+
+  // Start all jobs
+  eventStatusJob.start();
+  reservationStatusJob.start();
+  upcomingChangesJob.start();
+  userRestrictionJob.start();
+
+  console.log("✅ All scheduler jobs initialized and started");
+
+  // Return the jobs for potential cleanup
+  return {
+    eventStatusJob,
+    reservationStatusJob,
+    upcomingChangesJob,
+    userRestrictionJob
+  };
 };
 
 module.exports = {

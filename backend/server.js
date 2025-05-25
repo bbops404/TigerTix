@@ -296,12 +296,25 @@ const startServer = async () => {
     }
 
     // Initialize the scheduler with the io instance for event status updates
-    initScheduler(io);
+    const schedulerJobs = initScheduler(io);
+    console.log("Scheduler initialized with jobs:", Object.keys(schedulerJobs));
 
     // Start HTTP server
     server.listen(port, () => {
       console.log(`Server running on port ${port} 🚀`);
     });
+
+    // Handle graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM received. Shutting down gracefully...');
+      // Stop all scheduler jobs
+      Object.values(schedulerJobs).forEach(job => job.stop());
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+    });
+
   } catch (error) {
     console.error("Error during database sync or server startup:", error);
     process.exit(1);
