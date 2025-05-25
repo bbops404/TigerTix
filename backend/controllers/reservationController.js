@@ -46,6 +46,7 @@ const reservationController = {
   // Create a new reservation
   createReservation: async (req, res) => {
     const transaction = await db.sequelize.transaction();
+    let qrTicketCount = 0; // Initialize counter for QR codes
 
     try {
       console.log("Starting reservation creation...");
