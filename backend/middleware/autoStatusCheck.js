@@ -53,44 +53,38 @@ const autoStatusCheck = {
     ) {
       // Check if reservation period has started
       if (event.reservation_start_date && event.reservation_start_time) {
-        // Convert reservation start time to Philippine time
+        // Create date object directly from the stored time (already in Philippine time)
         const reservationStartDateObj = new Date(
           `${event.reservation_start_date}T${event.reservation_start_time}`
-        );
-        const phReservationStart = new Date(
-          reservationStartDateObj.toLocaleString('en-US', { timeZone: PHILIPPINE_TIMEZONE })
         );
 
         console.log("⏰ Checking reservation start:", {
           eventId: event.id,
-          reservationStart: phReservationStart.toISOString(),
+          reservationStart: reservationStartDateObj.toISOString(),
           utcTime: now.toISOString(),
           phTime: phTime.toISOString(),
           timezone: PHILIPPINE_TIMEZONE,
-          shouldOpen: phTime >= phReservationStart
+          shouldOpen: phTime >= reservationStartDateObj
         });
 
-        if (phTime >= phReservationStart) {
+        if (phTime >= reservationStartDateObj) {
           // Check if reservation period hasn't ended yet
           if (event.reservation_end_date && event.reservation_end_time) {
-            // Convert reservation end time to Philippine time
+            // Create date object directly from the stored time (already in Philippine time)
             const reservationEndDateObj = new Date(
               `${event.reservation_end_date}T${event.reservation_end_time}`
-            );
-            const phReservationEnd = new Date(
-              reservationEndDateObj.toLocaleString('en-US', { timeZone: PHILIPPINE_TIMEZONE })
             );
 
             console.log("⏰ Checking reservation end:", {
               eventId: event.id,
-              reservationEnd: phReservationEnd.toISOString(),
+              reservationEnd: reservationEndDateObj.toISOString(),
               utcTime: now.toISOString(),
               phTime: phTime.toISOString(),
               timezone: PHILIPPINE_TIMEZONE,
-              withinPeriod: phTime <= phReservationEnd
+              withinPeriod: phTime <= reservationEndDateObj
             });
 
-            if (phTime <= phReservationEnd) {
+            if (phTime <= reservationEndDateObj) {
               console.log("✅ Event should be opened:", {
                 eventId: event.id,
                 eventName: event.name,
