@@ -13,6 +13,14 @@ const {
 // If you have a controller or service for reservation status update:
 const updateReservationStatusService = require("./middleware/updateReservationStatus"); // Replace path if needed
 
+// Keep track of job status
+const jobStatus = {
+  eventStatus: { running: false, lastRun: null, error: null },
+  reservationStatus: { running: false, lastRun: null, error: null },
+  upcomingChanges: { running: false, lastRun: null, error: null },
+  userRestriction: { running: false, lastRun: null, error: null }
+};
+
 /**
  * Initialize and start all scheduled tasks
  * @param {Object} io - Socket.io instance for real-time updates
@@ -22,6 +30,15 @@ const initScheduler = (io) => {
   // 1. EVENT STATUS UPDATE - EVERY MINUTE
   // ========================================================
   const eventStatusJob = cron.schedule("* * * * *", async () => {
+    if (jobStatus.eventStatus.running) {
+      console.log("⚠️ Event status job is still running, skipping this iteration");
+      return;
+    }
+
+    jobStatus.eventStatus.running = true;
+    jobStatus.eventStatus.lastRun = new Date();
+    jobStatus.eventStatus.error = null;
+
     console.log("🕒 [1m] Running: Event status updater");
 
     try {
@@ -41,6 +58,9 @@ const initScheduler = (io) => {
       }
     } catch (error) {
       console.error("❌ Error updating event statuses:", error);
+      jobStatus.eventStatus.error = error.message;
+    } finally {
+      jobStatus.eventStatus.running = false;
     }
   });
 
@@ -48,6 +68,15 @@ const initScheduler = (io) => {
   // 2. RESERVATION STATUS UPDATE - EVERY 5 MINUTES
   // ========================================================
   const reservationStatusJob = cron.schedule("*/5 * * * *", async () => {
+    if (jobStatus.reservationStatus.running) {
+      console.log("⚠️ Reservation status job is still running, skipping this iteration");
+      return;
+    }
+
+    jobStatus.reservationStatus.running = true;
+    jobStatus.reservationStatus.lastRun = new Date();
+    jobStatus.reservationStatus.error = null;
+
     console.log("🕒 [5m] Running: Reservation status updater");
 
     try {
@@ -68,6 +97,9 @@ const initScheduler = (io) => {
       }
     } catch (error) {
       console.error("❌ Error updating reservation statuses:", error);
+      jobStatus.reservationStatus.error = error.message;
+    } finally {
+      jobStatus.reservationStatus.running = false;
     }
   });
 
@@ -75,6 +107,15 @@ const initScheduler = (io) => {
   // 3. UPCOMING STATUS CHANGES DETECTOR - EVERY MINUTE
   // ========================================================
   const upcomingChangesJob = cron.schedule("* * * * *", async () => {
+    if (jobStatus.upcomingChanges.running) {
+      console.log("⚠️ Upcoming changes job is still running, skipping this iteration");
+      return;
+    }
+
+    jobStatus.upcomingChanges.running = true;
+    jobStatus.upcomingChanges.lastRun = new Date();
+    jobStatus.upcomingChanges.error = null;
+
     console.log("🕒 [1m] Running: Check for upcoming event status changes");
 
     try {
@@ -212,6 +253,9 @@ const initScheduler = (io) => {
       }
     } catch (error) {
       console.error("❌ Error checking upcoming status changes:", error);
+      jobStatus.upcomingChanges.error = error.message;
+    } finally {
+      jobStatus.upcomingChanges.running = false;
     }
   });
 
@@ -219,6 +263,15 @@ const initScheduler = (io) => {
   // 4. USER RESTRICTION CHECK - EVERY 5 MINUTES
   // ========================================================
   const userRestrictionJob = cron.schedule("*/5 * * * *", async () => {
+    if (jobStatus.userRestriction.running) {
+      console.log("⚠️ User restriction job is still running, skipping this iteration");
+      return;
+    }
+
+    jobStatus.userRestriction.running = true;
+    jobStatus.userRestriction.lastRun = new Date();
+    jobStatus.userRestriction.error = null;
+
     console.log("🕒 Running scheduled user restriction check...");
     try {
       const restrictedUsers = await db.User.findAll({
@@ -288,6 +341,9 @@ const initScheduler = (io) => {
       );
     } catch (error) {
       console.error("❌ Error during scheduled user restriction check:", error);
+      jobStatus.userRestriction.error = error.message;
+    } finally {
+      jobStatus.userRestriction.running = false;
     }
   });
 
@@ -299,12 +355,20 @@ const initScheduler = (io) => {
 
   console.log("✅ All scheduler jobs initialized and started");
 
-  // Return the jobs for potential cleanup
+  // Add health check endpoint for scheduler status
+  const getSchedulerStatus = () => ({
+    jobs: jobStatus,
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+
+  // Return the jobs and status function for potential cleanup and monitoring
   return {
     eventStatusJob,
     reservationStatusJob,
     upcomingChangesJob,
-    userRestrictionJob
+    userRestrictionJob,
+    getSchedulerStatus
   };
 };
 

@@ -229,6 +229,16 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server is running" });
 });
 
+// Initialize scheduler
+const schedulerJobs = initScheduler(io);
+console.log("📅 Scheduler jobs initialized:", Object.keys(schedulerJobs));
+
+// Add scheduler status endpoint
+app.get('/api/scheduler/status', (req, res) => {
+  const status = schedulerJobs.getSchedulerStatus();
+  res.json(status);
+});
+
 // ========================================================
 // ERROR HANDLING
 // ========================================================
@@ -304,15 +314,48 @@ const startServer = async () => {
       console.log(`Server running on port ${port} 🚀`);
     });
 
-    // Handle graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM received. Shutting down gracefully...');
+    // Handle various process signals for graceful shutdown
+    const shutdown = async (signal) => {
+      console.log(`${signal} received. Shutting down gracefully...`);
+      
       // Stop all scheduler jobs
-      Object.values(schedulerJobs).forEach(job => job.stop());
+      Object.values(schedulerJobs).forEach(job => {
+        try {
+          job.stop();
+          console.log(`Stopped scheduler job: ${job.name || 'unnamed'}`);
+        } catch (error) {
+          console.error('Error stopping scheduler job:', error);
+        }
+      });
+
+      // Close server
       server.close(() => {
         console.log('Server closed');
         process.exit(0);
       });
+
+      // Force exit after 10 seconds if graceful shutdown fails
+      setTimeout(() => {
+        console.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, 10000);
+    };
+
+    // Handle different termination signals
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGHUP', () => shutdown('SIGHUP'));
+
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught Exception:', error);
+      shutdown('UNCAUGHT_EXCEPTION');
+    });
+
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+      shutdown('UNHANDLED_REJECTION');
     });
 
   } catch (error) {
