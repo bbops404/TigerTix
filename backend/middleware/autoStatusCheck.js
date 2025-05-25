@@ -40,8 +40,8 @@ const autoStatusCheck = {
       utcTime: now.toISOString(),
       phTime: phTime.toISOString(),
       timezone: PHILIPPINE_TIMEZONE,
-      publishedDate: event.published_date,
-      publishedTime: event.published_time,
+      displayStartDate: event.display_start_date,
+      displayStartTime: event.display_start_time,
       reservationStart: event.reservation_start_date && event.reservation_start_time ? 
         `${event.reservation_start_date}T${event.reservation_start_time}` : null,
       reservationEnd: event.reservation_end_date && event.reservation_end_time ? 
@@ -49,34 +49,34 @@ const autoStatusCheck = {
     });
 
     // Check if event should be published
-    if (event.visibility === "unpublished" && event.published_date && event.published_time) {
-      const publishedDateTime = new Date(
-        `${event.published_date}T${event.published_time}`
+    if (event.visibility === "unpublished" && event.display_start_date && event.display_start_time) {
+      const displayStartDateTime = new Date(
+        `${event.display_start_date}T${event.display_start_time}`
       );
-      const phPublishedDateTime = new Date(
-        publishedDateTime.toLocaleString('en-US', { timeZone: PHILIPPINE_TIMEZONE })
+      const phDisplayStartDateTime = new Date(
+        displayStartDateTime.toLocaleString('en-US', { timeZone: PHILIPPINE_TIMEZONE })
       );
 
-      console.log("⏰ Checking published date:", {
+      console.log("⏰ Checking display start:", {
         eventId: event.id,
-        publishedDateTime: phPublishedDateTime.toISOString(),
+        displayStartDateTime: phDisplayStartDateTime.toISOString(),
         utcTime: now.toISOString(),
         phTime: phTime.toISOString(),
         timezone: PHILIPPINE_TIMEZONE,
-        shouldPublish: phTime >= phPublishedDateTime
+        shouldPublish: phTime >= phDisplayStartDateTime
       });
 
-      if (phTime >= phPublishedDateTime) {
+      if (phTime >= phDisplayStartDateTime) {
         console.log("✅ Event should be published:", {
           eventId: event.id,
           eventName: event.name,
-          reason: "Published date and time has been reached"
+          reason: "Display start date and time has been reached"
         });
         return {
           id: event.id,
           oldVisibility: event.visibility,
           newVisibility: "published",
-          reason: "Published date and time has been reached"
+          reason: "Display start date and time has been reached"
         };
       }
     }
