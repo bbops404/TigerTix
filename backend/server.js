@@ -233,10 +233,40 @@ app.get("/api/health", (req, res) => {
 const schedulerJobs = initScheduler(io);
 console.log("📅 Scheduler jobs initialized:", Object.keys(schedulerJobs));
 
-// Add scheduler status endpoint
+// Add scheduler status endpoint with detailed logging
 app.get('/api/scheduler/status', (req, res) => {
   const status = schedulerJobs.getSchedulerStatus();
+  console.log("📊 Scheduler Status Check:", {
+    timestamp: new Date().toISOString(),
+    jobs: Object.keys(status.jobs),
+    uptime: status.uptime,
+    jobDetails: status.jobs
+  });
   res.json(status);
+});
+
+// Add a test endpoint to manually trigger event status updates
+app.post('/api/scheduler/test-update', async (req, res) => {
+  try {
+    console.log("🔄 Manually triggering event status update...");
+    const updatedEvents = await autoStatusCheck.updateEventStatuses();
+    console.log("✅ Manual update completed:", {
+      updatedCount: updatedEvents?.length || 0,
+      updatedEvents
+    });
+    res.json({
+      success: true,
+      message: "Manual update completed",
+      updatedEvents
+    });
+  } catch (error) {
+    console.error("❌ Error during manual update:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error during manual update",
+      error: error.message
+    });
+  }
 });
 
 // ========================================================

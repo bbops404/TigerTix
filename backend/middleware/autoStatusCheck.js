@@ -19,6 +19,17 @@ const autoStatusCheck = {
     const today = now.toISOString().split("T")[0];
     const currentTime = now.toISOString().split("T")[1].substring(0, 8); // HH:MM:SS format
 
+    console.log("🔍 Checking event status:", {
+      eventId: event.id,
+      eventName: event.name,
+      currentStatus: event.status,
+      currentTime: now.toISOString(),
+      reservationStart: event.reservation_start_date && event.reservation_start_time ? 
+        `${event.reservation_start_date}T${event.reservation_start_time}` : null,
+      reservationEnd: event.reservation_end_date && event.reservation_end_time ? 
+        `${event.reservation_end_date}T${event.reservation_end_time}` : null
+    });
+
     //Check for scheduled events that should be opened
     if (
       event.status === "scheduled" &&
@@ -31,6 +42,13 @@ const autoStatusCheck = {
           `${event.reservation_start_date}T${event.reservation_start_time}`
         );
 
+        console.log("⏰ Checking reservation start:", {
+          eventId: event.id,
+          reservationStart: reservationStartDateObj.toISOString(),
+          currentTime: now.toISOString(),
+          shouldOpen: now >= reservationStartDateObj
+        });
+
         if (now >= reservationStartDateObj) {
           // Check if reservation period hasn't ended yet
           if (event.reservation_end_date && event.reservation_end_time) {
@@ -38,7 +56,19 @@ const autoStatusCheck = {
               `${event.reservation_end_date}T${event.reservation_end_time}`
             );
 
+            console.log("⏰ Checking reservation end:", {
+              eventId: event.id,
+              reservationEnd: reservationEndDateObj.toISOString(),
+              currentTime: now.toISOString(),
+              withinPeriod: now <= reservationEndDateObj
+            });
+
             if (now <= reservationEndDateObj) {
+              console.log("✅ Event should be opened:", {
+                eventId: event.id,
+                eventName: event.name,
+                reason: "Reservation period has started"
+              });
               return {
                 id: event.id,
                 oldStatus: event.status,
