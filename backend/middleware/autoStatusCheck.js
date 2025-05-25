@@ -8,7 +8,19 @@ const db = require("../models");
 const Event = db.Event;
 const { Op } = require("sequelize");
 
+// Configure timezone for Philippines (Asia/Manila)
+const PHILIPPINE_TIMEZONE = 'Asia/Manila';
+
 const autoStatusCheck = {
+  /**
+   * Get current time in Philippine timezone
+   * @returns {Date} Current time in Philippine timezone
+   */
+  getCurrentPhilippineTime: () => {
+    const now = new Date();
+    return new Date(now.toLocaleString('en-US', { timeZone: PHILIPPINE_TIMEZONE }));
+  },
+
   /**
    * Check if an event's status should be updated based on current time
    * @param {Object} event The event object to check
@@ -16,14 +28,17 @@ const autoStatusCheck = {
    */
   checkEventStatus: (event) => {
     const now = new Date();
-    const today = now.toISOString().split("T")[0];
-    const currentTime = now.toISOString().split("T")[1].substring(0, 8); // HH:MM:SS format
+    const phTime = autoStatusCheck.getCurrentPhilippineTime();
+    const today = phTime.toISOString().split('T')[0];
+    const currentTime = phTime.toISOString().split('T')[1].substring(0, 8); // HH:MM:SS format
 
     console.log("🔍 Checking event status:", {
       eventId: event.id,
       eventName: event.name,
       currentStatus: event.status,
-      currentTime: now.toISOString(),
+      utcTime: now.toISOString(),
+      phTime: phTime.toISOString(),
+      timezone: PHILIPPINE_TIMEZONE,
       reservationStart: event.reservation_start_date && event.reservation_start_time ? 
         `${event.reservation_start_date}T${event.reservation_start_time}` : null,
       reservationEnd: event.reservation_end_date && event.reservation_end_time ? 
@@ -38,32 +53,44 @@ const autoStatusCheck = {
     ) {
       // Check if reservation period has started
       if (event.reservation_start_date && event.reservation_start_time) {
+        // Convert reservation start time to Philippine time
         const reservationStartDateObj = new Date(
           `${event.reservation_start_date}T${event.reservation_start_time}`
+        );
+        const phReservationStart = new Date(
+          reservationStartDateObj.toLocaleString('en-US', { timeZone: PHILIPPINE_TIMEZONE })
         );
 
         console.log("⏰ Checking reservation start:", {
           eventId: event.id,
-          reservationStart: reservationStartDateObj.toISOString(),
-          currentTime: now.toISOString(),
-          shouldOpen: now >= reservationStartDateObj
+          reservationStart: phReservationStart.toISOString(),
+          utcTime: now.toISOString(),
+          phTime: phTime.toISOString(),
+          timezone: PHILIPPINE_TIMEZONE,
+          shouldOpen: phTime >= phReservationStart
         });
 
-        if (now >= reservationStartDateObj) {
+        if (phTime >= phReservationStart) {
           // Check if reservation period hasn't ended yet
           if (event.reservation_end_date && event.reservation_end_time) {
+            // Convert reservation end time to Philippine time
             const reservationEndDateObj = new Date(
               `${event.reservation_end_date}T${event.reservation_end_time}`
+            );
+            const phReservationEnd = new Date(
+              reservationEndDateObj.toLocaleString('en-US', { timeZone: PHILIPPINE_TIMEZONE })
             );
 
             console.log("⏰ Checking reservation end:", {
               eventId: event.id,
-              reservationEnd: reservationEndDateObj.toISOString(),
-              currentTime: now.toISOString(),
-              withinPeriod: now <= reservationEndDateObj
+              reservationEnd: phReservationEnd.toISOString(),
+              utcTime: now.toISOString(),
+              phTime: phTime.toISOString(),
+              timezone: PHILIPPINE_TIMEZONE,
+              withinPeriod: phTime <= phReservationEnd
             });
 
-            if (now <= reservationEndDateObj) {
+            if (phTime <= phReservationEnd) {
               console.log("✅ Event should be opened:", {
                 eventId: event.id,
                 eventName: event.name,
