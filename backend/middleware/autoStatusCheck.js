@@ -300,17 +300,41 @@ const autoStatusCheck = {
         },
       });
 
+      console.log(`Checking ${events.length} events for status updates...`);
+
       const eventsToUpdate = [];
 
       events.forEach((event) => {
+        // First check if event should be published
+        const visibilityUpdate = autoStatusCheck.checkEventStatus(event);
+        if (visibilityUpdate) {
+          eventsToUpdate.push({
+            event,
+            update: visibilityUpdate,
+          });
+        }
+
+        // Then check if event should be opened
         const statusUpdate = autoStatusCheck.checkEventStatus(event);
-        if (statusUpdate) {
+        if (statusUpdate && statusUpdate.newStatus) {
           eventsToUpdate.push({
             event,
             update: statusUpdate,
           });
         }
       });
+
+      if (eventsToUpdate.length > 0) {
+        console.log(`Found ${eventsToUpdate.length} events that need updates:`, 
+          eventsToUpdate.map(update => ({
+            eventId: update.event.id,
+            eventName: update.event.name,
+            update: update.update
+          }))
+        );
+      } else {
+        console.log("No events need status updates at this time.");
+      }
 
       return eventsToUpdate;
     } catch (error) {
