@@ -154,7 +154,7 @@ exports.signUp = async (req, res) => {
 
     // Send email for successfully creating account
     resend.emails.send({
-      from: `"TigerTix" <${process.env.EMAIL_USER}>`,
+      from: resendhost,
       to: email,
       subject: "Welcome to TigerTix!",
       text: `Hi ${firstName} ${lastName},\n\nYour account has been successfully created on TigerTix.\n\nUsername: ${username}\nRole: ${formattedRole}\n\nThank you for joining us!\n\nBest regards,\nTigerTix Team`,
