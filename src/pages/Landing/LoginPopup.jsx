@@ -172,24 +172,21 @@ return (
             ) : null}
 
             {/* Email Input */}
-            <div className="text-left w-full max-w-[300px]">
-              <p className="text-custom_black mb-1 text-sm">Email</p>
+            <div className="text-left w-full max-w-[300px] px-2">
+              <p className="text-custom_black mb-1 text-xs sm:text-sm">Email</p>
               <div
-                className={`bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 
-                ${
-                  error.type === "email" ? "border-red-500" : "border-[#D8DADC]"
-                } 
-                h-10 w-full`}
+                className={`bg-white flex px-2 sm:px-3 py-1 sm:py-2 gap-2 items-center rounded-lg border-2 
+                ${error.type === "email" ? "border-red-500" : "border-[#D8DADC]"} 
+                h-8 sm:h-10 w-full`}
               >
-                <FaUser className="w-4 h-4 text-gray-400" />
+                <FaUser className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                 <input
                   type="email"
-                  className="focus:outline-none text-sm w-full text-gray-600"
+                  className="focus:outline-none text-xs sm:text-sm w-full text-gray-600"
                   placeholder="Enter your email or username"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
-                    // Clear email error when user starts typing
                     if (error.type === "email") {
                       setError({ type: null, message: "" });
                     }
@@ -205,26 +202,21 @@ return (
             </div>
 
             {/* Password Input with Toggle */}
-            <div className="text-left w-full max-w-[300px]">
-              <p className="text-custom_black mb-1 text-sm">Password</p>
+            <div className="text-left w-full max-w-[300px] px-2">
+              <p className="text-custom_black mb-1 text-xs sm:text-sm">Password</p>
               <div
-                className={`bg-white flex px-2 py-3 gap-2 items-center rounded-lg border-2 
-                ${
-                  error.type === "password"
-                    ? "border-red-500"
-                    : "border-[#D8DADC]"
-                } 
-                h-10 w-full`}
+                className={`bg-white flex px-2 sm:px-3 py-1 sm:py-2 gap-2 items-center rounded-lg border-2 
+                ${error.type === "password" ? "border-red-500" : "border-[#D8DADC]"} 
+                h-8 sm:h-10 w-full`}
               >
-                <FaLock className="w-4 h-4 text-gray-400" />
+                <FaLock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                 <input
                   type={showPassword ? "text" : "password"}
-                  className="focus:outline-none text-sm w-full text-gray-600"
+                  className="focus:outline-none text-xs sm:text-sm w-full text-gray-600"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    // Clear password error when user starts typing
                     if (error.type === "password") {
                       setError({ type: null, message: "" });
                     }
@@ -237,9 +229,9 @@ return (
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
-                    <FaEyeSlash className="w-4 h-4" />
+                    <FaEyeSlash className="w-3 h-3 sm:w-4 sm:h-4" />
                   ) : (
-                    <FaEye className="w-4 h-4" />
+                    <FaEye className="w-3 h-3 sm:w-4 sm:h-4" />
                   )}
                 </button>
                 {error.type === "password" && (
@@ -263,7 +255,7 @@ return (
 
             {/* Login Button */}
             <button
-              className="bg-custom_black text-white px-4 py-2 w-full max-w-[300px] rounded-md font-semibold hover:text-custom_yellow"
+              className="bg-custom_black text-white px-6 py-2 w-full max-w-[300px] rounded-md font-semibold hover:text-custom_yellow"
               onClick={handleLogin}
             >
               Login

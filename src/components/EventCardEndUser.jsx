@@ -202,22 +202,7 @@ function EventCardEndUser({
           {formattedDate} | {formattedTime}
         </div>
        
-       
-        {/* Notification Button */}
-        {notification && (
-          <button
-            className="bg-white p-1 rounded-full transition-transform duration-200 hover:bg-gray-200 hover:scale-105 ml-1"
-            onClick={(e) => {
-              e.stopPropagation();
-              setNotification(false);
-            }}
-          >
-            <IoNotifications className="text-xl text-[#F09C32]" />
-          </button>
-        )}
 
-
-        
       </div>
 
       <button
