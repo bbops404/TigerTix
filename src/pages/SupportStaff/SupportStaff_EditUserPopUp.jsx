@@ -91,10 +91,11 @@ const SupportStaff_EditUserPopUp = ({
       const updatePromises = selectedUserIds.map(async (userId) => {
         try {
           // Update status for each user
-          const token = sessionStorage.getItem("authToken");
-          const statusResponse = await axios.put(
-            `${import.meta.env.VITE_API_URL}/admin/users/${userId}/status`,
-            { status: accountStatus.toLowerCase() },
+          const response = await axios.put(
+            `${import.meta.env.VITE_API_URL}/api/admin/users/${userId}/status`,
+            {
+              status: accountStatus.toLowerCase(),
+            },
             {
               withCredentials: true,
               headers: {
@@ -105,7 +106,7 @@ const SupportStaff_EditUserPopUp = ({
           );
 
           // Optionally handle the response to check for successful update
-          if (statusResponse.status === 200) {
+          if (response.status === 200) {
             console.log(`User ${userId} updated successfully`);
             setSuccessModalOpen(true);
           } else {
