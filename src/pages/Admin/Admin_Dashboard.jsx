@@ -14,7 +14,7 @@ const AdminDashboard = () => {
     console.log("Fetching Ticketed Events..."); // Debug log
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/admin/ticketed-events`, // Updated URL
+        `${import.meta.env.VITE_API_URL}/api/admin/ticketed-events`,
         {
           withCredentials: true,
           headers: {
@@ -56,9 +56,7 @@ const AdminDashboard = () => {
   const fetchEventClaimingStatus = async (eventId) => {
     try {
       const response = await axios.get(
-        `${
-          import.meta.env.VITE_API_URL
-        }/admin/event-claiming-status/${eventId}`, // Updated URL
+        `${import.meta.env.VITE_API_URL}/api/admin/event-claiming-status/${eventId}`,
         {
           withCredentials: true,
           headers: {
@@ -121,7 +119,7 @@ const AdminDashboard = () => {
       try {
         const token = sessionStorage.getItem("authToken");
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/admin/dashboard/metrics`, // Updated URL
+          `${import.meta.env.VITE_API_URL}/api/admin/dashboard/metrics`,
           {
             withCredentials: true,
             headers: {
@@ -145,7 +143,7 @@ const AdminDashboard = () => {
       try {
         const token = sessionStorage.getItem("authToken");
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/admin/upcoming-events`, // Updated URL
+          `${import.meta.env.VITE_API_URL}/api/admin/upcoming-events`,
           {
             withCredentials: true,
             headers: {
@@ -176,7 +174,7 @@ const AdminDashboard = () => {
       try {
         const token = sessionStorage.getItem("authToken");
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/admin/recent-reservations`, // Updated URL
+          `${import.meta.env.VITE_API_URL}/api/admin/recent-reservations`,
           {
             withCredentials: true,
             headers: {

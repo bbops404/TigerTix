@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { PiTagBold } from "react-icons/pi";
+import { validateDatabaseEmails } from "../pages/Services/reservationService";
 
 const ReservationEventCard = ({
   event,
@@ -16,8 +17,12 @@ const ReservationEventCard = ({
   handleAddReservation,
   userEmail,
   validationError,
+  setValidationError,
   maxTickets = 1,
 }) => {
+  const [emailValidationErrors, setEmailValidationErrors] = useState({});
+  const [isValidating, setIsValidating] = useState(false);
+
   // Auto-select ticket type if there's only one option
   useEffect(() => {
     const ticketTypes = Object.keys(ticketPrices);
@@ -53,6 +58,120 @@ const ReservationEventCard = ({
       return `(${selectedSlot.remaining} slots remaining)`;
     }
     return "";
+  };
+
+  const validateEmail = async (email, index) => {
+    if (!email || index === 0) return; // Skip validation for empty email or user's own email
+
+    // Check for duplicate emails
+    const isDuplicate = emails.some((existingEmail, existingIndex) => 
+      existingEmail && existingIndex !== index && existingEmail.toLowerCase() === email.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      setEmailValidationErrors(prev => ({
+        ...prev,
+        [index]: "This email is already used for another ticket"
+      }));
+      return false;
+    }
+
+    try {
+      const emailValidation = await validateDatabaseEmails([email]);
+      if (!emailValidation.valid) {
+        setEmailValidationErrors(prev => ({
+          ...prev,
+          [index]: "This email is not registered in the system"
+        }));
+        return false;
+      } else {
+        setEmailValidationErrors(prev => ({
+          ...prev,
+          [index]: null
+        }));
+        return true;
+      }
+    } catch (error) {
+      console.error("Error validating email:", error);
+      setEmailValidationErrors(prev => ({
+        ...prev,
+        [index]: "Error validating email. Please try again."
+      }));
+      return false;
+    }
+  };
+
+  const handleEmailChange = (e, index) => {
+    const newEmail = e.target.value;
+    const newEmails = [...emails];
+    newEmails[index] = newEmail;
+    setEmails(newEmails);
+
+    // Clear any existing error for this index
+    setEmailValidationErrors(prev => ({
+      ...prev,
+      [index]: null
+    }));
+
+    // Validate the new email
+    validateEmail(newEmail, index);
+  };
+
+  const validateAllEmails = async () => {
+    setIsValidating(true);
+    setValidationError("");
+
+    // Check for empty emails
+    for (let i = 1; i < ticketCount; i++) {
+      if (!emails[i] || !emails[i].trim()) {
+        setValidationError(`Please provide email for ticket ${i + 1}`);
+        setIsValidating(false);
+        return false;
+      }
+    }
+
+    // Check for duplicates (including user's own email)
+    const emailSet = new Set();
+    emailSet.add(userEmail.toLowerCase()); // Add user's email to the set
+
+    for (let i = 1; i < ticketCount; i++) {
+      const email = emails[i].toLowerCase();
+      if (emailSet.has(email)) {
+        setValidationError("Duplicate email addresses are not allowed");
+        setIsValidating(false);
+        return false;
+      }
+      emailSet.add(email);
+    }
+
+    // Validate all emails exist in database
+    try {
+      const emailsToValidate = emails.slice(1, ticketCount);
+      const emailValidation = await validateDatabaseEmails(emailsToValidate);
+
+      if (!emailValidation.valid) {
+        const notFoundList = emailValidation.notFoundEmails?.join(", ") || "One or more emails";
+        setValidationError(`${notFoundList} not found in the system. Ensure all users are registered.`);
+        setIsValidating(false);
+        return false;
+      }
+    } catch (error) {
+      console.error("Error validating emails:", error);
+      setValidationError("Could not validate emails. Please try again.");
+      setIsValidating(false);
+      return false;
+    }
+
+    setIsValidating(false);
+    return true;
+  };
+
+  const handleAddClick = async () => {
+    const isValid = await validateAllEmails();
+    if (!isValid) {
+      return; // Stop here if validation fails
+    }
+    handleAddReservation();
   };
 
   if (!event) {
@@ -198,7 +317,7 @@ const ReservationEventCard = ({
 
           <p className="text-xs text-gray-300 mt-1 mb-3">
             All users must be registered in the system. Make sure you enter
-            their correct email address.
+            their correct email address. Each email can only be used once.
           </p>
 
           <div className="mb-2">
@@ -220,14 +339,18 @@ const ReservationEventCard = ({
                 <input
                   type="text"
                   placeholder={`Email ${index + 2} (registered user)`}
-                  className="w-full p-2 mt-2 text-black"
+                  className={`w-full p-2 mt-2 text-black ${
+                    emailValidationErrors[index + 1] ? "border-red-500" : ""
+                  }`}
                   value={emails[index + 1] || ""}
-                  onChange={(e) => {
-                    const newEmails = [...emails];
-                    newEmails[index + 1] = e.target.value;
-                    setEmails(newEmails);
-                  }}
+                  onChange={(e) => handleEmailChange(e, index + 1)}
+                  onBlur={(e) => validateEmail(e.target.value, index + 1)}
                 />
+                {emailValidationErrors[index + 1] && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {emailValidationErrors[index + 1]}
+                  </p>
+                )}
                 <p className="text-xs text-gray-400 mt-1">
                   User must exist in the system
                 </p>
@@ -264,10 +387,13 @@ const ReservationEventCard = ({
 
         <div className="flex justify-center mt-8">
           <button
-            onClick={handleAddReservation}
-            className="w-1/2 bg-black text-[#F09C32] text-lg py-2 rounded-xl font-bold cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600"
+            onClick={handleAddClick}
+            disabled={isValidating}
+            className={`w-1/2 bg-black text-[#F09C32] text-lg py-2 rounded-xl font-bold cursor-pointer transition-all transform hover:scale-105 hover:bg-black-600 ${
+              isValidating ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
-            ADD
+            {isValidating ? "Validating..." : "ADD"}
           </button>
         </div>
       </div>

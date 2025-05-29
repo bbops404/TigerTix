@@ -7,6 +7,7 @@
 const db = require("../models");
 const Event = db.Event;
 const { Op } = require("sequelize");
+const moment = require('moment-timezone');
 
 // Configure timezone for Philippines (Asia/Manila)
 const PHILIPPINE_TIMEZONE = 'Asia/Manila';
@@ -27,103 +28,119 @@ const autoStatusCheck = {
    * @returns {Object|null} Status update info or null if no change needed
    */
   checkEventStatus: (event) => {
-    const now = new Date();
-    const phTime = autoStatusCheck.getCurrentPhilippineTime();
-    const today = phTime.toISOString().split('T')[0];
-    const currentTime = phTime.toISOString().split('T')[1].substring(0, 8); // HH:MM:SS format
+    // Get current time in Philippine timezone using moment
+    const phTime = moment().tz(PHILIPPINE_TIMEZONE);
+    const today = phTime.format('YYYY-MM-DD');
+    const currentTime = phTime.format('HH:mm:ss');
 
     console.log("🔍 Checking event status:", {
       eventId: event.id,
       eventName: event.name,
       currentStatus: event.status,
       currentVisibility: event.visibility,
-      utcTime: now.toISOString(),
-      phTime: phTime.toISOString(),
+      phTime: phTime.format(),
       timezone: PHILIPPINE_TIMEZONE,
       displayStartDate: event.display_start_date,
       displayStartTime: event.display_start_time,
+      displayEndDate: event.display_end_date,
+      displayEndTime: event.display_end_time,
       reservationStart: event.reservation_start_date && event.reservation_start_time ? 
         `${event.reservation_start_date}T${event.reservation_start_time}` : null,
       reservationEnd: event.reservation_end_date && event.reservation_end_time ? 
         `${event.reservation_end_date}T${event.reservation_end_time}` : null
     });
 
-    // Check if event should be published
-    if (event.visibility === "unpublished" && event.display_start_date && event.display_start_time) {
-      // Create date object directly from the stored time (already in Philippine time)
-      const displayStartDateTime = new Date(
-        `${event.display_start_date}T${event.display_start_time}`
+    // First check if display period has ended
+    if (event.visibility === "published" && event.display_end_date && event.display_end_time) {
+      const displayEndDateTime = moment.tz(
+        `${event.display_end_date} ${event.display_end_time}`,
+        'YYYY-MM-DD HH:mm:ss',
+        PHILIPPINE_TIMEZONE
       );
 
-      console.log("⏰ Checking display start:", {
+      console.log("⏰ Checking display end:", {
         eventId: event.id,
-        displayStartDateTime: displayStartDateTime.toISOString(),
-        utcTime: now.toISOString(),
-        phTime: phTime.toISOString(),
+        displayEndDateTime: displayEndDateTime.format(),
+        currentTime: phTime.format(),
         timezone: PHILIPPINE_TIMEZONE,
-        shouldPublish: phTime >= displayStartDateTime
+        shouldUnpublish: phTime.isAfter(displayEndDateTime)
       });
 
-      if (phTime >= displayStartDateTime) {
-        console.log("✅ Event should be published:", {
+      if (phTime.isAfter(displayEndDateTime)) {
+        console.log("✅ Event should be unpublished:", {
           eventId: event.id,
           eventName: event.name,
-          reason: "Display start date and time has been reached"
+          reason: "Display period has ended"
         });
         return {
           id: event.id,
           oldVisibility: event.visibility,
-          newVisibility: "published",
-          reason: "Display start date and time has been reached"
+          newVisibility: "unpublished",
+          oldStatus: event.status,
+          newStatus: "closed",
+          reason: "Display period has ended",
         };
       }
     }
 
-    //Check for scheduled events that should be opened
-    if (
-      event.status === "scheduled" &&
-      event.event_type === "ticketed" &&
-      event.visibility === "published"
-    ) {
+    // Then check if display period has started
+    if (event.visibility === "unpublished" && event.display_start_date && event.display_start_time) {
+      const displayStartDateTime = moment.tz(
+        `${event.display_start_date} ${event.display_start_time}`,
+        'YYYY-MM-DD HH:mm:ss',
+        PHILIPPINE_TIMEZONE
+      );
+
+      console.log("⏰ Checking display start:", {
+        eventId: event.id,
+        displayStartDateTime: displayStartDateTime.format(),
+        currentTime: phTime.format(),
+        timezone: PHILIPPINE_TIMEZONE,
+        shouldPublish: phTime.isSameOrAfter(displayStartDateTime)
+      });
+
+      if (phTime.isSameOrAfter(displayStartDateTime)) {
+        // Only publish if display period hasn't ended
+        if (!event.display_end_date || !event.display_end_time || 
+            phTime.isBefore(moment.tz(
+              `${event.display_end_date} ${event.display_end_time}`,
+              'YYYY-MM-DD HH:mm:ss',
+              PHILIPPINE_TIMEZONE
+            ))) {
+          console.log("✅ Event should be published:", {
+            eventId: event.id,
+            eventName: event.name,
+            reason: "Display period has started"
+          });
+          return {
+            id: event.id,
+            oldVisibility: event.visibility,
+            newVisibility: "published",
+            reason: "Display period has started",
+          };
+        }
+      }
+    }
+
+    // Check reservation period for ticketed events
+    if (event.event_type === "ticketed" && event.visibility === "published") {
       // Check if reservation period has started
       if (event.reservation_start_date && event.reservation_start_time) {
-        // Create date object directly from the stored time (already in Philippine time)
-        const reservationStartDateTime = new Date(
-          `${event.reservation_start_date}T${event.reservation_start_time}`
+        const reservationStartDateTime = moment.tz(
+          `${event.reservation_start_date} ${event.reservation_start_time}`,
+          'YYYY-MM-DD HH:mm:ss',
+          PHILIPPINE_TIMEZONE
         );
 
-        console.log("⏰ Checking reservation start:", {
-          eventId: event.id,
-          reservationStartDateTime: reservationStartDateTime.toISOString(),
-          utcTime: now.toISOString(),
-          phTime: phTime.toISOString(),
-          timezone: PHILIPPINE_TIMEZONE,
-          shouldOpen: phTime >= reservationStartDateTime
-        });
-
-        if (phTime >= reservationStartDateTime) {
-          // Check if reservation period hasn't ended yet
-          if (event.reservation_end_date && event.reservation_end_time) {
-            // Create date object directly from the stored time (already in Philippine time)
-            const reservationEndDateTime = new Date(
-              `${event.reservation_end_date}T${event.reservation_end_time}`
-            );
-
-            console.log("⏰ Checking reservation end:", {
-              eventId: event.id,
-              reservationEndDateTime: reservationEndDateTime.toISOString(),
-              utcTime: now.toISOString(),
-              phTime: phTime.toISOString(),
-              timezone: PHILIPPINE_TIMEZONE,
-              withinPeriod: phTime <= reservationEndDateTime
-            });
-
-            if (phTime <= reservationEndDateTime) {
-              console.log("✅ Event should be opened:", {
-                eventId: event.id,
-                eventName: event.name,
-                reason: "Reservation period has started"
-              });
+        if (phTime.isSameOrAfter(reservationStartDateTime)) {
+          // Check if reservation period hasn't ended
+          if (!event.reservation_end_date || !event.reservation_end_time || 
+              phTime.isBefore(moment.tz(
+                `${event.reservation_end_date} ${event.reservation_end_time}`,
+                'YYYY-MM-DD HH:mm:ss',
+                PHILIPPINE_TIMEZONE
+              ))) {
+            if (event.status === "scheduled") {
               return {
                 id: event.id,
                 oldStatus: event.status,
@@ -131,151 +148,33 @@ const autoStatusCheck = {
                 reason: "Reservation period has started",
               };
             }
-          } else {
-            // If no end date is set, just open the event
-            console.log("✅ Event should be opened (no end date):", {
-              eventId: event.id,
-              eventName: event.name,
-              reason: "Reservation period has started (no end date specified)"
-            });
+          } else if (event.status === "open") {
             return {
               id: event.id,
               oldStatus: event.status,
-              newStatus: "open",
-              reason: "Reservation period has started (no end date specified)",
+              newStatus: "closed",
+              reason: "Reservation period has ended",
             };
           }
         }
       }
     }
 
-    // Also check for published events that should be opened
-    if (
-      event.visibility === "published" &&
-      event.status === "scheduled" &&
-      event.event_type === "ticketed"
-    ) {
-      if (event.reservation_start_date && event.reservation_start_time) {
-        const reservationStartDateObj = new Date(
-          `${event.reservation_start_date}T${event.reservation_start_time}`
-        );
-
-        if (phTime >= reservationStartDateObj) {
-          console.log("✅ Published event should be opened:", {
-            eventId: event.id,
-            eventName: event.name,
-            reason: "Reservation period has started for published event"
-          });
-          return {
-            id: event.id,
-            oldStatus: event.status,
-            newStatus: "open",
-            reason: "Reservation period has started for published event",
-          };
-        }
-      }
-    }
-
-    // Check for open events that should be closed
-    if (
-      event.status === "open" &&
-      event.event_type === "ticketed" &&
-      event.visibility === "published"
-    ) {
-      // Check if reservation period has ended
-      if (event.reservation_end_date && event.reservation_end_time) {
-        const reservationEndDateObj = new Date(
-          `${event.reservation_end_date}T${event.reservation_end_time}`
-        );
-
-        if (now > reservationEndDateObj) {
-          return {
-            id: event.id,
-            oldStatus: event.status,
-            newStatus: "closed",
-            reason: "Reservation period has ended",
-          };
-        }
-      }
-    }
-
-    // Check for events with display period ended
-    if (event.visibility === "published") {
-      if (event.display_end_date && event.display_end_time) {
-        const displayEndDateObj = new Date(
-          `${event.display_end_date}T${event.display_end_time}`
-        );
-
-        if (now > displayEndDateObj) {
-          return {
-            id: event.id,
-            oldVisibility: event.visibility,
-            newVisibility: "unpublished",
-            oldStatus: event.status,
-            newStatus: "closed", // Always close when display period ends
-            reason: "Display period has ended",
-          };
-        }
-      }
-    }
-
-    // Check for events with display period started (future scheduled)
-    if (
-      event.visibility === "unpublished" &&
-      ((event.status === "scheduled" && event.event_type === "ticketed") ||
-       (event.status === "open" && event.event_type === "free")) &&
-      event.display_start_date &&
-      event.display_start_time
-    ) {
-      const displayStartDateObj = new Date(
-        `${event.display_start_date}T${event.display_start_time}`
+    // Check if event has ended
+    if (event.status !== "closed" && event.status !== "cancelled" && event.event_date) {
+      const eventEndDateTime = moment.tz(
+        `${event.event_date} ${event.event_end_time || '23:59:59'}`,
+        'YYYY-MM-DD HH:mm:ss',
+        PHILIPPINE_TIMEZONE
       );
 
-      if (
-        now >= displayStartDateObj &&
-        (!event.display_end_date ||
-          !event.display_end_time ||
-          now <=
-            new Date(`${event.display_end_date}T${event.display_end_time}`))
-      ) {
+      if (phTime.isAfter(eventEndDateTime)) {
         return {
           id: event.id,
-          oldVisibility: event.visibility,
-          newVisibility: "published",
-          reason: "Display period has started",
+          oldStatus: event.status,
+          newStatus: "closed",
+          reason: "Event has ended",
         };
-      }
-    }
-
-    // 5. Check for completed events (event date has passed)
-    if (event.status !== "closed" && event.status !== "cancelled") {
-      if (event.event_date) {
-        // If event has ended today
-        if (
-          event.event_date === today &&
-          event.event_end_time &&
-          currentTime > event.event_end_time
-        ) {
-          return {
-            id: event.id,
-            oldStatus: event.status,
-            newStatus: "closed",
-            reason: "Event has ended",
-          };
-        }
-
-        // If event date is in the past
-        const eventDateObj = new Date(event.event_date);
-        eventDateObj.setHours(23, 59, 59); // End of the day
-
-        if (now > eventDateObj) {
-          return {
-            id: event.id,
-            oldStatus: event.status,
-            newStatus: "closed",
-            reason: "Event date has passed",
-          };
-        }
       }
     }
 
@@ -303,21 +202,12 @@ const autoStatusCheck = {
       const eventsToUpdate = [];
 
       events.forEach((event) => {
-        // First check if event should be published
-        const visibilityUpdate = autoStatusCheck.checkEventStatus(event);
-        if (visibilityUpdate) {
+        // Single check for both visibility and status updates
+        const update = autoStatusCheck.checkEventStatus(event);
+        if (update) {
           eventsToUpdate.push({
             event,
-            update: visibilityUpdate,
-          });
-        }
-
-        // Then check if event should be opened
-        const statusUpdate = autoStatusCheck.checkEventStatus(event);
-        if (statusUpdate && statusUpdate.newStatus) {
-          eventsToUpdate.push({
-            event,
-            update: statusUpdate,
+            update
           });
         }
       });
@@ -350,23 +240,22 @@ const autoStatusCheck = {
       const eventsToUpdate = await autoStatusCheck.checkAllEvents();
       const updatedEvents = [];
 
-      // Group updates by type for batch processing
-      const statusUpdates = [];
-      const visibilityUpdates = [];
+      // Create a map to consolidate updates by event ID
+      const consolidatedUpdates = new Map();
 
       eventsToUpdate.forEach(({ event, update }) => {
-        if (update.newStatus) {
-          statusUpdates.push({
-            id: event.id,
-            newStatus: update.newStatus,
-          });
+        if (!consolidatedUpdates.has(event.id)) {
+          consolidatedUpdates.set(event.id, {});
         }
-
+        
+        const eventUpdate = consolidatedUpdates.get(event.id);
+        
+        if (update.newStatus) {
+          eventUpdate.status = update.newStatus;
+        }
+        
         if (update.newVisibility) {
-          visibilityUpdates.push({
-            id: event.id,
-            newVisibility: update.newVisibility,
-          });
+          eventUpdate.visibility = update.newVisibility;
         }
 
         updatedEvents.push({
@@ -376,31 +265,9 @@ const autoStatusCheck = {
         });
       });
 
-      // Batch update both statuses and visibilities in a single operation per event
-      if (statusUpdates.length > 0 || visibilityUpdates.length > 0) {
-        // Create a map to consolidate updates by event ID
-        const consolidatedUpdates = new Map();
-
-        // Process status updates
-        for (const update of statusUpdates) {
-          if (!consolidatedUpdates.has(update.id)) {
-            consolidatedUpdates.set(update.id, {});
-          }
-          consolidatedUpdates.get(update.id).status = update.newStatus;
-        }
-
-        // Process visibility updates
-        for (const update of visibilityUpdates) {
-          if (!consolidatedUpdates.has(update.id)) {
-            consolidatedUpdates.set(update.id, {});
-          }
-          consolidatedUpdates.get(update.id).visibility = update.newVisibility;
-        }
-
-        // Apply consolidated updates
-        for (const [eventId, updateData] of consolidatedUpdates.entries()) {
-          await Event.update(updateData, { where: { id: eventId } });
-        }
+      // Apply consolidated updates in a single operation per event
+      for (const [eventId, updateData] of consolidatedUpdates.entries()) {
+        await Event.update(updateData, { where: { id: eventId } });
       }
 
       return updatedEvents;

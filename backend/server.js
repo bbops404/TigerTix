@@ -211,7 +211,7 @@ const privateroute = require("./routes/privateroute");
 app.use("/privateroute", privateroute);
 
 const adminRoutes = require("./routes/admin");
-app.use("/admin", adminRoutes);
+app.use("/api/admin", adminRoutes);
 
 const reservationRoutes = require("./routes/reservationRoutes");
 app.use("/api", reservationRoutes);

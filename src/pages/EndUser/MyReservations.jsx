@@ -5,7 +5,7 @@ import { VscAccount } from "react-icons/vsc";
 import Header_User from "../../components/Header_User";
 import axios from "axios";
 
-// Reservation item component
+// Reservation item component with improved responsiveness
 const ReservationItem = ({ reservation, onViewReceipt }) => {
   // Helper function to determine status class
   const getStatusClass = (status) => {
@@ -39,29 +39,37 @@ const ReservationItem = ({ reservation, onViewReceipt }) => {
   };
 
   return (
-    <div className="flex items-center gap-2 font-Poppins m-2 justify-between">
-      <div className="bg-gray-100 text-gray-700 text-left p-2 rounded-lg shadow-md w-1/2">
-        <div className="font-semibold">
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-2 font-Poppins p-3 sm:p-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+      {/* Event details - Full width on mobile, flexible on larger screens */}
+      <div className="bg-gray-100 text-gray-700 text-left p-3 sm:p-2 rounded-lg shadow-md flex-1 sm:min-w-0">
+        <div className="font-semibold text-sm sm:text-base truncate">
           {reservation.Event?.name || "Unknown Event"}
         </div>
-        <div className="text-xs mt-1">
+        <div className="text-xs sm:text-xs mt-1 text-gray-600">
           {formatDate(reservation.Event?.event_date)} |{" "}
-          {reservation.Ticket?.ticket_type || "Standard Ticket"}
+          {reservation.Ticket?.seat_type || "Standard Seat"}
         </div>
       </div>
-      <div
-        className={`text-center p-1.5 rounded-lg shadow-md w-1/6 ${getStatusClass(
-          reservation.reservation_status
-        )}`}
-      >
-        {reservation.reservation_status.toUpperCase()}
+      
+      {/* Status and button container - Stack on mobile */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 flex-shrink-0">
+        {/* Status badge */}
+        <div
+          className={`text-center py-2 sm:py-1.5 px-3 sm:px-2 rounded-lg shadow-md text-xs sm:text-sm font-medium ${getStatusClass(
+            reservation.reservation_status
+          )} sm:w-24 lg:w-28 flex-shrink-0`}
+        >
+          {reservation.reservation_status.toUpperCase()}
+        </div>
+        
+        {/* View receipt button */}
+        <button
+          className="bg-[#FFAB40] hover:bg-[#E99A3A] rounded-lg text-center font-semibold py-2 sm:py-1.5 px-3 sm:px-2 shadow-md text-xs sm:text-sm transition-colors duration-200 sm:w-24 lg:w-28 flex-shrink-0"
+          onClick={() => onViewReceipt(reservation)}
+        >
+          View Receipt
+        </button>
       </div>
-      <button
-        className="bg-[#FFAB40] hover:bg-[#E99A3A] rounded-lg text-center font-semibold p-1.5 shadow-md text-sm w-1/6"
-        onClick={() => onViewReceipt(reservation)}
-      >
-        View Receipt
-      </button>
     </div>
   );
 };
@@ -194,7 +202,7 @@ const MyReservations = () => {
             userEmail: userData.email || "",
 
             // Ticket Information
-            ticketType: reservation.Ticket?.ticket_type || "Standard Ticket",
+            ticketType: reservation.Ticket?.seat_type || "Standard Seat",
             ticketCount: 1, // Single reservation
             ticketPrice: reservation.Ticket?.price || 0,
 
@@ -222,15 +230,12 @@ const MyReservations = () => {
             emails: [userData.email],
           };
 
-          // Store in localStorage as backup
-          localStorage.setItem("reservationData", JSON.stringify(receiptData));
-
-          // Navigate to receipt page with the data
+          // Navigate to receipt page with the data (removed localStorage usage)
           navigate("/reservation-receipt", { state: receiptData });
         } else {
           // Fallback with limited information if user data can't be fetched
           const receiptData = {
-            ticketType: reservation.Ticket?.ticket_type || "Standard Ticket",
+            ticketType: reservation.Ticket?.seat_type || "Standard Seat",
             ticketPrice: reservation.Ticket?.price || 0,
             ticketCount: 1,
             eventName: reservation.Event?.name || "Event",
@@ -249,7 +254,6 @@ const MyReservations = () => {
             emails: [],
           };
 
-          localStorage.setItem("reservationData", JSON.stringify(receiptData));
           navigate("/reservation-receipt", { state: receiptData });
         }
       } catch (error) {
@@ -257,7 +261,7 @@ const MyReservations = () => {
 
         // Navigate with minimal data as a fallback
         const minimalData = {
-          ticketType: reservation.Ticket?.ticket_type || "Standard Ticket",
+          ticketType: reservation.Ticket?.seat_type || "Standard Seat",
           ticketPrice: reservation.Ticket?.price || 0,
           ticketCount: 1,
           eventName: reservation.Event?.name || "Event",
@@ -267,7 +271,6 @@ const MyReservations = () => {
           emails: [],
         };
 
-        localStorage.setItem("reservationData", JSON.stringify(minimalData));
         navigate("/reservation-receipt", { state: minimalData });
       }
     };
@@ -281,62 +284,64 @@ const MyReservations = () => {
       {/* Header */}
       <Header_User />
 
-      {/* Back button */}
+      {/* Back button - Improved positioning for mobile */}
       <button
         onClick={() => navigate("/home")}
-        className="absolute top-[100px] left-4 text-white font-Poppins font-bold"
+        className="absolute top-[80px] sm:top-[100px] left-4 text-white font-Poppins font-bold z-20"
       >
-        <IoChevronBackOutline className="text-3xl" />
+        <IoChevronBackOutline className="text-2xl sm:text-3xl" />
       </button>
 
-      {/* Main content area with spacing from header */}
-      <div className="container mx-auto px-2 pt-20 pb-16">
-        {/* Profile container with avatar */}
-        <div className="relative flex flex-col items-center mt-10">
-          {/* Avatar circle - positioned relative to this container */}
-          <div className="absolute -top-16 w-60 h-60 md:w-40 md:h-40 lg:w-60 lg:h-60 border-4 border-[#FFAB40] bg-white rounded-full flex items-center justify-center shadow-lg z-10">
-            <VscAccount className="text-[#FFAB40]" size="70%" />
+      {/* Main content area - Better padding and spacing */}
+      <div className="container mx-auto px-3 sm:px-4 lg:px-6 pt-16 sm:pt-20 pb-8 sm:pb-16">
+        {/* Profile container with avatar - Improved responsive layout */}
+        <div className="relative flex flex-col items-center mt-6 sm:mt-10">
+          {/* Avatar circle - Better responsive sizing */}
+          <div className="absolute -top-12 sm:-top-16 w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 border-4 border-[#FFAB40] bg-white rounded-full flex items-center justify-center shadow-lg z-10">
+            <VscAccount 
+              className="text-[#FFAB40] w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24" 
+            />
           </div>
 
-          {/* Profile card with padding for avatar */}
-          <div className="w-11/12 mt-32 bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="pt-6 md:pt-8 lg:pt-12 flex flex-col md:flex-row">
-              {/* Left sidebar */}
-              <div className="w-full md:w-[30%] px-3 py-4">
-                <div className="flex flex-col gap-4">
+          {/* Profile card - Improved responsive design */}
+          <div className="w-full max-w-6xl mt-16 sm:mt-20 md:mt-24 lg:mt-32 bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="pt-8 sm:pt-12 flex flex-col lg:flex-row">
+              {/* Left sidebar - Stack on mobile, side-by-side on large screens */}
+              <div className="w-full lg:w-[30%] px-4 sm:px-6 py-4 sm:py-6 border-b lg:border-b-0 lg:border-r border-gray-200">
+                <div className="flex flex-row lg:flex-col gap-2 sm:gap-4 lg:gap-6">
                   <button
-                    className="font-Poppins w-full py-2 px-3 justify-center cursor-pointer hover:bg-[#FFAB40] transition duration-300 flex rounded-full bg-[#F1F1F1] shadow-md"
+                    className="font-Poppins flex-1 lg:w-full py-2 sm:py-3 px-3 sm:px-4 lg:px-5 justify-center cursor-pointer hover:bg-[#FFAB40] transition duration-300 flex rounded-full bg-[#F1F1F1] shadow-md text-sm sm:text-base font-medium"
                     onClick={() => navigate("/my-profile")}
                   >
                     Account Details
                   </button>
-                  <button className="font-Poppins w-full py-2 px-3 justify-center cursor-pointer transition duration-300 flex rounded-full bg-[#FFAB40] shadow-md">
+                  <button className="font-Poppins flex-1 lg:w-full py-2 sm:py-3 px-3 sm:px-4 lg:px-5 justify-center cursor-pointer transition duration-300 flex rounded-full bg-[#FFAB40] shadow-md text-sm sm:text-base font-medium">
                     My Reservations
                   </button>
                 </div>
               </div>
 
-              {/* Right content area */}
-              <div className="w-full md:w-[70%] px-3 py-4">
-                <div className="h-full flex flex-col justify-between">
+              {/* Right content area - Better spacing and layout */}
+              <div className="w-full lg:w-[70%] px-4 sm:px-6 py-4 sm:py-6">
+                <div className="h-full flex flex-col">
                   {loading ? (
                     <div className="flex justify-center items-center py-12">
-                      <div className="text-gray-700">
+                      <div className="text-gray-700 text-center">
                         Loading your reservations...
                       </div>
                     </div>
                   ) : error ? (
-                    <div className="bg-red-100 text-red-700 p-4 rounded-lg">
+                    <div className="bg-red-100 text-red-700 p-4 rounded-lg text-center">
                       {error}
                     </div>
                   ) : reservations.length === 0 ? (
                     <div className="flex justify-center items-center py-12">
-                      <div className="text-gray-700">
+                      <div className="text-gray-700 text-center">
                         You have no reservations yet.
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    <div className="space-y-3 sm:space-y-2 max-h-[60vh] overflow-y-auto pr-2">
                       {reservations.map((reservation) => (
                         <ReservationItem
                           key={reservation.reservation_id}

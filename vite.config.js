@@ -9,4 +9,29 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"), // ← Ito ang import alias
     },
   },
+  define: {
+    global: 'globalThis',
+  },
+  optimizeDeps: {
+    include: ['pdfkit', 'blob-stream'],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      }
+    }
+  },
+  build: {
+    commonjsOptions: {
+      include: [/pdfkit/, /blob-stream/],
+      transformMixedEsModules: true
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          pdfkit: ['pdfkit'],
+          'blob-stream': ['blob-stream']
+        }
+      }
+    }
+  }
 });

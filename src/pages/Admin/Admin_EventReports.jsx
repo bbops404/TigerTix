@@ -21,6 +21,7 @@ import eventPlaceholder from "../../assets/event_placeholder.jpg";
 import Admin_EventReportGenerateReport from "./Admin_EventReportGenerateReport";
 import Admin_EventReportsFilter from "./Admin_EventReportsFilter";
 import Admin_EventReportGenerateSummary from "./Admin_EventReportGenerateSummaryPopUp";
+import { formatImageUrl, handleImageError } from "../../utils/imageUtils";
 
 const Admin_EventReports = () => {
   const [showGenerateSummaryPopup, setShowGenerateSummaryPopup] =
@@ -70,7 +71,7 @@ const Admin_EventReports = () => {
         setEventsLoading(true);
         // Updated to the correct endpoint
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/admin/ticketed-events`,
+          `${import.meta.env.VITE_API_URL}/api/admin/ticketed-events`,
           {
             withCredentials: true,
             headers: {
@@ -267,27 +268,49 @@ const Admin_EventReports = () => {
         </button>
 
         <div className="w-full flex justify-center overflow-hidden space-x-2">
-          {visibleTicketedEvents.map((event) => (
-            <div
-              key={event.id}
-              className="transition-opacity duration-1000 opacity-100 transform hover:scale-105"
-            >
-              <div className="p-2 rounded-lg">
-                <img
-                  src={eventPlaceholder}
-                  alt={event.name}
-                  className="w-[200px] h-[250px] object-cover rounded-lg mx-auto"
-                />
-                <p className="text-center mt-2 font-semibold">{event.name}</p>
-                <button
-                  className="mt-2 w-full px-4 py-2 text-white font-bold rounded-full bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105"
-                  onClick={() => openGenerateReport(event.id)}
-                >
-                  Generate Report
-                </button>
+          {visibleTicketedEvents.map((event) => {
+            const eventImage = event.image ? formatImageUrl(event.image) : null;
+            return (
+              <div
+                key={event.id}
+                className="transition-opacity duration-1000 opacity-100 transform hover:scale-105"
+              >
+                <div className="p-2 rounded-lg">
+                  {eventImage ? (
+                    <img
+                      src={eventImage}
+                      alt={event.name}
+                      className="w-[200px] h-[250px] object-cover rounded-lg mx-auto"
+                      onError={(e) => {
+                        console.error("Image failed to load:", e.target.src);
+                        e.target.style.display = "none";
+                        const container = e.target.parentNode;
+                        if (!container.querySelector(".image-placeholder")) {
+                          const placeholder = document.createElement("div");
+                          placeholder.className = "text-sm w-[200px] h-[250px] bg-gray-700 rounded-lg flex items-center justify-center mx-auto shadow-md image-placeholder font-Poppins";
+                          placeholder.innerHTML = `<span class="text-white text-sm text-center px-2">${event.name}</span>`;
+                          container.appendChild(placeholder);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="text-sm w-[200px] h-[250px] bg-gray-700 rounded-lg flex items-center justify-center mx-auto shadow-md font-Poppins">
+                      <span className="text-white text-sm text-center px-2">
+                        {event.name}
+                      </span>
+                    </div>
+                  )}
+                  <p className="text-center mt-2 font-semibold">{event.name}</p>
+                  <button
+                    className="mt-2 w-full px-4 py-2 text-[#1E1E1E] font-bold rounded-full bg-[#FFAB40] hover:bg-[#E09933] transition-colors"
+                    onClick={() => openGenerateReport(event.id)}
+                  >
+                    Generate Report
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <button
@@ -455,7 +478,7 @@ const Admin_EventReports = () => {
             {/* Generate Summary Button */}
             <div className="flex justify-end mt-4">
               <button
-                className="px-6 py-2 bg-gradient-to-r from-[#FFAB40] to-[#CD6905] text-white font-bold rounded-full hover:scale-105 transition-transform"
+                className="px-6 py-2 bg-[#FFAB40] text-[#1E1E1E] font-bold rounded-full hover:bg-[#E09933] transition-colors"
                 onClick={openGenerateSummaryPopup}
               >
                 Generate Summary Report
