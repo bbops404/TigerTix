@@ -12,18 +12,21 @@ router.get(
   authorizeAdmin,
   adminDashboardController.getDashboardMetrics
 );
+
 router.get(
   "/upcoming-events",
   authenticate,
   authorizeAdmin,
   adminDashboardController.getUpcomingEvents
 );
+
 router.get(
   "/recent-reservations",
   authenticate,
   authorizeAdmin,
   adminDashboardController.getRecentReservations
 );
+
 // Get ticketed events
 router.get(
   "/ticketed-events",
@@ -31,6 +34,7 @@ router.get(
   authorizeAdmin,
   adminDashboardController.getTicketedEvents
 );
+
 router.get(
   "/event-claiming-status/:eventId",
   authenticate,
@@ -46,6 +50,8 @@ router.post(
   authorizeAdmin,
   adminController.generateUserReport
 );
+
+// Generate event report
 router.post(
   "/generate-event-report",
   authenticate,

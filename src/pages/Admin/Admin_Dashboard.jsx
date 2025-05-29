@@ -154,7 +154,7 @@ const AdminDashboard = () => {
         );
 
         if (response.data.success) {
-          setUpcomingEvents(response.data.data); // Set the upcoming events from the response
+          setUpcomingEvents(response.data.data);
         } else {
           console.error(
             "Failed to fetch upcoming events:",
@@ -166,7 +166,7 @@ const AdminDashboard = () => {
         console.error("Error fetching upcoming events:", error);
         setErrorEvents("Error fetching upcoming events.");
       } finally {
-        setLoadingEvents(false); // Set loading to false after fetching
+        setLoadingEvents(false);
       }
     };
 
@@ -185,7 +185,7 @@ const AdminDashboard = () => {
         );
 
         if (response.data.success) {
-          setRecentReservations(response.data.data); // Set the recent reservations from the response
+          setRecentReservations(response.data.data);
         } else {
           console.error(
             "Failed to fetch recent reservations:",
@@ -197,7 +197,7 @@ const AdminDashboard = () => {
         console.error("Error fetching recent reservations:", error);
         setErrorReservations("Error fetching recent reservations.");
       } finally {
-        setLoadingReservations(false); // Set loading to false after fetching
+        setLoadingReservations(false);
       }
     };
 
