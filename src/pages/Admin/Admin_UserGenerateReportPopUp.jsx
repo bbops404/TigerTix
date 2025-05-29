@@ -20,18 +20,16 @@ const AdminUserGenerateReport = ({ isOpen, onClose, visibleRows }) => {
       const token = sessionStorage.getItem("authToken");
 
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/admin/generate-user-report`,
+        `${import.meta.env.VITE_API_URL}/api/admin/generate-user-report`,
         {
           columns: selectedColumns,
-          rows: visibleRows, // Pass visible rows to the backend
-        }, // Request body
+        },
         {
-          withCredentials: true, // Ensures cookies are sent (if applicable)
+          withCredentials: true,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          responseType: "blob", // Ensures the response is treated as a binary file
         }
       );
 

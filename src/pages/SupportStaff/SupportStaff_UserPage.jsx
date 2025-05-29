@@ -319,7 +319,7 @@ const SupportStaff_UserPage = () => {
     setGlobalFilter(searchTerm);
   }, [searchTerm]);
 
-  const handleDeleteUser = async () => {
+  const handleDeleteUsers = async () => {
     try {
       const token = sessionStorage.getItem("authToken");
 
@@ -329,16 +329,14 @@ const SupportStaff_UserPage = () => {
       }
 
       const response = await axios.delete(
-        `${import.meta.env.VITE_API_URL}/admin/users/delete`, // Updated URL
+        `${import.meta.env.VITE_API_URL}/api/admin/users/delete`,
         {
           withCredentials: true,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          data: {
-            ids: selectedUsers,
-          },
+          data: { userIds: selectedUsers },
         }
       );
 
@@ -365,7 +363,7 @@ const SupportStaff_UserPage = () => {
       try {
         const token = sessionStorage.getItem("authToken");
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/admin/users`, // Updated URL
+          `${import.meta.env.VITE_API_URL}/api/admin/users`,
           {
             withCredentials: true,
             headers: {
@@ -607,7 +605,7 @@ const SupportStaff_UserPage = () => {
       <DeleteUserModal
         isOpen={showDeleteModal}
         onClose={closeDeleteModal}
-        onConfirm={handleDeleteUser}
+        onConfirm={handleDeleteUsers}
       />
       <SuccessModal isOpen={showSuccessModal} onClose={closeSuccessModal} />
 

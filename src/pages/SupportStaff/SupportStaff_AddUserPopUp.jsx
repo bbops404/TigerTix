@@ -77,25 +77,23 @@ const SupportStaff_AddUserPopUp = ({ showPopup, togglePopup }) => {
     setConfirmModalOpen(true);
   };
 
-  const handleConfirm = async () => {
-    setConfirmModalOpen(false);
-
+  const handleAddUser = async () => {
     try {
-      // Make a POST request to the backend
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/admin/users/add`,
+        `${import.meta.env.VITE_API_URL}/api/admin/users/add`,
         {
+          username,
           email,
+          password,
           first_name: firstName,
           last_name: lastName,
-          username,
           role,
         },
         {
-          withCredentials: true, // ✅ Ensures cookies are sent (if applicable)
+          withCredentials: true,
           headers: {
-            Authorization: `Bearer ${token}`, // ✅ Proper placement of the token
-            "Content-Type": "application/json", // ✅ Explicitly setting content type
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         }
       );
@@ -207,7 +205,7 @@ const SupportStaff_AddUserPopUp = ({ showPopup, togglePopup }) => {
         <AddUserModal
           isOpen={isConfirmModalOpen}
           onClose={() => setConfirmModalOpen(false)}
-          onConfirm={handleConfirm}
+          onConfirm={handleAddUser}
         />
         <SuccessModal
           isOpen={isSuccessModalOpen}
