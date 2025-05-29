@@ -1,10 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
-import { FaUser, FaBell, FaSignOutAlt, FaChevronDown } from "react-icons/fa";
+import { FaUser, FaBell, FaSignOutAlt, FaChevronDown, FaBars, FaTimes } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import axios from "axios"; // Added missing axios import
 import tigertix_logo from "../assets/tigertix_logo.png";
-
-import { FaBars, FaTimes } from "react-icons/fa";
 
 import { handleApiError } from "../utils/apiErrorHandler";
 
