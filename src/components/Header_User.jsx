@@ -1,14 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
-import { FaUser, FaSignOutAlt, FaBars } from "react-icons/fa";
+
+import { FaUser, FaBell, FaSignOutAlt, FaChevronDown, FaBars, FaTimes } from "react-icons/fa";
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 import tigertix_logo from "../assets/tigertix_logo.png";
-
-
-import { FaBars, FaTimes } from "react-icons/fa";
-
-
-import { handleApiError } from "../utils/apiErrorHandler";
 
 
 const Header_User = () => {
