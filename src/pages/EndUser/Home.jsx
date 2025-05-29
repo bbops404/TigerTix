@@ -180,7 +180,7 @@ function Carousel({ scrollToSection, ticketedRef, comingSoonRef, freeEventsRef }
             {/* Event Links */}
       <div className="absolute top-5 left-1/2 transform -translate-x-1/2 z-10 flex flex-wrap gap-6 md:gap-10 items-center justify-center w-[95vw] max-w-3xl px-2">
         <span
-          className="text-base md:text-lg font-semibold text-[#F09C32] hover:text-white transition-colors duration-200 cursor-pointer underline-offset-4 hover:underline whitespace-nowrap"
+          className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-[#F09C32] hover:text-white transition-colors duration-200 cursor-pointer underline-offset-4 hover:underline whitespace-nowrap"
           onClick={() => scrollToSection(ticketedRef)}
           tabIndex={0}
           role="link"
@@ -188,7 +188,7 @@ function Carousel({ scrollToSection, ticketedRef, comingSoonRef, freeEventsRef }
           Ticketed Events
         </span>
         <span
-          className="text-base md:text-lg font-semibold text-[#F09C32] hover:text-white transition-colors duration-200 cursor-pointer underline-offset-4 hover:underline whitespace-nowrap"
+          className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-[#F09C32] hover:text-white transition-colors duration-200 cursor-pointer underline-offset-4 hover:underline whitespace-nowrap"
           onClick={() => scrollToSection(comingSoonRef)}
           tabIndex={0}
           role="link"
@@ -196,7 +196,7 @@ function Carousel({ scrollToSection, ticketedRef, comingSoonRef, freeEventsRef }
           Coming Soon Events
         </span>
         <span
-          className="text-base md:text-lg font-semibold text-[#F09C32] hover:text-white transition-colors duration-200 cursor-pointer underline-offset-4 hover:underline whitespace-nowrap"
+          className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-[#F09C32] hover:text-white transition-colors duration-200 cursor-pointer underline-offset-4 hover:underline whitespace-nowrap"
           onClick={() => scrollToSection(freeEventsRef)}
           tabIndex={0}
           role="link"
