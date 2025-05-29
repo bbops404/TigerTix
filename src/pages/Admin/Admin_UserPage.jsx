@@ -319,7 +319,7 @@ const Admin_UserPage = () => {
       }
 
       const response = await axios.delete(
-        `${import.meta.env.VITE_API_URL}/admin/users/delete`,
+        `${import.meta.env.VITE_API_URL}/api/admin/users/delete`,
         {
           withCredentials: true,
           headers: {
@@ -353,7 +353,7 @@ const Admin_UserPage = () => {
       try {
         const token = sessionStorage.getItem("authToken");
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/admin/users`,
+          `${import.meta.env.VITE_API_URL}/api/admin/users`,
           {
             withCredentials: true,
             headers: {

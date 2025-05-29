@@ -363,6 +363,19 @@ const Reservation = () => {
       }
     }
 
+    // Check for duplicate emails (including user's own email)
+    const emailSet = new Set();
+    emailSet.add(user?.email?.toLowerCase() || emails[0].toLowerCase());
+
+    for (let i = 1; i < ticketCount; i++) {
+      const email = emails[i].toLowerCase();
+      if (emailSet.has(email)) {
+        setValidationError("Duplicate email addresses are not allowed");
+        return false;
+      }
+      emailSet.add(email);
+    }
+
     // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     for (let i = 1; i < ticketCount; i++) {
@@ -405,19 +418,21 @@ const Reservation = () => {
     setValidationError("Validating emails...");
 
     const isValid = await validateForm();
-    if (isValid) {
-      // Store current form state to detect changes
-      setFormState({
-        seatType,
-        ticketCount,
-        emails: [...emails],
-        claimingSlot,
-      });
-
-      // Show the summary
-      setShowSummary(true);
-      setValidationError("");
+    if (!isValid) {
+      return; // Stop here if validation fails
     }
+
+    // Store current form state to detect changes
+    setFormState({
+      seatType,
+      ticketCount,
+      emails: [...emails],
+      claimingSlot,
+    });
+
+    // Show the summary
+    setShowSummary(true);
+    setValidationError("");
   };
 
   const handleSummaryConfirmation = () => {
@@ -645,6 +660,7 @@ const Reservation = () => {
               handleAddReservation={handleAddReservation}
               userEmail={user?.email || emails[0]}
               validationError={validationError}
+              setValidationError={setValidationError}
               maxTickets={maxPerUser}
             />
           </div>

@@ -903,15 +903,10 @@ const PublishEventContainer = () => {
       setIsSubmitting(true);
 
       // CRITICAL: Determine if we're editing an existing event or creating a new one
-      const isEditingExistingEvent = !!(
-        draftData.eventDetails?.eventId || params.id
-      );
+      const isEditingExistingEvent = !!(draftData.eventDetails?.eventId || params.id);
       const eventId = draftData.eventDetails?.eventId || params.id;
 
-      console.log(
-        `${isEditingExistingEvent ? "Updating" : "Creating"} draft with data:`,
-        draftData
-      );
+      console.log(`${isEditingExistingEvent ? "Updating" : "Creating"} draft with data:`, draftData);
       console.log("Event ID:", eventId);
 
       // Process image if it exists
@@ -935,10 +930,7 @@ const PublishEventContainer = () => {
             s3Key = imageResponse.s3Key;
           }
         } catch (imageError) {
-          console.warn(
-            "Image upload failed, proceeding without image:",
-            imageError
-          );
+          console.warn("Image upload failed, proceeding without image:", imageError);
         }
       } else if (draftData.eventDetails?.imagePreview) {
         // If we have imagePreview but no new image, use the existing image
@@ -946,44 +938,24 @@ const PublishEventContainer = () => {
         s3Key = draftData.eventDetails.s3Key;
       }
 
-      // Handle venue map upload
+      // Process venue map if it exists
       if (draftData.eventDetails?.venueMap) {
-        console.log("Preparing to upload venue map...");
-        if (draftData.eventDetails.venueMap.size > 5 * 1024 * 1024) {
-          console.log("Venue map too large, compressing...");
-          draftData.eventDetails.venueMap = await compressImage(
-            draftData.eventDetails.venueMap
+        try {
+          const oldMapKey = draftData.eventDetails.venueMapS3Key;
+          const mapResponse = await eventService.uploadVenueMap(
+            draftData.eventDetails.venueMap,
+            oldMapKey
           );
-        }
-
-        if (draftData.eventDetails.venueMap instanceof File) {
-          try {
-            console.log(
-              "Valid venue map file detected, uploading:",
-              draftData.eventDetails.venueMap.name
-            );
-
-            const oldMapKey = draftData.eventDetails.venueMapS3Key;
-            const mapResponse = await eventService.uploadVenueMap(
-              draftData.eventDetails.venueMap,
-              oldMapKey
-            );
-
-            console.log("Venue map upload response:", mapResponse);
-
-            if (mapResponse && mapResponse.imageUrl) {
-              console.log(
-                "Venue map uploaded successfully, got URL:",
-                mapResponse.imageUrl
-              );
-              venueMapUrl = mapResponse.imageUrl;
-              venueMapS3Key = mapResponse.s3Key;
-            }
-          } catch (mapError) {
-            console.error("Venue map upload failed:", mapError);
-            toast.warning("Could not upload venue map. Proceeding without it.");
+          if (mapResponse && mapResponse.imageUrl) {
+            venueMapUrl = mapResponse.imageUrl;
+            venueMapS3Key = mapResponse.s3Key;
           }
+        } catch (mapError) {
+          console.warn("Venue map upload failed, proceeding without map:", mapError);
         }
+      } else if (draftData.eventDetails?.venueMapPreview) {
+        venueMapUrl = draftData.eventDetails.venueMapPreview;
+        venueMapS3Key = draftData.eventDetails.venueMapS3Key;
       }
 
       // Prepare draft event payload with null for empty time fields
@@ -992,12 +964,8 @@ const PublishEventContainer = () => {
         details: draftData.eventDetails?.eventDescription || "",
         event_date: draftData.eventDetails?.eventDate,
         // Only include time fields if they have a value
-        ...(draftData.eventDetails?.startTime
-          ? { event_time: draftData.eventDetails.startTime }
-          : {}),
-        ...(draftData.eventDetails?.endTime
-          ? { event_end_time: draftData.eventDetails.endTime }
-          : {}),
+        ...(draftData.eventDetails?.startTime ? { event_time: draftData.eventDetails.startTime } : {}),
+        ...(draftData.eventDetails?.endTime ? { event_end_time: draftData.eventDetails.endTime } : {}),
         venue: draftData.eventDetails?.venue,
         category: draftData.eventDetails?.eventCategory,
         event_type: draftData.eventDetails?.eventType || "ticketed",
@@ -1011,10 +979,7 @@ const PublishEventContainer = () => {
         visibility: "unpublished",
       };
 
-      console.log(
-        `${isEditingExistingEvent ? "Updating" : "Creating"} draft payload:`,
-        draftPayload
-      );
+      console.log(`${isEditingExistingEvent ? "Updating" : "Creating"} draft payload:`, draftPayload);
 
       let response;
       // Use the correct method based on whether we're editing or creating
@@ -1026,11 +991,54 @@ const PublishEventContainer = () => {
         response = await eventService.events.createDraft(draftPayload);
       }
 
+      // If we have ticket details and the event was created/updated successfully
+      if (draftData.ticketDetails && response.data) {
+        const finalEventId = response.data.event_id || response.data.id;
+        
+        try {
+          // Delete existing tickets if editing
+          if (isEditingExistingEvent) {
+            const existingTickets = await eventService.tickets.getByEventId(eventId);
+            if (existingTickets && existingTickets.data) {
+              for (const ticket of existingTickets.data) {
+                await eventService.tickets.delete(ticket.id);
+              }
+            }
+          }
+
+          // Create new tickets
+          if (draftData.ticketDetails.tierType === "freeSeating") {
+            await eventService.tickets.createBulk(finalEventId, [{
+              seat_type: "Free Seating",
+              ticket_type: "Free Seating",
+              price: parseFloat(draftData.ticketDetails.freeSeating.price || 0),
+              total_quantity: parseInt(draftData.ticketDetails.freeSeating.numberOfTickets || 0),
+              max_per_user: parseInt(draftData.ticketDetails.freeSeating.maxPerPerson || 1),
+            }]);
+          } else if (draftData.ticketDetails.ticketTiers) {
+            const ticketsData = Object.entries(draftData.ticketDetails.ticketTiers)
+              .filter(([_, tierData]) => tierData.checked)
+              .map(([tierName, tierData]) => ({
+                seat_type: tierName,
+                ticket_type: "Reserved",
+                price: parseFloat(tierData.price || 0),
+                total_quantity: parseInt(tierData.number || 0),
+                max_per_user: parseInt(tierData.maxPerPerson || 1),
+              }));
+
+            if (ticketsData.length > 0) {
+              await eventService.tickets.createBulk(finalEventId, ticketsData);
+            }
+          }
+        } catch (error) {
+          console.error("Error handling tickets:", error);
+          toast.warning("Event saved but there was an issue setting up tickets");
+        }
+      }
+
       // Show success toast
       toast.success(
-        isEditingExistingEvent
-          ? "Draft updated successfully"
-          : "Draft saved successfully",
+        isEditingExistingEvent ? "Draft updated successfully" : "Draft saved successfully",
         {
           position: "bottom-right",
           autoClose: 3000,

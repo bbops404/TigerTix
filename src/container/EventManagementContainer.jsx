@@ -107,9 +107,23 @@ const EventsManagementContainer = () => {
           `${event.reservation_end_date}T${event.reservation_end_time}`
         ) < now;
 
-      // If display period has ended, move to COMPLETED regardless of status
+      // If display period has ended, unpublish the event
       if (hasDisplayEnded) {
-        categorized.COMPLETED.push(mappedEvent);
+        // Only unpublish if the event is not already closed
+        if (event.status !== "closed") {
+          categorized.UNPUBLISHED.push(mappedEvent);
+        } else {
+          // If it's already closed, keep it in its current published category
+          if (event.visibility === "published") {
+            if (isEventDatePassed) {
+              categorized.COMPLETED.push(mappedEvent);
+            } else {
+              categorized.SCHEDULED.push(mappedEvent);
+            }
+          } else {
+            categorized.UNPUBLISHED.push(mappedEvent);
+          }
+        }
         return;
       }
 
@@ -121,7 +135,7 @@ const EventsManagementContainer = () => {
           event.status === "scheduled"
         ) {
           categorized["COMING SOON"].push(mappedEvent);
-          return; // Skip further categorization
+          return;
         }
 
         // Other published events based on status
@@ -130,12 +144,12 @@ const EventsManagementContainer = () => {
         } else if (event.status === "scheduled") {
           categorized.SCHEDULED.push(mappedEvent);
         } else if (event.status === "closed") {
-          // Check if it's completed (event date passed or reservation ended)
-          if (isEventDatePassed || isReservationEnded) {
+          // If event date has passed, move to COMPLETED
+          if (isEventDatePassed) {
             categorized.COMPLETED.push(mappedEvent);
           } else {
-            // Closed but not completed events go to SCHEDULED
-            categorized.SCHEDULED.push(mappedEvent);
+            // Move closed events to PUBLISHED instead of SCHEDULED
+            categorized.OPEN.push(mappedEvent);
           }
         } else if (event.status === "cancelled") {
           categorized.CANCELLED.push(mappedEvent);
@@ -146,11 +160,10 @@ const EventsManagementContainer = () => {
         if (event.status === "draft") {
           categorized.DRAFT.push(mappedEvent);
         } else if (event.status === "closed") {
-          // Check if it's completed (event date passed or reservation ended)
-          if (isEventDatePassed || isReservationEnded) {
+          // If event date has passed, move to COMPLETED
+          if (isEventDatePassed) {
             categorized.COMPLETED.push(mappedEvent);
           } else {
-            // Unpublished but not draft or completed
             categorized.UNPUBLISHED.push(mappedEvent);
           }
         } else {

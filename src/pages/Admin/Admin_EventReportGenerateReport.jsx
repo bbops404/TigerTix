@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
-
 import axios from "axios";
-import adminReservationService from ".././Services/adminReservationService";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const Admin_EventReportGenerateReport = ({
   isOpen,
@@ -42,9 +42,13 @@ const Admin_EventReportGenerateReport = ({
 
       setLoading(true);
       try {
-        // Fetch event details
-        const eventResponse = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/events/${selectedEventId}`,
+        // Fetch event report data
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/admin/generate-event-report`,
+          {
+            eventId: selectedEventId,
+            columns: Object.keys(selectedColumns).filter(col => selectedColumns[col])
+          },
           {
             withCredentials: true,
             headers: {
@@ -54,23 +58,16 @@ const Admin_EventReportGenerateReport = ({
           }
         );
 
-        // Fetch reservations for this event
-        const reservationsResponse = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/reservations/${selectedEventId}`,
-          {
-            withCredentials: true,
-            headers: {
-              Authorization: `Bearer ${sessionStorage.getItem("authToken")}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        setEventDetails(eventResponse.data.data);
-        setReservations(reservationsResponse.data.data);
+        if (response.data && response.data.success) {
+          setEventDetails(response.data.data.event);
+          setReservations(response.data.data.reportData);
+        } else {
+          throw new Error(response.data.message || "Failed to fetch event report data");
+        }
       } catch (err) {
-        console.error("Error fetching event details or reservations:", err);
-        setError("Failed to fetch event details or reservations");
+        console.error("Error fetching event report data:", err);
+        setError("Failed to fetch event report data");
+        setReservations([]);
       } finally {
         setLoading(false);
       }
@@ -79,7 +76,7 @@ const Admin_EventReportGenerateReport = ({
     if (isOpen && selectedEventId) {
       fetchEventAndReservations();
     }
-  }, [isOpen, selectedEventId]);
+  }, [isOpen, selectedEventId, selectedColumns]);
 
   // Toggle column selection
   const toggleColumnSelection = (column) => {
@@ -90,84 +87,60 @@ const Admin_EventReportGenerateReport = ({
   };
 
   // Generate PDF
-  const generatePDF = () => {
-    // Create a new PDF document
-    const doc = new PDFDocument({ margin: 50 });
-    const stream = doc.pipe(blobStream());
+  const generatePDF = async () => {
+    try {
+      // Create a new PDF document
+      const doc = new jsPDF();
 
-    // PDF Header
-    doc.fontSize(16).text("Event Reservations Report", { align: "center" });
-    doc.moveDown();
+      // Add title
+      doc.setFontSize(16);
+      doc.text("Event Reservations Report", 14, 15);
 
-    // Event Details
-    if (eventDetails) {
-      doc
-        .fontSize(12)
-        .text(`Event: ${eventDetails.name}`, { align: "left" })
-        .text(`Date: ${eventDetails.event_date || "TBD"}`, { align: "left" })
-        .text(`Venue: ${eventDetails.venue || "N/A"}`, { align: "left" })
-        .moveDown();
+      // Add event details
+      if (eventDetails) {
+        doc.setFontSize(12);
+        doc.text(`Event: ${eventDetails.name}`, 14, 25);
+        doc.text(`Date: ${eventDetails.event_date || "TBD"}`, 14, 32);
+        doc.text(`Venue: ${eventDetails.venue || "N/A"}`, 14, 39);
+      }
+
+      // Prepare table data
+      const tableColumn = Object.keys(selectedColumns)
+        .filter((col) => selectedColumns[col])
+        .map((col) => columnOptions[col]);
+
+      // Ensure reservations is an array
+      const reservationsArray = Array.isArray(reservations) ? reservations : [];
+      
+      const tableRows = reservationsArray.map((reservation) => {
+        return Object.keys(selectedColumns)
+          .filter((col) => selectedColumns[col])
+          .map((col) => reservation[col] || "");
+      });
+
+      // Add the table
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 45,
+        theme: "grid",
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+        },
+        headStyles: {
+          fillColor: [255, 171, 64],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+        },
+      });
+
+      // Save the PDF
+      doc.save(`event-report-${eventDetails?.name || "report"}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      setError("Failed to generate PDF report");
     }
-
-    // Table Header
-    const tableHeaders = Object.keys(selectedColumns)
-      .filter((col) => selectedColumns[col])
-      .map((col) => columnOptions[col]);
-
-    // Draw table headers
-    doc.fontSize(10);
-    tableHeaders.forEach((header, i) => {
-      doc.text(header, 50 + i * 100, doc.y, { width: 100, align: "left" });
-    });
-    doc.moveDown();
-
-    // Draw table rows
-    reservations.forEach((reservation) => {
-      const rowData = tableHeaders.map((header) => {
-        switch (header) {
-          case "Reservation ID":
-            return reservation.reservation_id;
-          case "Name":
-            return `${reservation.first_name} ${reservation.last_name}`;
-          case "Ticket Tier":
-            return reservation.ticket_type;
-          case "Claiming Date":
-            return reservation.claiming_date;
-          case "Claiming Time":
-            return `${reservation.start_time} - ${reservation.end_time}`;
-          case "Amount":
-            return `₱${parseFloat(reservation.amount || 0).toLocaleString()}`;
-          case "Claiming Status":
-            return reservation.reservation_status;
-          default:
-            return "N/A";
-        }
-      });
-
-      rowData.forEach((cell, i) => {
-        doc.text(cell, 50 + i * 100, doc.y, { width: 100, align: "left" });
-      });
-      doc.moveDown();
-    });
-
-    // Finalize PDF
-    doc.end();
-
-    // Handle the generated PDF
-    stream.on("finish", function () {
-      const blob = stream.toBlob("application/pdf");
-      const url = URL.createObjectURL(blob);
-
-      // Create a link element and trigger download
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `Event_Reservations_${
-        eventDetails?.name || "Report"
-      }.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
   };
 
   if (!isOpen) return null;
@@ -203,7 +176,7 @@ const Admin_EventReportGenerateReport = ({
       <div className="bg-white p-6 rounded-2xl shadow-lg w-96 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-800">
-            Generate Event Reservations Summary
+            Generate Event Report
           </h2>
           <button
             onClick={onClose}
@@ -216,7 +189,7 @@ const Admin_EventReportGenerateReport = ({
         {/* Event Details */}
         {eventDetails && (
           <div className="bg-gray-100 p-4 rounded-lg mb-4">
-            <h3 className="font-semibold text-lg mb-2">{eventDetails.name}</h3>
+            <h3 className="font-semibold text-lg mb-2 text-gray-800">{eventDetails.name}</h3>
             <p className="text-sm text-gray-600">
               Date: {eventDetails.event_date || "TBD"}
             </p>
@@ -228,7 +201,7 @@ const Admin_EventReportGenerateReport = ({
 
         {/* Column Selection */}
         <div className="space-y-2 mb-4">
-          <h3 className="font-semibold text-gray-700 mb-2">
+          <h3 className="font-semibold text-gray-800 mb-2">
             Select Columns to Include
           </h3>
           <div className="grid grid-cols-2 gap-2">
@@ -241,7 +214,7 @@ const Admin_EventReportGenerateReport = ({
                   type="checkbox"
                   checked={selectedColumns[key]}
                   onChange={() => toggleColumnSelection(key)}
-                  className="accent-orange-500"
+                  className="accent-[#FFAB40]"
                 />
                 <span>{label}</span>
               </label>
@@ -256,11 +229,16 @@ const Admin_EventReportGenerateReport = ({
 
         {/* Generate Button */}
         <button
+          className="mt-4 w-full py-2 font-bold rounded-full text-[#1E1E1E] bg-[#FFAB40] hover:bg-[#E09933] transition-colors"
           onClick={generatePDF}
-          disabled={reservations.length === 0}
-          className="mt-4 w-full py-2 font-bold rounded-full text-white bg-gradient-to-r from-[#FFAB40] to-[#CD6905] transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Generate PDF Report
+          Generate Report
+        </button>
+        <button
+          className="mt-2 w-full py-2 rounded-full bg-gray-200 text-gray-800 font-bold hover:bg-gray-300 transition-colors"
+          onClick={onClose}
+        >
+          Back
         </button>
       </div>
     </div>

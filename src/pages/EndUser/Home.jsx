@@ -13,12 +13,17 @@ const ViolationWarningModal = ({ violationCount, onClose }) => {
   if (!violationCount || violationCount < 1) return null;
 
   const handleDontShowAgain = () => {
+    // Store both the dismissal state and a timestamp
     localStorage.setItem("violationWarningDismissed", "true");
+    localStorage.setItem("violationWarningDismissedAt", Date.now().toString());
+    // Clear the last shown timestamp to ensure it doesn't interfere
+    localStorage.removeItem("violationWarningLastShown");
     onClose();
   };
 
   const handleRemindMeLater = () => {
-    // simply close; key stays untouched
+    // Store the current timestamp when user clicks "Remind Me Later"
+    localStorage.setItem("violationWarningLastShown", Date.now().toString());
     onClose();
   };
 
@@ -427,17 +432,30 @@ function Home() {
       setUser(parsed);
 
       const dismissed = localStorage.getItem("violationWarningDismissed");
-      console.log("Violation dismissed status:", dismissed); // Debug log
-      console.log("User violation count:", parsed.violation_count); // Debug log
+      const dismissedAt = localStorage.getItem("violationWarningDismissedAt");
+      const lastShown = localStorage.getItem("violationWarningLastShown");
+      const now = Date.now();
+      
+      // Check if warning should be shown based on:
+      // 1. User has violations
+      // 2. Warning hasn't been permanently dismissed
+      // 3. Either warning was never shown before OR it's been more than 24 hours since last shown
+      const shouldShowWarning = parsed && 
+        parsed.violation_count >= 1 && 
+        dismissed !== "true" && 
+        (!lastShown || (now - parseInt(lastShown)) > 24 * 60 * 60 * 1000);
 
-      if (parsed && parsed.violation_count >= 1 && dismissed !== "true") {
-        console.log("Should show violation warning"); // Debug log
+      if (shouldShowWarning) {
+        console.log("Showing violation warning");
         setShowViolationWarning(true);
       } else {
         console.log("Not showing violation warning because:", {
           hasUser: !!parsed,
           violationCount: parsed?.violation_count,
           isDismissed: dismissed === "true",
+          dismissedAt: dismissedAt ? new Date(parseInt(dismissedAt)).toLocaleString() : "never",
+          lastShown: lastShown ? new Date(parseInt(lastShown)).toLocaleString() : "never",
+          timeSinceLastShown: lastShown ? `${Math.round((now - parseInt(lastShown)) / (60 * 60 * 1000))} hours ago` : "N/A"
         });
       }
     } catch (error) {
@@ -544,7 +562,7 @@ function Home() {
         <EventSection
           title="TICKETED EVENTS"
           description="Events where tickets must be reserved in advance. Ensure your spot by booking a ticket."
-          events={mapEventData(ticketedEvents, "Reserve Now", "/event-ticketed")}
+          events={mapEventData(ticketedEvents, "Reserve Now", "/event-ticketed-enduser")}
           loading={loading.ticketed}
         />
       </div>
@@ -557,7 +575,7 @@ function Home() {
           events={mapEventData(
             comingSoonEvents,
             "View Details",
-            "/event-coming-soon"
+            "/event-coming-soon-enduser"
           )}
           loading={loading.comingSoon}
         />
@@ -568,7 +586,7 @@ function Home() {
         <EventSection
           title="FREE EVENTS"
           description="UAAP or other IPEA Events that are open to all without the need for a reservation or ticket. Simply show up!"
-          events={mapEventData(freeEvents, "View Details", "/event-free")}
+          events={mapEventData(freeEvents, "View Details", "/event-free-enduser")}
           loading={loading.free}
         />
       </div>

@@ -7,14 +7,14 @@ import axios from "axios";
 import Header_User from "../../components/Header_User";
 import ChangePasswordPopup from "./ChangePasswordPopup"; // Assuming you have this component
 
-// Label component for consistent styling
+// Label component for consistent styling with improved responsiveness
 const Label = ({ label, value }) => {
   return (
-    <div className="font-Poppins w-full grid grid-cols-[20%_80%] items-start py-2 gap-2 font-semibold">
-      <label className="block text-gray-700 text-left font-semibold mb-1">
+    <div className="font-Poppins w-full flex flex-col sm:grid sm:grid-cols-[30%_70%] lg:grid-cols-[25%_75%] items-start py-3 gap-2 font-semibold">
+      <label className="block text-gray-700 text-left font-semibold mb-1 text-sm sm:text-base">
         {label}
       </label>
-      <div className="font-Poppins bg-gray-100 text-gray-900 text-left p-2 rounded-lg shadow-md">
+      <div className="font-Poppins bg-gray-100 text-gray-900 text-left p-3 rounded-lg shadow-md w-full text-sm sm:text-base break-words">
         {value}
       </div>
     </div>
@@ -72,7 +72,7 @@ const MyProfile = () => {
       <div className="flex flex-col min-h-screen bg-[#202020]">
         <Header_User />
         <div className="flex justify-center items-center flex-grow">
-          <p className="text-white">Loading profile...</p>
+          <p className="text-white text-center px-4">Loading profile...</p>
         </div>
       </div>
     );
@@ -84,7 +84,7 @@ const MyProfile = () => {
       <div className="flex flex-col min-h-screen bg-[#202020]">
         <Header_User />
         <div className="flex justify-center items-center flex-grow">
-          <p className="text-red-500">Error: {error}</p>
+          <p className="text-red-500 text-center px-4">Error: {error}</p>
         </div>
       </div>
     );
@@ -95,34 +95,36 @@ const MyProfile = () => {
       {/* Header */}
       <Header_User />
 
-      {/* Back button */}
+      {/* Back button - Improved positioning for mobile */}
       <button
         onClick={() => navigate("/home")}
-        className="absolute top-[100px] left-4 text-white font-Poppins font-bold"
+        className="absolute top-[80px] sm:top-[100px] left-4 text-white font-Poppins font-bold z-20"
       >
-        <IoChevronBackOutline className="text-3xl" />
+        <IoChevronBackOutline className="text-2xl sm:text-3xl" />
       </button>
 
-      {/* Main content area */}
-      <div className="container mx-auto px-4 pt-20 pb-16">
-        {/* Profile container with avatar */}
-        <div className="relative flex flex-col items-center mt-10">
-            {/* Avatar circle */}
-            <div className="absolute -top-16 w-40 h-40 sm:w-48 sm:h-48 md:w-60 md:h-60 border-4 border-[#FFAB40] bg-white rounded-full flex items-center justify-center shadow-lg z-10">
-              <VscAccount size={120} className="text-[#FFAB40] sm:size-[150px] md:size-[200px]" />
-            </div>
+      {/* Main content area - Better padding and spacing */}
+      <div className="container mx-auto px-3 sm:px-4 lg:px-6 pt-16 sm:pt-20 pb-8 sm:pb-16">
+        {/* Profile container with avatar - Improved responsive layout */}
+        <div className="relative flex flex-col items-center mt-6 sm:mt-10">
+          {/* Avatar circle - Better responsive sizing */}
+          <div className="absolute -top-12 sm:-top-16 w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 border-4 border-[#FFAB40] bg-white rounded-full flex items-center justify-center shadow-lg z-10">
+            <VscAccount 
+              className="text-[#FFAB40] w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24" 
+            />
+          </div>
 
-          {/* Profile card */}
-          <div className="w-full sm:w-11/12 mt-32 bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="pt-12 flex flex-col md:flex-row">
-              {/* Left sidebar */}
-              <div className="w-full md:w-[30%] px-4 sm:px-6 py-4 sm:py-6">
-                <div className="flex flex-col gap-4 sm:gap-6">
-                  <button className="font-Poppins w-full py-2 px-4 sm:px-5 justify-center cursor-pointer transition duration-300 flex rounded-full bg-[#FFAB40] shadow-md">
+          {/* Profile card - Improved responsive design */}
+          <div className="w-full max-w-6xl mt-16 sm:mt-20 md:mt-24 lg:mt-32 bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="pt-8 sm:pt-12 flex flex-col lg:flex-row">
+              {/* Left sidebar - Stack on mobile, side-by-side on large screens */}
+              <div className="w-full lg:w-[30%] px-4 sm:px-6 py-4 sm:py-6 border-b lg:border-b-0 lg:border-r border-gray-200">
+                <div className="flex flex-row lg:flex-col gap-2 sm:gap-4 lg:gap-6">
+                  <button className="font-Poppins flex-1 lg:w-full py-2 sm:py-3 px-3 sm:px-4 lg:px-5 justify-center cursor-pointer transition duration-300 flex rounded-full bg-[#FFAB40] shadow-md text-sm sm:text-base font-medium">
                     Account Details
                   </button>
                   <button
-                    className="font-Poppins w-full py-2 px-4 sm:px-5 justify-center cursor-pointer hover:bg-[#FFAB40] transition duration-300 flex rounded-full bg-[#F1F1F1] shadow-md"
+                    className="font-Poppins flex-1 lg:w-full py-2 sm:py-3 px-3 sm:px-4 lg:px-5 justify-center cursor-pointer hover:bg-[#FFAB40] transition duration-300 flex rounded-full bg-[#F1F1F1] shadow-md text-sm sm:text-base font-medium"
                     onClick={navigateToReservations}
                   >
                     My Reservations
@@ -130,10 +132,10 @@ const MyProfile = () => {
                 </div>
               </div>
 
-              {/* Right content area */}
-              <div className="w-full md:w-[70%] px-6 py-6">
+              {/* Right content area - Better spacing and layout */}
+              <div className="w-full lg:w-[70%] px-4 sm:px-6 py-4 sm:py-6">
                 <div className="h-full flex flex-col justify-between">
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <Label
                       label="Name:"
                       value={`${userDetails.first_name} ${userDetails.last_name}`}
@@ -155,9 +157,10 @@ const MyProfile = () => {
                       }
                     />
                   </div>
-                  <div className="flex justify-end mt-6">
+                  {/* Change password button - Better mobile layout */}
+                  <div className="flex justify-center sm:justify-end mt-6 sm:mt-8">
                     <button
-                      className="font-Poppins py-2 px-5 cursor-pointer hover:bg-[#FFD7A5] hover:text-[#333333] transition duration-300 flex rounded-full bg-[#333333] text-[#FFD7A5] shadow-md"
+                      className="font-Poppins w-full sm:w-auto py-2 sm:py-3 px-4 sm:px-5 cursor-pointer hover:bg-[#FFD7A5] hover:text-[#333333] transition duration-300 flex justify-center rounded-full bg-[#333333] text-[#FFD7A5] shadow-md text-sm sm:text-base font-medium"
                       onClick={toggleChangePasswordPopup}
                     >
                       Change Password

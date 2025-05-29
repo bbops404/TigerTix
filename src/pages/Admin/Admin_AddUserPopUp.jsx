@@ -81,7 +81,7 @@ const Admin_AddUserPopUp = ({ showPopup, togglePopup }) => {
     try {
       // Make a POST request to the backend
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/admin/users/add`,
+        `${import.meta.env.VITE_API_URL}/api/admin/users/add`,
         {
           email,
           first_name: firstName,

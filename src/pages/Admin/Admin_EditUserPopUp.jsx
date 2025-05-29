@@ -87,7 +87,7 @@ const Admin_EditUserPopUp = ({ showPopup, togglePopup, selectedUserIds }) => {
           // Update status for each user
           const token = sessionStorage.getItem("authToken"); //
           const statusResponse = await axios.put(
-            `${import.meta.env.VITE_API_URL}/admin/users/${userId}/status`,
+            `${import.meta.env.VITE_API_URL}/api/admin/users/${userId}/status`,
             { status: accountStatus.toLowerCase() },
             {
               withCredentials: true,
@@ -100,7 +100,7 @@ const Admin_EditUserPopUp = ({ showPopup, togglePopup, selectedUserIds }) => {
 
           // Update role for each user
           const roleResponse = await axios.put(
-            `${import.meta.env.VITE_API_URL}/admin/users/${userId}/role`,
+            `${import.meta.env.VITE_API_URL}/api/admin/users/${userId}/role`,
             { role: role.toLowerCase() },
             {
               withCredentials: true,

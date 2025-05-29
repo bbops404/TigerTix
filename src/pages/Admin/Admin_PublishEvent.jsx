@@ -77,7 +77,7 @@ const EventDetails = ({ onNext, initialData }) => {
   );
   const [eventDate, setEventDate] = useState(initialData?.eventDate || "");
   const [venue, setVenue] = useState(initialData?.venue || "");
-  const [customVenue, setCustomVenue] = useState("");
+  const [customVenue, setCustomVenue] = useState(initialData?.customVenue || "");
   const [startTime, setStartTime] = useState(initialData?.startTime || "");
   const [endTime, setEndTime] = useState(initialData?.endTime || ""); // End time is optional
   const [eventCategory, setEventCategory] = useState(
@@ -90,10 +90,12 @@ const EventDetails = ({ onNext, initialData }) => {
   const [imagePreview, setImagePreview] = useState(
     initialData?.imagePreview ? formatImageUrl(initialData.imagePreview) : null
   );
+  const [s3Key, setS3Key] = useState(initialData?.s3Key || null);
   const [venueMap, setVenueMap] = useState(initialData?.venueMap || null);
   const [venueMapPreview, setVenueMapPreview] = useState(
     initialData?.venueMapPreview ? formatImageUrl(initialData.venueMapPreview) : null
   );
+  const [venueMapS3Key, setVenueMapS3Key] = useState(initialData?.venueMapS3Key || null);
   const [errors, setErrors] = useState({});
   const [isImageHovered, setIsImageHovered] = useState(false);
   const [showMapPreview, setShowMapPreview] = useState(false);
@@ -119,7 +121,20 @@ const EventDetails = ({ onNext, initialData }) => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // If there's an existing image, we should delete it from S3
+      if (eventImage && s3Key) {
+        // Call the delete endpoint
+        eventService.deleteEventImage(s3Key)
+          .then(response => {
+            console.log("Old image deleted successfully");
+          })
+          .catch(error => {
+            console.error("Error deleting old image:", error);
+          });
+      }
+
       setEventImage(file);
+      setS3Key(null); // Reset s3Key since we have a new image that hasn't been uploaded yet
 
       // Create image preview
       const reader = new FileReader();
@@ -146,14 +161,13 @@ const EventDetails = ({ onNext, initialData }) => {
       }
 
       setVenueMap(file);
+      setVenueMapS3Key(null); // Reset s3Key since we have a new map that hasn't been uploaded yet
 
       // Create map preview
       const reader = new FileReader();
       reader.onloadend = () => {
         const preview = reader.result;
         setVenueMapPreview(preview);
-        // Also set the mapImage for consistency
-        setMapImage(preview);
       };
       reader.readAsDataURL(file);
     }
@@ -169,6 +183,10 @@ const EventDetails = ({ onNext, initialData }) => {
 
   const handleReplaceImageClick = () => {
     fileInputRef.current.click();
+  };
+
+  const handleReplaceMapClick = () => {
+    mapInputRef.current.click();
   };
 
   const handlePreviewMap = () => {
@@ -245,6 +263,7 @@ const EventDetails = ({ onNext, initialData }) => {
         eventType,
         eventImage,
         imagePreview,
+        s3Key,
         venueMap,
         venueMapPreview,
       };
@@ -424,7 +443,7 @@ const EventDetails = ({ onNext, initialData }) => {
                 <div className="flex flex-col space-y-2">
                   <div className="flex space-x-2">
                     <button
-                      onClick={handleMapUploadButtonClick}
+                      onClick={venueMap ? handleReplaceMapClick : handleMapUploadButtonClick}
                       className="bg-[#FFAB40] text-[#2E2E2E] text-xs font-semibold py-2 px-4 rounded-full hover:bg-[#FF9800] transition-colors duration-200 flex-1"
                     >
                       {venueMap ? 'Replace Map' : 'Upload Map'}
@@ -1929,6 +1948,16 @@ const ClaimingDetails = ({
     return claimingDateObj < eventDateObj;
   };
 
+  // Add validation for claiming time
+  const validateClaimingTime = (date, time) => {
+    if (!date || !time || !eventDate || !eventDetails?.startTime) return true;
+
+    const eventDateTime = new Date(`${eventDate}T${eventDetails.startTime}`);
+    const claimingDateTime = new Date(`${date}T${time}`);
+
+    return claimingDateTime < eventDateTime;
+  };
+
   // Add notification for invalid claiming date
   const getClaimingDateNotification = (claimingDate) => {
     if (!claimingDate || !eventDate) return null;
@@ -1996,12 +2025,13 @@ const ClaimingDetails = ({
   };
 
   // Check if there's already a claiming schedule with the same date and time
-  const isDuplicateSchedule = (date, startTime, endTime) => {
+  const isDuplicateSchedule = (date, startTime, endTime, venue) => {
     return claimingSummaries.some(
       (summary) =>
         summary.date === date &&
         summary.startTime === startTime &&
         summary.endTime === endTime &&
+        summary.venue === venue &&
         (!selectedSummary || summary.id !== selectedSummary.id)
     );
   };
@@ -2521,20 +2551,29 @@ const ClaimingDetails = ({
                       claimingStartTime &&
                       claimingEndTime
                     ) {
+                      // Validate claiming time
+                      if (!validateClaimingTime(claimingDate, claimingStartTime) || !validateClaimingTime(claimingDate, claimingEndTime)) {
+                        setErrors({
+                          ...errors,
+                          claimingTime: "Claiming time must be before the event time",
+                        });
+                        window.scrollTo(0, 0);
+                        return;
+                      }
+
                       // Check for duplicate schedules when editing
-                      const isDuplicate = claimingSummaries.some(
-                        (summary) =>
-                          summary.id !== selectedSummary.id &&
-                          summary.date === claimingDate &&
-                          summary.startTime === claimingStartTime &&
-                          summary.endTime === claimingEndTime
+                      const isDuplicate = isDuplicateSchedule(
+                        claimingDate,
+                        claimingStartTime,
+                        claimingEndTime,
+                        claimingVenue
                       );
 
                       if (isDuplicate) {
                         setErrors({
                           ...errors,
                           duplicateSchedule:
-                            "A claiming schedule with the same date and time already exists",
+                            "A claiming schedule with the same date, time, and venue already exists",
                         });
                         window.scrollTo(0, 0);
                         return;
@@ -2588,18 +2627,29 @@ const ClaimingDetails = ({
                         setDateList([...dateList, claimingDate]);
                       }
 
+                      // Validate claiming time
+                      if (!validateClaimingTime(dateToUse, claimingStartTime) || !validateClaimingTime(dateToUse, claimingEndTime)) {
+                        setErrors({
+                          ...errors,
+                          claimingTime: "Claiming time must be before the event time",
+                        });
+                        window.scrollTo(0, 0);
+                        return;
+                      }
+
                       // Check for duplicate schedules
                       const isDuplicate = isDuplicateSchedule(
                         dateToUse,
                         claimingStartTime,
-                        claimingEndTime
+                        claimingEndTime,
+                        claimingVenue
                       );
 
                       if (isDuplicate) {
                         setErrors({
                           ...errors,
                           duplicateSchedule:
-                            "A claiming schedule with the same date and time already exists",
+                            "A claiming schedule with the same date, time, and venue already exists",
                         });
                         window.scrollTo(0, 0);
                         return;
@@ -2964,6 +3014,52 @@ const AvailabilityDetails = ({
     ) {
       newErrors.reservationEndDateEvent =
         "Reservation end date must be before or on the event date";
+    }
+
+    // Validate display period
+    if (displayStartDate && displayEndDate) {
+      const startDate = new Date(displayStartDate);
+      const endDate = new Date(displayEndDate);
+      const eventDateObj = new Date(eventDate);
+
+      // Check if display period is after event date
+      if (startDate > eventDateObj || endDate > eventDateObj) {
+        newErrors.displayPeriod = "Display period cannot be after the event date";
+      }
+
+      // Check if end date is before start date
+      if (endDate < startDate) {
+        newErrors.displayPeriod = "End date cannot be before start date";
+      }
+
+      // Check if display times are after event time
+      if (displayStartDate === eventDate && displayStartTime) {
+        const [eventHours, eventMinutes] = eventTime.split(":").map(Number);
+        const [startHours, startMinutes] = displayStartTime.split(":").map(Number);
+        
+        if (startHours > eventHours || (startHours === eventHours && startMinutes > eventMinutes)) {
+          newErrors.displayPeriod = "Display start time cannot be after event time";
+        }
+      }
+
+      if (displayEndDate === eventDate && displayEndTime) {
+        const [eventHours, eventMinutes] = eventTime.split(":").map(Number);
+        const [endHours, endMinutes] = displayEndTime.split(":").map(Number);
+        
+        if (endHours > eventHours || (endHours === eventHours && endMinutes > eventMinutes)) {
+          newErrors.displayPeriod = "Display end time cannot be after event time";
+        }
+      }
+    }
+
+    // Validate display times
+    if (displayStartTime && displayEndTime) {
+      const [startHours, startMinutes] = displayStartTime.split(":").map(Number);
+      const [endHours, endMinutes] = displayEndTime.split(":").map(Number);
+
+      if (endHours < startHours || (endHours === startHours && endMinutes <= startMinutes)) {
+        newErrors.displayTimes = "End time must be after start time";
+      }
     }
 
     setErrors(newErrors);
