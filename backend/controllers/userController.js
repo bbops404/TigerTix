@@ -241,6 +241,13 @@ const userController = {
     }
   },
 
+  // Password policy: min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special char
+  isPasswordValid: (password) => {
+    const policy =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]).{8,}$/;
+    return policy.test(password);
+  },
+
   // Change password
   changePassword: async (req, res) => {
     try {
@@ -267,17 +274,26 @@ const userController = {
 
       // Verify current password (skip this step for admins)
       if (userId === req.user.user_id) {
-        const isPasswordValid = await bcrypt.compare(
+        const isPasswordValidCurrent = await bcrypt.compare(
           currentPassword,
           user.password_hash
         );
 
-        if (!isPasswordValid) {
+        if (!isPasswordValidCurrent) {
           return res.status(400).json({
             success: false,
             message: "Current password is incorrect",
           });
         }
+      }
+
+      // Enforce password policy for new password
+      if (!userController.isPasswordValid(newPassword)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.",
+        });
       }
 
       // Hash the new password

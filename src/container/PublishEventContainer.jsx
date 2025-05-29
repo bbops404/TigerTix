@@ -420,6 +420,9 @@ const PublishEventContainer = () => {
 
       // Handle image upload first and capture the URL
       let imageUrl = null;
+      let s3Key = null;
+      let venueMapUrl = null;
+      let venueMapS3Key = null;
 
       if (eventData.eventDetails.eventImage) {
         console.log("Preparing to upload image...");
@@ -438,9 +441,13 @@ const PublishEventContainer = () => {
               eventData.eventDetails.eventImage.name
             );
 
-            // The uploadEventImage function expects a raw File object, not FormData
+            // Get the old image key if it exists
+            const oldImageKey = eventData.eventDetails.s3Key;
+
+            // The uploadEventImage function now handles old image deletion
             const imageResponse = await eventService.uploadEventImage(
-              eventData.eventDetails.eventImage
+              eventData.eventDetails.eventImage,
+              oldImageKey
             );
 
             // Log the complete response
@@ -451,8 +458,9 @@ const PublishEventContainer = () => {
                 "Image uploaded successfully, got URL:",
                 imageResponse.imageUrl
               );
-              // Set the imageUrl directly from the response - don't modify it
+              // Set both the imageUrl and s3Key
               imageUrl = imageResponse.imageUrl;
+              s3Key = imageResponse.s3Key;
             } else {
               console.warn(
                 "Image upload response missing imageUrl:",
@@ -464,9 +472,16 @@ const PublishEventContainer = () => {
             if (imageError.response) {
               console.error("Server response:", imageError.response.data);
               console.error("Status code:", imageError.response.status);
+              
+              // Add specific error message for file size limit
+              if (imageError.response.status === 400 && imageError.response.data.message?.includes("file too large")) {
+                toast.error("Image is too large. Maximum file size is 5MB.");
+              } else {
+                toast.warning("Could not upload image. Proceeding without it.");
+              }
+            } else {
+              toast.warning("Could not upload image. Proceeding without it.");
             }
-            // Continue without image
-            toast.warning("Could not upload image. Proceeding without it.");
           }
         } else {
           console.warn(
@@ -486,6 +501,7 @@ const PublishEventContainer = () => {
 
         // Extract path portion if it's a full URL
         imageUrl = eventData.eventDetails.imagePreview;
+        s3Key = eventData.eventDetails.s3Key;
 
         // If it's an absolute URL with our domain, extract just the path
         if (imageUrl.includes("/uploads/")) {
@@ -496,6 +512,47 @@ const PublishEventContainer = () => {
           }
         }
       }
+
+      // Handle venue map upload
+      if (eventData.eventDetails.venueMap) {
+        console.log("Preparing to upload venue map...");
+        if (eventData.eventDetails.venueMap.size > 5 * 1024 * 1024) {
+          console.log("Venue map too large, compressing...");
+          eventData.eventDetails.venueMap = await compressImage(
+            eventData.eventDetails.venueMap
+          );
+        }
+
+        if (eventData.eventDetails.venueMap instanceof File) {
+          try {
+            console.log(
+              "Valid venue map file detected, uploading:",
+              eventData.eventDetails.venueMap.name
+            );
+
+            const oldMapKey = eventData.eventDetails.venueMapS3Key;
+            const mapResponse = await eventService.uploadVenueMap(
+              eventData.eventDetails.venueMap,
+              oldMapKey
+            );
+
+            console.log("Venue map upload response:", mapResponse);
+
+            if (mapResponse && mapResponse.imageUrl) {
+              console.log(
+                "Venue map uploaded successfully, got URL:",
+                mapResponse.imageUrl
+              );
+              venueMapUrl = mapResponse.imageUrl;
+              venueMapS3Key = mapResponse.s3Key;
+            }
+          } catch (mapError) {
+            console.error("Venue map upload failed:", mapError);
+            toast.warning("Could not upload venue map. Proceeding without it.");
+          }
+        }
+      }
+
       // Check if this is a coming soon conversion
       const isComingSoonConversion =
         eventData.eventDetails.comingSoonConversion;
@@ -542,14 +599,14 @@ const PublishEventContainer = () => {
       let eventStatus, eventVisibility;
 
       if (isDisplayInFuture) {
-        // Future display date - should be unpubl
-        // ifished for all event types
-        if (eventData.eventDetails.eventType == "free") {
+        // Future display date - should be unpublished for all event types
+        if (eventData.eventDetails.eventType === "free") {
           eventStatus = "open";
+          eventVisibility = "unpublished";  // Free events should also be unpublished if display date is in future
         } else {
           eventStatus = "scheduled";
+          eventVisibility = "unpublished";
         }
-        eventVisibility = "unpublished";
       } else {
         // Current or past display date
         switch (eventData.eventDetails.eventType) {
@@ -584,8 +641,12 @@ const PublishEventContainer = () => {
         venue: eventData.eventDetails.venue,
         category: eventData.eventDetails.eventCategory,
         event_type: eventData.eventDetails.eventType,
-        // Add the image URL to the payload if we have one
+        // Add both the image URL and S3 key to the payload
         ...(imageUrl ? { image: imageUrl } : {}),
+        ...(s3Key ? { s3Key: s3Key } : {}),
+        // Add venue map URL and S3 key
+        ...(venueMapUrl ? { venueMap: venueMapUrl } : {}),
+        ...(venueMapS3Key ? { venueMapS3Key: venueMapS3Key } : {}),
         status: eventStatus,
         visibility: eventVisibility,
         display_start_date:
@@ -855,15 +916,23 @@ const PublishEventContainer = () => {
 
       // Process image if it exists
       let imageUrl = null;
+      let s3Key = null;
+      let venueMapUrl = null;
+      let venueMapS3Key = null;
       if (draftData.eventDetails?.eventImage) {
         try {
+          // Get the old image key if it exists
+          const oldImageKey = draftData.eventDetails.s3Key;
+
           const imageResponse = await eventService.uploadEventImage(
-            draftData.eventDetails.eventImage
+            draftData.eventDetails.eventImage,
+            oldImageKey
           );
           console.log("Draft image upload response:", imageResponse);
-          // Store the raw path returned from the backend
+          // Store both the image URL and S3 key
           if (imageResponse && imageResponse.imageUrl) {
             imageUrl = imageResponse.imageUrl;
+            s3Key = imageResponse.s3Key;
           }
         } catch (imageError) {
           console.warn(
@@ -874,6 +943,47 @@ const PublishEventContainer = () => {
       } else if (draftData.eventDetails?.imagePreview) {
         // If we have imagePreview but no new image, use the existing image
         imageUrl = draftData.eventDetails.imagePreview;
+        s3Key = draftData.eventDetails.s3Key;
+      }
+
+      // Handle venue map upload
+      if (draftData.eventDetails?.venueMap) {
+        console.log("Preparing to upload venue map...");
+        if (draftData.eventDetails.venueMap.size > 5 * 1024 * 1024) {
+          console.log("Venue map too large, compressing...");
+          draftData.eventDetails.venueMap = await compressImage(
+            draftData.eventDetails.venueMap
+          );
+        }
+
+        if (draftData.eventDetails.venueMap instanceof File) {
+          try {
+            console.log(
+              "Valid venue map file detected, uploading:",
+              draftData.eventDetails.venueMap.name
+            );
+
+            const oldMapKey = draftData.eventDetails.venueMapS3Key;
+            const mapResponse = await eventService.uploadVenueMap(
+              draftData.eventDetails.venueMap,
+              oldMapKey
+            );
+
+            console.log("Venue map upload response:", mapResponse);
+
+            if (mapResponse && mapResponse.imageUrl) {
+              console.log(
+                "Venue map uploaded successfully, got URL:",
+                mapResponse.imageUrl
+              );
+              venueMapUrl = mapResponse.imageUrl;
+              venueMapS3Key = mapResponse.s3Key;
+            }
+          } catch (mapError) {
+            console.error("Venue map upload failed:", mapError);
+            toast.warning("Could not upload venue map. Proceeding without it.");
+          }
+        }
       }
 
       // Prepare draft event payload with null for empty time fields
@@ -881,23 +991,22 @@ const PublishEventContainer = () => {
         name: draftData.eventDetails?.eventName || "Draft Event",
         details: draftData.eventDetails?.eventDescription || "",
         event_date: draftData.eventDetails?.eventDate,
-
         // Only include time fields if they have a value
         ...(draftData.eventDetails?.startTime
           ? { event_time: draftData.eventDetails.startTime }
           : {}),
-
         ...(draftData.eventDetails?.endTime
           ? { event_end_time: draftData.eventDetails.endTime }
           : {}),
-
         venue: draftData.eventDetails?.venue,
         category: draftData.eventDetails?.eventCategory,
         event_type: draftData.eventDetails?.eventType || "ticketed",
-
-        // Use image URL if it exists
-        ...(imageUrl && { image: imageUrl }),
-
+        // Include both image URL and S3 key
+        ...(imageUrl ? { image: imageUrl } : {}),
+        ...(s3Key ? { s3Key: s3Key } : {}),
+        // Include venue map URL and S3 key
+        ...(venueMapUrl ? { venueMap: venueMapUrl } : {}),
+        ...(venueMapS3Key ? { venueMapS3Key: venueMapS3Key } : {}),
         status: "draft",
         visibility: "unpublished",
       };

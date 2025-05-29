@@ -4,29 +4,55 @@ const Ticket = db.Ticket;
 const Event = db.Event; // Add this
 const User = db.User; // Add this
 const ClaimingSlot = db.ClaimingSlot; // Add this
-const nodemailer = require("nodemailer");
 const { createAuditTrail } = require("./auditTrailController");
+
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
+const resendhost = process.env.RESEND_HOST;
+
+const QRCode = require("qrcode"); // Add this at the top
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
 const sequelize = db.sequelize; // Add this for transaction
 
-// Nodemailer transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
+// Initialize S3 client
+const s3Client = new S3Client({
+  region: process.env.BUCKET_REGION,
+  credentials: {
+    accessKeyId: process.env.ACCESS_KEY,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY
+  }
 });
+
+// Function to upload QR code to S3
+async function uploadQRCodeToS3(qrCodeBuffer, fileName) {
+  try {
+    const command = new PutObjectCommand({
+      Bucket: process.env.BUCKET_NAME,
+      Key: `qr-code/${fileName}`,
+      Body: qrCodeBuffer,
+      ContentType: 'image/png'
+    });
+
+    await s3Client.send(command);
+    return `https://${process.env.BUCKET_NAME}.s3.${process.env.BUCKET_REGION}.amazonaws.com/qr-code/${fileName}`;
+  } catch (error) {
+    console.error('Error uploading QR code to S3:', error);
+    throw error;
+  }
+}
 
 const reservationController = {
   // Create a new reservation
   createReservation: async (req, res) => {
-    // Start a transaction to ensure all database operations succeed or fail together
     const transaction = await db.sequelize.transaction();
+    let qrTicketCount = 0; // Initialize counter for QR codes
 
     try {
-      const { main_reserver_id, user_ids, event_id, ticket_id, claiming_id } =
-        req.body;
+      console.log("Starting reservation creation...");
+      console.log("User from request:", req.user);
+      
+      const { main_reserver_id, user_ids, event_id, ticket_id, claiming_id } = req.body;
 
       // For debug purposes
       console.log(
@@ -36,6 +62,7 @@ const reservationController = {
 
       // Validate required fields
       if (!event_id || !ticket_id || !claiming_id) {
+        console.log("Missing required fields:", { event_id, ticket_id, claiming_id });
         await transaction.rollback();
         return res.status(400).json({
           message: "Missing required reservation details",
@@ -57,6 +84,7 @@ const reservationController = {
         // Single reservation for the main reserver
         usersToReserveFor = [main_reserver_id];
       } else {
+        console.log("No valid user IDs provided");
         await transaction.rollback();
         return res.status(400).json({
           success: false,
@@ -72,6 +100,7 @@ const reservationController = {
       // Check if the event exists
       const event = await Event.findByPk(event_id);
       if (!event) {
+        console.log(`Event not found with ID: ${event_id}`);
         await transaction.rollback();
         return res.status(404).json({
           success: false,
@@ -81,6 +110,7 @@ const reservationController = {
 
       // Validate event status - only 'open' events can be reserved
       if (event.status !== "open") {
+        console.log(`Event status is not open. Current status: ${event.status}`);
         await transaction.rollback();
         return res.status(400).json({
           success: false,
@@ -96,6 +126,7 @@ const reservationController = {
         );
 
         if (currentDate > reservationEndDateTime) {
+          console.log("Reservation period has ended");
           await transaction.rollback();
           return res.status(400).json({
             success: false,
@@ -105,6 +136,7 @@ const reservationController = {
       }
 
       // NEW: Check for user restrictions and violations
+      console.log("Fetching user data for:", usersToReserveFor);
       const users = await User.findAll({
         where: { user_id: usersToReserveFor },
         attributes: [
@@ -125,6 +157,7 @@ const reservationController = {
           (id) => !foundUserIds.includes(id)
         );
 
+        console.log("Missing users:", missingUserIds);
         await transaction.rollback();
         return res.status(404).json({
           success: false,
@@ -150,6 +183,7 @@ const reservationController = {
       });
 
       if (restrictedUsers.length > 0) {
+        console.log("Found restricted users:", restrictedUsers);
         await transaction.rollback();
 
         // Format restriction messages
@@ -175,18 +209,16 @@ const reservationController = {
 
         return res.status(403).json({
           success: false,
-          message:
-            "One or more users have restrictions and cannot make reservations",
+          message: "One or more users have restrictions and cannot make reservations",
           restricted_users: restrictions,
         });
       }
 
-      // If we reach here, continue with the rest of the reservation process
-      // Rest of the existing createReservation method follows...
-
       // Check if the ticket exists and has enough remaining quantity
+      console.log("Checking ticket availability...");
       const ticket = await Ticket.findByPk(ticket_id);
       if (!ticket) {
+        console.log(`Ticket not found with ID: ${ticket_id}`);
         await transaction.rollback();
         return res.status(404).json({
           success: false,
@@ -196,6 +228,7 @@ const reservationController = {
 
       const totalQuantity = usersToReserveFor.length; // Total tickets needed (1 per user)
       if (ticket.remaining_quantity < totalQuantity) {
+        console.log(`Not enough tickets. Available: ${ticket.remaining_quantity}, Requested: ${totalQuantity}`);
         await transaction.rollback();
         return res.status(400).json({
           success: false,
@@ -204,6 +237,7 @@ const reservationController = {
       }
 
       // Check for existing reservations for the same event and users
+      console.log("Checking for existing reservations...");
       const existingReservations = await Reservation.findAll({
         where: {
           user_id: usersToReserveFor,
@@ -213,19 +247,20 @@ const reservationController = {
 
       if (existingReservations.length > 0) {
         const duplicateUsers = existingReservations.map((res) => res.user_id);
-
+        console.log("Found duplicate reservations for users:", duplicateUsers);
         await transaction.rollback();
         return res.status(400).json({
           success: false,
-          message:
-            "One or more users already have a reservation for this event",
+          message: "One or more users already have a reservation for this event",
           duplicate_users: duplicateUsers,
         });
       }
 
       // Check the claiming slot
+      console.log("Checking claiming slot...");
       const claimingSlot = await ClaimingSlot.findByPk(claiming_id);
       if (!claimingSlot) {
+        console.log(`Claiming slot not found with ID: ${claiming_id}`);
         await transaction.rollback();
         return res.status(404).json({
           success: false,
@@ -238,68 +273,163 @@ const reservationController = {
         claimingSlot.current_claimers + totalQuantity >
         claimingSlot.max_claimers
       ) {
+        console.log(`Claiming slot is full. Current: ${claimingSlot.current_claimers}, Max: ${claimingSlot.max_claimers}, Requested: ${totalQuantity}`);
         await transaction.rollback();
         return res.status(400).json({
           success: false,
-          message:
-            "This claiming slot does not have enough space for your reservation",
+          message: "This claiming slot does not have enough space for your reservation",
         });
       }
 
       // Create individual reservations for each user
+      console.log("Creating reservations...");
       const reservations = [];
       for (const user_id of usersToReserveFor) {
-        const newReservation = await Reservation.create(
-          {
-            user_id,
-            event_id,
-            ticket_id,
-            claiming_id,
-            quantity: 1, // Each user gets 1 ticket
-            reservation_status: "pending", // Default status
-          },
-          { transaction }
-        );
-        reservations.push(newReservation);
+        try {
+          const isMainReserver = user_id === main_reserver_id;
+          const qrTicketCount = isMainReserver ? totalQuantity : 1;
+          const qrValue = `UST-TICKET-${Date.now()}-${event.name}-${ticket.ticket_type}-${qrTicketCount}`;
+          
+          // Generate QR code as buffer
+          console.log("Generating QR code...");
+          const qrCodeBuffer = await QRCode.toBuffer(qrValue, {
+            errorCorrectionLevel: 'H',
+            margin: 1,
+            width: 180,
+            color: {
+              dark: '#000000',
+              light: '#ffffff'
+            },
+            type: 'png'
+          });
+
+          // Generate unique filename for the QR code
+          const fileName = `qr-${Date.now()}-${user_id}.png`;
+          
+          // Upload QR code to S3 and get the URL
+          console.log("Uploading QR code to S3...");
+          const qrCodeUrl = await uploadQRCodeToS3(qrCodeBuffer, fileName);
+
+          console.log("Creating reservation in database...");
+          const newReservation = await Reservation.create(
+            {
+              user_id,
+              event_id,
+              ticket_id,
+              claiming_id,
+              quantity: 1, // Each user gets 1 ticket
+              reservation_status: "pending", // Default status
+              qr_code: qrCodeUrl // Store the QR code URL
+            },
+            { transaction }
+          );
+          reservations.push(newReservation);
+        } catch (error) {
+          console.error("Error creating reservation for user:", user_id, error);
+          throw error;
+        }
       }
 
       // Update claiming slot's current_claimers count
+      console.log("Updating claiming slot...");
       await claimingSlot.increment("current_claimers", {
         by: totalQuantity,
         transaction,
       });
 
       // Update the ticket's remaining quantity
+      console.log("Updating ticket quantity...");
       await ticket.decrement("remaining_quantity", {
         by: totalQuantity,
         transaction,
       });
 
       await transaction.commit(); // Commit the transaction
+      console.log("Transaction committed successfully");
+
+      // Send emails
+      console.log("Sending confirmation emails...");
+      console.log("Resend configuration:", {
+        apiKey: process.env.RESEND_API_KEY ? "Present" : "Missing",
+        host: process.env.RESEND_HOST
+      });
 
       for (const user of users) {
-        const mailOptions = {
-          from: `"TigerTix" <${process.env.EMAIL_USER}>`,
-          to: user.email,
-          subject: "Your Reservation Details",
-          html: `
-            <h1>Reservation Confirmation</h1>
-            <p>Dear ${user.first_name} ${user.last_name},</p>
-            <p>Your reservation has been successfully created. Here are the details:</p>
-            <ul>
-              <li><strong>Event:</strong> ${event.name}</li>
-              <li><strong>Ticket Type:</strong> ${ticket.ticket_type}</li>
-              <li><strong>Claiming Time:</strong> ${claimingSlot.claiming_date} (${claimingSlot.start_time} - ${claimingSlot.end_time})</li>
-            </ul>
-            <p>Please log in to your account to view your reservations and ensure all details are correct.</p>
-            <p><strong>Reminder:</strong> You must claim your tickets during the chosen claiming time. Failure to do so may result in restrictions on your account.</p>
-            <p>Thank you for using TigerTix!</p>
-          `,
-        };
         try {
-          await transporter.sendMail(mailOptions);
+          // Find the reservation for this user to get reservationId
+          const reservation = reservations.find(
+            (r) => r.user_id === user.user_id
+          );
+          
+          console.log(`Preparing email for user ${user.email} with reservation ID ${reservation.reservation_id}`);
+          
+          // Compose the email HTML with the stored QR code URL
+          const emailHtml = `
+            <div style="font-family: Arial, sans-serif; background: #f4f4f4; padding: 24px;">
+              <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; padding: 32px;">
+                <h1 style="text-align:center; color:#222; margin-bottom: 24px;">Reservation Receipt</h1>
+                <div style="display: flex; flex-wrap: wrap; gap: 24px;">
+                  <div style="flex: 1 1 200px; text-align: center;">
+                    <div style="font-weight: bold; margin-bottom: 8px;">YOUR QR CODE:</div>
+                    <img src="${reservation.qr_code}" alt="Reservation QR Code" style="width:120px;height:120px; margin-bottom: 12px;" />
+                    <div style="margin-top: 8px; font-size: 16px;">
+                      <b>RESERVATION ID:</b> <span style="color:#F09C32;">${reservation.reservation_id}</span>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 12px; color: #555;">
+                      Please present this QR code when claiming your ticket(s)
+                    </div>
+                  </div>
+                  <div style="flex: 2 1 300px; font-size: 15px;">
+                    <div><b>Name:</b> ${user.first_name} ${user.last_name}</div>
+                    <div><b>Email:</b> ${user.email}</div>
+                    <div><b>Event:</b> ${event.name}</div>
+                    <div><b>Event Date:</b> ${event.event_date || "TBA"}</div>
+                    <div><b>Event Time:</b> ${event.event_time || "TBA"}</div>
+                    <div><b>Venue:</b> ${event.venue || "TBA"}</div>
+                    <div><b>Ticket Type:</b> ${ticket.ticket_type}</div>
+                    <div><b>Number of Tickets:</b> ${qrTicketCount}</div>
+                    <div><b>Batch:</b> ${claimingSlot.claiming_date} (${claimingSlot.start_time} - ${claimingSlot.end_time})</div>
+                    <div><b>Claiming Venue:</b> ${claimingSlot.venue || "IPEA"}</div>
+                    <div><b>Price Per Person:</b> ₱${parseFloat(ticket.price).toFixed(2)}</div>
+                    <div><b>Total Amount:</b> ₱${(parseFloat(ticket.price) * qrTicketCount).toFixed(2)}</div>
+                  </div>
+                </div>
+                <div style="margin-top: 32px; text-align: center;">
+                  <b>Important Reminders</b>
+                  <ul style="text-align: left; margin: 12px auto; max-width: 500px; color: #444;">
+                    <li>You must bring a valid UST ID when claiming your ticket.</li>
+                    <li>All ticket holders must present their UST ID for verification.</li>
+                    <li>Ticket claiming deadline: 3 hours before the event starts.</li>
+                    <li>Unclaimed tickets may result in account restrictions for future events.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          `;
+
+          console.log(`Attempting to send email to ${user.email}...`);
+          console.log("Email configuration:", {
+            from: resendhost,
+            to: user.email,
+            subject: "Your TigerTix Reservation Receipt",
+            hasHtml: !!emailHtml
+          });
+
+          const result = await resend.emails.send({
+            from: resendhost,
+            to: user.email,
+            subject: "Your TigerTix Reservation Receipt",
+            html: emailHtml
+          });
+
+          console.log(`Email send result for ${user.email}:`, result);
         } catch (emailError) {
           console.error(`Failed to send email to ${user.email}:`, emailError);
+          console.error("Error details:", {
+            message: emailError.message,
+            stack: emailError.stack,
+            code: emailError.code
+          });
         }
       }
 
@@ -315,6 +445,7 @@ const reservationController = {
         success: false,
         message: "Internal server error",
         error: error.message,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined
       });
     }
   },
@@ -554,7 +685,7 @@ const reservationController = {
       // Update the reservation status to "claimed"
       reservation.reservation_status = "claimed";
       await reservation.save();
-      consolemo.log("User data for audit log:", req.user);
+      consoleemo.log("User data for audit log:", req.user);
 
       try {
         await createAuditTrail({

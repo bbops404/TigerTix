@@ -14,7 +14,10 @@ import SupportStaff_AddUserPopUp from "./SupportStaff_AddUserPopUp";
 import SupportStaff_EditUserPopUp from "./SupportStaff_EditUserPopUp";
 import SupportStaff_UserGenerateReportPopUp from "./SupportStaff_UserGenerateReportPopUp";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
+// TanStack Table imports
 import {
   useReactTable,
   getCoreRowModel,
@@ -23,8 +26,6 @@ import {
   flexRender,
   createColumnHelper,
 } from "@tanstack/react-table";
-
-
 
 // This component is referenced but not defined - adding a placeholder
 const Admin_UserFilter = ({ showFilter, setShowFilter }) => {
@@ -322,69 +323,73 @@ const SupportStaff_UserPage = () => {
     try {
       const token = sessionStorage.getItem("authToken");
 
-      // Make sure there are selected users
       if (selectedUsers.length === 0) {
         alert("No users selected for deletion");
         return;
       }
 
-      // Send the selected user IDs in the request body
       const response = await axios.delete(
-        "http://localhost:5002/admin/users/delete",
+        `${import.meta.env.VITE_API_URL}/admin/users/delete`, // Updated URL
         {
-          withCredentials: true, // Ensures cookies are sent (if applicable)
+          withCredentials: true,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           data: {
-            ids: selectedUsers, // Passing selected user IDs
+            ids: selectedUsers,
           },
         }
       );
 
-      // Handle response
       if (response.status === 200) {
-        openSuccessModal(); // Open success modal if deletion is successful
-        // After successful deletion, clear the selected users
+        openSuccessModal();
         setSelectedUsers([]);
       } else {
         alert(response.data.message || "Something went wrong during deletion.");
       }
     } catch (error) {
-      console.error("Error deleting users:", error);
-      alert("An error occurred while deleting users.");
+      if (!handleApiError(error, navigate)) {
+        console.error("Error deleting users:", error);
+        alert("An error occurred while deleting users.");
+      }
     }
 
-    closeDeleteModal(); // Close the delete modal after the process
+    closeDeleteModal();
   };
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const token = sessionStorage.getItem("authToken"); //
-        const response = await axios.get("http://localhost:5002/admin/users", {
-          withCredentials: true, // ✅ Ensures cookies are sent (if applicable)
-          headers: {
-            Authorization: `Bearer ${token}`, // ✅ Proper placement of the token
-            "Content-Type": "application/json", // ✅ Explicitly setting content type
-          },
-        });
+        const token = sessionStorage.getItem("authToken");
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/admin/users`, // Updated URL
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
-        // Map the users and combine first_name & last_name
         const formattedUsers = response.data.map((user) => ({
           ...user,
-          fullName: `${user.first_name} ${user.last_name}`.trim(), // Combine first and last name
+          fullName: `${user.first_name} ${user.last_name}`.trim(),
         }));
 
         setUsers(formattedUsers);
       } catch (error) {
-        console.error("Error fetching users:", error);
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching users:", error);
+        }
       }
     };
 
     fetchUsers();
-  }, [showSuccessModal]); // Refresh the list when users are deleted
+  }, [showSuccessModal, navigate]);
 
   // Check different selection states
   const hasNoSelection = selectedUsers.length === 0;
@@ -402,11 +407,11 @@ const SupportStaff_UserPage = () => {
   return (
     <div className="flex flex-col bg-[#1E1E1E] min-h-screen text-white font-Poppins">
       {/* Header */}
-      <Header_SupportStaff/>
+      <Header_SupportStaff />
 
       {/* Main Layout */}
       <div className="flex">
-        < SideBar_SupportStaff  />
+        <SideBar_SupportStaff />
         <div className="flex-1 px-10 py-10">
           <div className="flex items-center justify-between mb-6">
             <div className="relative flex-grow mr-4">
@@ -625,7 +630,7 @@ const SupportStaff_UserPage = () => {
           isOpen={showGenerateReportPopup}
           onClose={closeGenerateReportPopup}
           visibleRows={table.getRowModel().rows.map((row) => row.original)} // Pass visible rows
-          />
+        />
       )}
     </div>
   );

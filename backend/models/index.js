@@ -3,9 +3,9 @@ const sequelize = require("../config/db");
 
 // Import all models
 const User = require("./Users");
-const Event = require("./Event");
-const Ticket = require("./Ticket");
-const ClaimingSlot = require("./ClaimingSlot");
+const Event = require("./event");
+const Ticket = require("./ticket");
+const ClaimingSlot = require("./claimingSlot");
 const Reservation = require("./reservation");
 const AuditTrail = require("./AuditTrail"); // Import the AuditTrail model
 
@@ -20,8 +20,6 @@ db.Ticket = Ticket;
 db.ClaimingSlot = ClaimingSlot;
 db.Reservation = Reservation;
 db.AuditTrail = AuditTrail; // Add AuditTrail to the db object
-
-
 
 Object.keys(db).forEach((modelName) => {
   if (db[modelName] && db[modelName].associate) {

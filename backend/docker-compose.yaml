@@ -1,0 +1,26 @@
+services:
+  # PostgreSQL as before
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tigertix
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # NEW: Redis service
+  redis:
+    image: redis:alpine # lightweight Redis
+    container_name: redis # hostname = service name
+    ports:
+      - "6379:6379" # expose for host, optional for inter‑container
+    volumes:
+      - redisdata:/data # persist if you like
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

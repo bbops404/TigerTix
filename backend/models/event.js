@@ -89,6 +89,16 @@ const Event = sequelize.define(
       type: DataTypes.TIME,
       allowNull: true,
     },
+    venue_map: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: "URL or path to the uploaded venue map",
+    },
+    venueMapS3Key: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: "S3 key for the venue map",
+    },
   },
   {
     timestamps: true,

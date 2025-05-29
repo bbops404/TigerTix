@@ -1,8 +1,7 @@
 // services/reservationService.js
 import axios from "axios";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5002/api";
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 // Create axios instance with credentials
 const apiClient = axios.create({
@@ -12,6 +11,18 @@ const apiClient = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+// Add request interceptor for authentication
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = sessionStorage.getItem("authToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Enhanced error handling helper
 const handleApiError = (error, defaultMessage, fallbackData = null) => {

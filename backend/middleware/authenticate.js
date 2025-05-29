@@ -1,8 +1,10 @@
 // FIXED authenticate.js
 const jwt = require("jsonwebtoken");
 const Redis = require("ioredis");
+const db = require("../models");
+const User = db.User;
 
-const redis = new Redis(); // Initialize Redis connection
+const redis = require("../config/redis"); // Initialize Redis connection
 
 const authenticate = async (req, res, next) => {
   try {
@@ -48,11 +50,19 @@ const authenticate = async (req, res, next) => {
 
     console.log("✅ Token is valid and exists in Redis."); // Debugging
 
+    // Get user data from database to ensure we have the latest role
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized. User not found." });
+    }
+
     // Normalize the user object to include both forms of ID for compatibility
     req.user = {
       ...decoded,
       userId: userId,
       user_id: userId,
+      role: user.role, // Add the user's role from the database
+      status: user.status // Add the user's status from the database
     };
 
     next(); // Move to the next middleware/route handler

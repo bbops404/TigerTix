@@ -30,7 +30,7 @@ const EventsManagementContainer = () => {
   const navigate = useNavigate();
 
   // Set up the API URL
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
+  const API_URL = `${import.meta.env.VITE_API_URL}/api`;
   // Function to categorize events by their status
   // Function to categorize events by their status
   const categorizeEvents = useCallback((eventsList) => {
@@ -1556,7 +1556,7 @@ const EventsManagementContainer = () => {
     // Set up socket connection with proper error handling
     try {
       // Create proper base URL by removing /api suffix
-      const BASE_URL = API_URL.replace(/\/api$/, "");
+      const BASE_URL = `${import.meta.env.VITE_API_URL}`;
 
       console.log("Connecting to Socket.IO with base URL:", BASE_URL);
       socketRef.current = io(BASE_URL, {

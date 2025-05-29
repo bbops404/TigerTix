@@ -3,9 +3,12 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import Header_SupportStaff from "../../components/SupportStaff/Header_SupportStaff";
 import SideBar_SupportStaff from "../../components/SupportStaff/SideBar_SupportStaff";
 import axios from "axios";
+import { handleApiError } from "../../utils/apiErrorHandler";
+import { useNavigate } from "react-router-dom";
 
 const SupportStaff_Dashboard = () => {
   const token = sessionStorage.getItem("authToken");
+  const navigate = useNavigate();
   const [ticketedEvents, setTicketedEvents] = useState([]);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [eventStatusData, setEventStatusData] = useState([]);
@@ -14,7 +17,7 @@ const SupportStaff_Dashboard = () => {
     console.log("Fetching Ticketed Events..."); // Debug log
     try {
       const response = await axios.get(
-        "http://localhost:5002/admin/ticketed-events",
+        `${import.meta.env.VITE_API_URL}/admin/ticketed-events`,
         {
           withCredentials: true,
           headers: {
@@ -27,7 +30,6 @@ const SupportStaff_Dashboard = () => {
       console.log("Ticketed Events Response:", response.data); // Debug log
 
       if (response.data.success) {
-        // Filter only events that have tickets
         const events = response.data.data
           .filter((event) => event.Tickets && event.Tickets.length > 0)
           .map((event) => ({
@@ -44,14 +46,16 @@ const SupportStaff_Dashboard = () => {
         );
       }
     } catch (error) {
-      console.error("Error fetching ticketed events:", error);
+      if (!handleApiError(error, navigate)) {
+        console.error("Error fetching ticketed events:", error);
+      }
     }
   };
 
   const fetchEventClaimingStatus = async (eventId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5002/admin/event-claiming-status/${eventId}`,
+        `${import.meta.env.VITE_API_URL}/admin/event-claiming-status/${eventId}`,
         {
           withCredentials: true,
           headers: {
@@ -70,7 +74,9 @@ const SupportStaff_Dashboard = () => {
         setEventStatusData(data);
       }
     } catch (error) {
-      console.error("Error fetching event claiming status:", error);
+      if (!handleApiError(error, navigate)) {
+        console.error("Error fetching event claiming status:", error);
+      }
     }
   };
 
@@ -114,9 +120,9 @@ const SupportStaff_Dashboard = () => {
       try {
         const token = sessionStorage.getItem("authToken");
         const response = await axios.get(
-          "http://localhost:5002/admin/dashboard/metrics",
+          `${import.meta.env.VITE_API_URL}/admin/dashboard/metrics`,
           {
-            withCredentials: true, // Ensures cookies are sent (if applicable)
+            withCredentials: true,
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -130,7 +136,9 @@ const SupportStaff_Dashboard = () => {
           console.error("Failed to fetch metrics:", response.data.message);
         }
       } catch (error) {
-        console.error("Error fetching metrics:", error);
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching metrics:", error);
+        }
       }
     };
 
@@ -138,7 +146,7 @@ const SupportStaff_Dashboard = () => {
       try {
         const token = sessionStorage.getItem("authToken");
         const response = await axios.get(
-          "http://localhost:5002/admin/upcoming-events",
+          `${import.meta.env.VITE_API_URL}/admin/upcoming-events`,
           {
             withCredentials: true,
             headers: {
@@ -158,8 +166,10 @@ const SupportStaff_Dashboard = () => {
           setErrorEvents("Failed to fetch upcoming events.");
         }
       } catch (error) {
-        console.error("Error fetching upcoming events:", error);
-        setErrorEvents("Error fetching upcoming events.");
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching upcoming events:", error);
+          setErrorEvents("Error fetching upcoming events.");
+        }
       } finally {
         setLoadingEvents(false); // Set loading to false after fetching
       }
@@ -169,7 +179,7 @@ const SupportStaff_Dashboard = () => {
       try {
         const token = sessionStorage.getItem("authToken");
         const response = await axios.get(
-          "http://localhost:5002/admin/recent-reservations",
+          `${import.meta.env.VITE_API_URL}/admin/recent-reservations`,
           {
             withCredentials: true,
             headers: {
@@ -189,8 +199,10 @@ const SupportStaff_Dashboard = () => {
           setErrorReservations("Failed to fetch recent reservations.");
         }
       } catch (error) {
-        console.error("Error fetching recent reservations:", error);
-        setErrorReservations("Error fetching recent reservations.");
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching recent reservations:", error);
+          setErrorReservations("Error fetching recent reservations.");
+        }
       } finally {
         setLoadingReservations(false); // Set loading to false after fetching
       }

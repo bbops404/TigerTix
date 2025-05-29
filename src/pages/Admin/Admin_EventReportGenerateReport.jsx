@@ -44,7 +44,7 @@ const Admin_EventReportGenerateReport = ({
       try {
         // Fetch event details
         const eventResponse = await axios.get(
-          `http://localhost:5002/api/events/${selectedEventId}`,
+          `${import.meta.env.VITE_API_URL}/api/events/${selectedEventId}`,
           {
             withCredentials: true,
             headers: {
@@ -56,7 +56,7 @@ const Admin_EventReportGenerateReport = ({
 
         // Fetch reservations for this event
         const reservationsResponse = await axios.get(
-          `http://localhost:5002/api/reservations/${selectedEventId}`,
+          `${import.meta.env.VITE_API_URL}/api/reservations/${selectedEventId}`,
           {
             withCredentials: true,
             headers: {

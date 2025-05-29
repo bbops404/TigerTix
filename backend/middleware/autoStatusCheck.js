@@ -8,7 +8,19 @@ const db = require("../models");
 const Event = db.Event;
 const { Op } = require("sequelize");
 
+// Configure timezone for Philippines (Asia/Manila)
+const PHILIPPINE_TIMEZONE = 'Asia/Manila';
+
 const autoStatusCheck = {
+  /**
+   * Get current time in Philippine timezone
+   * @returns {Date} Current time in Philippine timezone
+   */
+  getCurrentPhilippineTime: () => {
+    const now = new Date();
+    return new Date(now.toLocaleString('en-US', { timeZone: PHILIPPINE_TIMEZONE }));
+  },
+
   /**
    * Check if an event's status should be updated based on current time
    * @param {Object} event The event object to check
@@ -16,8 +28,56 @@ const autoStatusCheck = {
    */
   checkEventStatus: (event) => {
     const now = new Date();
-    const today = now.toISOString().split("T")[0];
-    const currentTime = now.toISOString().split("T")[1].substring(0, 8); // HH:MM:SS format
+    const phTime = autoStatusCheck.getCurrentPhilippineTime();
+    const today = phTime.toISOString().split('T')[0];
+    const currentTime = phTime.toISOString().split('T')[1].substring(0, 8); // HH:MM:SS format
+
+    console.log("🔍 Checking event status:", {
+      eventId: event.id,
+      eventName: event.name,
+      currentStatus: event.status,
+      currentVisibility: event.visibility,
+      utcTime: now.toISOString(),
+      phTime: phTime.toISOString(),
+      timezone: PHILIPPINE_TIMEZONE,
+      displayStartDate: event.display_start_date,
+      displayStartTime: event.display_start_time,
+      reservationStart: event.reservation_start_date && event.reservation_start_time ? 
+        `${event.reservation_start_date}T${event.reservation_start_time}` : null,
+      reservationEnd: event.reservation_end_date && event.reservation_end_time ? 
+        `${event.reservation_end_date}T${event.reservation_end_time}` : null
+    });
+
+    // Check if event should be published
+    if (event.visibility === "unpublished" && event.display_start_date && event.display_start_time) {
+      // Create date object directly from the stored time (already in Philippine time)
+      const displayStartDateTime = new Date(
+        `${event.display_start_date}T${event.display_start_time}`
+      );
+
+      console.log("⏰ Checking display start:", {
+        eventId: event.id,
+        displayStartDateTime: displayStartDateTime.toISOString(),
+        utcTime: now.toISOString(),
+        phTime: phTime.toISOString(),
+        timezone: PHILIPPINE_TIMEZONE,
+        shouldPublish: phTime >= displayStartDateTime
+      });
+
+      if (phTime >= displayStartDateTime) {
+        console.log("✅ Event should be published:", {
+          eventId: event.id,
+          eventName: event.name,
+          reason: "Display start date and time has been reached"
+        });
+        return {
+          id: event.id,
+          oldVisibility: event.visibility,
+          newVisibility: "published",
+          reason: "Display start date and time has been reached"
+        };
+      }
+    }
 
     //Check for scheduled events that should be opened
     if (
@@ -27,18 +87,43 @@ const autoStatusCheck = {
     ) {
       // Check if reservation period has started
       if (event.reservation_start_date && event.reservation_start_time) {
-        const reservationStartDateObj = new Date(
+        // Create date object directly from the stored time (already in Philippine time)
+        const reservationStartDateTime = new Date(
           `${event.reservation_start_date}T${event.reservation_start_time}`
         );
 
-        if (now >= reservationStartDateObj) {
+        console.log("⏰ Checking reservation start:", {
+          eventId: event.id,
+          reservationStartDateTime: reservationStartDateTime.toISOString(),
+          utcTime: now.toISOString(),
+          phTime: phTime.toISOString(),
+          timezone: PHILIPPINE_TIMEZONE,
+          shouldOpen: phTime >= reservationStartDateTime
+        });
+
+        if (phTime >= reservationStartDateTime) {
           // Check if reservation period hasn't ended yet
           if (event.reservation_end_date && event.reservation_end_time) {
-            const reservationEndDateObj = new Date(
+            // Create date object directly from the stored time (already in Philippine time)
+            const reservationEndDateTime = new Date(
               `${event.reservation_end_date}T${event.reservation_end_time}`
             );
 
-            if (now <= reservationEndDateObj) {
+            console.log("⏰ Checking reservation end:", {
+              eventId: event.id,
+              reservationEndDateTime: reservationEndDateTime.toISOString(),
+              utcTime: now.toISOString(),
+              phTime: phTime.toISOString(),
+              timezone: PHILIPPINE_TIMEZONE,
+              withinPeriod: phTime <= reservationEndDateTime
+            });
+
+            if (phTime <= reservationEndDateTime) {
+              console.log("✅ Event should be opened:", {
+                eventId: event.id,
+                eventName: event.name,
+                reason: "Reservation period has started"
+              });
               return {
                 id: event.id,
                 oldStatus: event.status,
@@ -46,7 +131,47 @@ const autoStatusCheck = {
                 reason: "Reservation period has started",
               };
             }
+          } else {
+            // If no end date is set, just open the event
+            console.log("✅ Event should be opened (no end date):", {
+              eventId: event.id,
+              eventName: event.name,
+              reason: "Reservation period has started (no end date specified)"
+            });
+            return {
+              id: event.id,
+              oldStatus: event.status,
+              newStatus: "open",
+              reason: "Reservation period has started (no end date specified)",
+            };
           }
+        }
+      }
+    }
+
+    // Also check for published events that should be opened
+    if (
+      event.visibility === "published" &&
+      event.status === "scheduled" &&
+      event.event_type === "ticketed"
+    ) {
+      if (event.reservation_start_date && event.reservation_start_time) {
+        const reservationStartDateObj = new Date(
+          `${event.reservation_start_date}T${event.reservation_start_time}`
+        );
+
+        if (phTime >= reservationStartDateObj) {
+          console.log("✅ Published event should be opened:", {
+            eventId: event.id,
+            eventName: event.name,
+            reason: "Reservation period has started for published event"
+          });
+          return {
+            id: event.id,
+            oldStatus: event.status,
+            newStatus: "open",
+            reason: "Reservation period has started for published event",
+          };
         }
       }
     }
@@ -97,7 +222,8 @@ const autoStatusCheck = {
     // Check for events with display period started (future scheduled)
     if (
       event.visibility === "unpublished" &&
-      event.status === "scheduled" &&
+      ((event.status === "scheduled" && event.event_type === "ticketed") ||
+       (event.status === "open" && event.event_type === "free")) &&
       event.display_start_date &&
       event.display_start_time
     ) {
@@ -172,17 +298,41 @@ const autoStatusCheck = {
         },
       });
 
+      console.log(`Checking ${events.length} events for status updates...`);
+
       const eventsToUpdate = [];
 
       events.forEach((event) => {
+        // First check if event should be published
+        const visibilityUpdate = autoStatusCheck.checkEventStatus(event);
+        if (visibilityUpdate) {
+          eventsToUpdate.push({
+            event,
+            update: visibilityUpdate,
+          });
+        }
+
+        // Then check if event should be opened
         const statusUpdate = autoStatusCheck.checkEventStatus(event);
-        if (statusUpdate) {
+        if (statusUpdate && statusUpdate.newStatus) {
           eventsToUpdate.push({
             event,
             update: statusUpdate,
           });
         }
       });
+
+      if (eventsToUpdate.length > 0) {
+        console.log(`Found ${eventsToUpdate.length} events that need updates:`, 
+          eventsToUpdate.map(update => ({
+            eventId: update.event.id,
+            eventName: update.event.name,
+            update: update.update
+          }))
+        );
+      } else {
+        console.log("No events need status updates at this time.");
+      }
 
       return eventsToUpdate;
     } catch (error) {

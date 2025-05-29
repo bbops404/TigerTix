@@ -6,6 +6,7 @@ import { IoChevronForward, IoChevronBack } from "react-icons/io5";
 import EventCard from "../../components/EventCardEndUser";
 import axios from "axios";
 import { AlertTriangle } from "lucide-react";
+import { handleApiError } from "../../utils/apiErrorHandler";
 
 // Violation Warning Modal Component
 const ViolationWarningModal = ({ violationCount, onClose }) => {
@@ -85,7 +86,7 @@ function Carousel({ scrollToSection, ticketedRef, comingSoonRef, freeEventsRef }
     const fetchTicketedEvents = async () => {
       try {
         setIsLoading(true);
-        const API_BASE_URL = "http://localhost:5002";
+        const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
         const response = await axios.get(
           `${API_BASE_URL}/api/events/published-ticketed`,
           {
@@ -99,14 +100,16 @@ function Carousel({ scrollToSection, ticketedRef, comingSoonRef, freeEventsRef }
           console.error("Failed to fetch ticketed events.");
         }
       } catch (error) {
-        console.error("Error fetching ticketed events:", error);
+        if (!handleApiError(error, navigate)) {
+          console.error("Error fetching ticketed events:", error);
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchTicketedEvents();
-  }, []);
+  }, [navigate]);
 
   const prevSlide = () => {
     if (isSliding || ticketedEvents.length <= 1) return;
@@ -411,6 +414,8 @@ function Home() {
 
   const [error, setError] = useState("");
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     try {
       const data = localStorage.getItem("user");
@@ -462,7 +467,7 @@ function Home() {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const API_BASE_URL = "http://localhost:5002";
+      const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
       const timestamp = new Date().getTime(); // Prevent caching
 
       // Helper function to fetch events with loading state management
@@ -477,11 +482,13 @@ function Home() {
             setter(response.data.data);
           }
         } catch (err) {
-          console.error(`Error fetching ${category} events:`, err);
-          setError(
-            (prev) =>
-              prev || "Failed to load some events. Please try again later."
-          );
+          if (!handleApiError(err, navigate)) {
+            console.error(`Error fetching ${category} events:`, err);
+            setError(
+              (prev) =>
+                prev || "Failed to load some events. Please try again later."
+            );
+          }
         } finally {
           setLoading((prev) => ({ ...prev, [loadingKey]: false }));
         }
@@ -496,7 +503,7 @@ function Home() {
     };
 
     fetchEvents();
-  }, []);
+  }, [navigate]);
   // Handler for closing violation warning
   const handleViolationWarningClose = () => {
     setShowViolationWarning(false);

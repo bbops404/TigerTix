@@ -8,10 +8,12 @@ import {
   CheckIcon,
   InfoIcon,
   AlertCircleIcon,
+  MapIcon,
+  EyeIcon,
 } from "lucide-react";
 
 const formatImageUrl = (imageUrl) => {
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002";
+  const API_URL = import.meta.env.VITE_API_URL;
 
   if (!imageUrl) return null;
 
@@ -49,21 +51,33 @@ const EventDetails = ({ onNext, initialData }) => {
       if (initialData.eventDescription)
         setEventDescription(initialData.eventDescription);
       if (initialData.eventDate) setEventDate(initialData.eventDate);
-      if (initialData.venue) setVenue(initialData.venue);
+      if (initialData.venue) {
+        // Check if venue is in the predefined options
+        if (venueOptions.includes(initialData.venue)) {
+          setVenue(initialData.venue);
+        } else {
+          // If not, set it as "Others" and put the value in customVenue
+          setVenue("Others");
+          setCustomVenue(initialData.venue);
+        }
+      }
       if (initialData.startTime) setStartTime(initialData.startTime);
       if (initialData.endTime) setEndTime(initialData.endTime);
       if (initialData.eventCategory)
         setEventCategory(initialData.eventCategory);
       if (initialData.eventType) setEventType(initialData.eventType);
       if (initialData.imagePreview) setImagePreview(initialData.imagePreview);
+      if (initialData.venueMapPreview) setVenueMapPreview(initialData.venueMapPreview);
     }
   }, [initialData]);
+  
   const [eventName, setEventName] = useState(initialData?.eventName || "");
   const [eventDescription, setEventDescription] = useState(
     initialData?.eventDescription || ""
   );
   const [eventDate, setEventDate] = useState(initialData?.eventDate || "");
   const [venue, setVenue] = useState(initialData?.venue || "");
+  const [customVenue, setCustomVenue] = useState("");
   const [startTime, setStartTime] = useState(initialData?.startTime || "");
   const [endTime, setEndTime] = useState(initialData?.endTime || ""); // End time is optional
   const [eventCategory, setEventCategory] = useState(
@@ -76,11 +90,31 @@ const EventDetails = ({ onNext, initialData }) => {
   const [imagePreview, setImagePreview] = useState(
     initialData?.imagePreview ? formatImageUrl(initialData.imagePreview) : null
   );
+  const [venueMap, setVenueMap] = useState(initialData?.venueMap || null);
+  const [venueMapPreview, setVenueMapPreview] = useState(
+    initialData?.venueMapPreview ? formatImageUrl(initialData.venueMapPreview) : null
+  );
   const [errors, setErrors] = useState({});
+  const [isImageHovered, setIsImageHovered] = useState(false);
+  const [showMapPreview, setShowMapPreview] = useState(false);
   const fileInputRef = useRef(null);
+  const mapInputRef = useRef(null);
+  const venueInputRef = useRef(null);
 
   // Define today at component level so it's available throughout the component
   const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
+
+  // Venue suggestions array
+  const venueOptions = [
+    "MOA Arena",
+    "Smart Araneta Coliseum",
+    "UST Quadricentennial Pavilion",
+    "UST Gymnasium", 
+    "UST Main Building",
+    "UST Tan Yan Kee Student Center",
+    "UST Plaza Mayor",
+    "Others"
+  ];
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -96,8 +130,65 @@ const EventDetails = ({ onNext, initialData }) => {
     }
   };
 
+  const handleMapUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // If there's an existing map, we should delete it from S3
+      if (venueMap && venueMapS3Key) {
+        // Call the delete endpoint
+        eventService.deleteVenueMap(venueMapS3Key)
+          .then(response => {
+            console.log("Old venue map deleted successfully");
+          })
+          .catch(error => {
+            console.error("Error deleting old venue map:", error);
+          });
+      }
+
+      setVenueMap(file);
+
+      // Create map preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const preview = reader.result;
+        setVenueMapPreview(preview);
+        // Also set the mapImage for consistency
+        setMapImage(preview);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleUploadButtonClick = () => {
     fileInputRef.current.click();
+  };
+
+  const handleMapUploadButtonClick = () => {
+    mapInputRef.current.click();
+  };
+
+  const handleReplaceImageClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handlePreviewMap = () => {
+    if (venueMapPreview) {
+      setShowMapPreview(true);
+    }
+  };
+
+  const handleClosePreview = () => {
+    setShowMapPreview(false);
+  };
+
+  const handleVenueChange = (e) => {
+    const selectedVenue = e.target.value;
+    setVenue(selectedVenue);
+    
+    // If it's not "Others", clear the custom venue
+    if (selectedVenue !== "Others") {
+      setCustomVenue("");
+    }
   };
 
   const validate = () => {
@@ -111,23 +202,25 @@ const EventDetails = ({ onNext, initialData }) => {
     if (!eventDate) {
       newErrors.eventDate = "Event date is required";
     } else {
-      // For ticketed and free events (not coming soon), validate that event date is in the future
-      if (eventType !== "coming_soon") {
-        if (eventDate < today) {
-          newErrors.eventDate = "Event date must be in the future";
-        }
+      const selectedDate = new Date(eventDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+
+      if (selectedDate < today) {
+        newErrors.eventDate = "Event date must be today or in the future";
       }
     }
 
-    if (!venue.trim()) newErrors.venue = "Venue is required";
+    // Venue validation - check if a venue is selected and if it's "Others", ensure custom venue is filled
+    if (venue === "") {
+      newErrors.venue = "Venue is required";
+    } else if (venue === "Others" && !customVenue.trim()) {
+      newErrors.customVenue = "Please specify the venue";
+    }
+    
     if (!startTime) newErrors.startTime = "Start time is required";
     if (!eventCategory) newErrors.eventCategory = "Category is required";
     // End time is optional, so no validation needed
-
-    // Remove the image warning/error - make it completely optional
-    // if (!imagePreview && !eventImage) {
-    //   newErrors.image = "Event image is recommended";
-    // }
 
     // Validate time if both start and end time are provided
     if (startTime && endTime && startTime >= endTime) {
@@ -145,13 +238,15 @@ const EventDetails = ({ onNext, initialData }) => {
         eventName,
         eventDescription,
         eventDate,
-        venue,
+        venue: venue === "Others" ? customVenue : venue, // Use custom venue if "Others" is selected
         startTime,
         endTime,
         eventCategory,
         eventType,
         eventImage,
         imagePreview,
+        venueMap,
+        venueMapPreview,
       };
 
       // Pass data to parent
@@ -187,7 +282,7 @@ const EventDetails = ({ onNext, initialData }) => {
       <hr className="border-t border-gray-600 my-4" />
 
       <div className="grid grid-cols-2 gap-1 items-start">
-        <div className="bg-[#FFAB40] w-8/12 h-full rounded-xl flex items-center justify-center relative">
+        <div className="bg-[#FFAB40] w-8/12 h-[450px] rounded-xl flex items-center justify-center relative">
           <input
             type="file"
             ref={fileInputRef}
@@ -196,15 +291,31 @@ const EventDetails = ({ onNext, initialData }) => {
             className="hidden"
           />
           {imagePreview ? (
-            <img
-              src={imagePreview}
-              alt="Event"
-              className="w-full h-full object-cover rounded-xl"
-              onError={(e) => {
-                console.warn(`Image preview failed to load: ${imagePreview}`);
-                setImagePreview(null); // Reset on error
-              }}
-            />
+            <div 
+              className="relative w-full h-full group"
+              onMouseEnter={() => setIsImageHovered(true)}
+              onMouseLeave={() => setIsImageHovered(false)}
+            >
+              <img
+                src={imagePreview}
+                alt="Event"
+                className="w-full h-full object-cover rounded-xl"
+                onError={(e) => {
+                  console.warn(`Image preview failed to load: ${imagePreview}`);
+                  setImagePreview(null); // Reset on error
+                }}
+              />
+              {isImageHovered && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-xl flex items-center justify-center transition-opacity duration-200">
+                  <button
+                    onClick={handleReplaceImageClick}
+                    className="bg-[#FFAB40] text-[#2E2E2E] text-sm font-semibold py-2 px-4 rounded-full hover:bg-[#FF9800] transition-colors duration-200"
+                  >
+                    Replace Image
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <button
               onClick={handleUploadButtonClick}
@@ -247,7 +358,7 @@ const EventDetails = ({ onNext, initialData }) => {
                 type="date"
                 value={eventDate}
                 onChange={(e) => setEventDate(e.target.value)}
-                min={eventType !== "coming_soon" ? today : undefined}
+                min={new Date().toISOString().split('T')[0]} // Set minimum date to today
                 className={`w-full bg-[#1E1E1E] border ${
                   errors.eventDate ? "border-red-500" : "border-[#333333]"
                 } text-white rounded px-2 py-1.5 text-sm`}
@@ -259,19 +370,88 @@ const EventDetails = ({ onNext, initialData }) => {
                 </p>
               )}
             </div>
-            <div>
+            <div className="relative">
               <p className="text-[#FFAB40] text-sm mb-1">Event Venue:</p>
-              <input
-                type="text"
-                placeholder="Venue"
+              <select
                 value={venue}
-                onChange={(e) => setVenue(e.target.value)}
+                onChange={handleVenueChange}
                 className={`w-full bg-[#1E1E1E] border ${
                   errors.venue ? "border-red-500" : "border-[#333333]"
                 } text-white rounded px-2 py-1.5 text-sm`}
-              />
+              >
+                <option value="">Select Venue</option>
+                {venueOptions.map((option, index) => (
+                  <option key={index} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              {venue === "Others" && (
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    placeholder="Enter venue name"
+                    value={customVenue}
+                    onChange={(e) => setCustomVenue(e.target.value)}
+                    className={`w-full bg-[#1E1E1E] border ${
+                      errors.customVenue ? "border-red-500" : "border-[#333333]"
+                    } text-white rounded px-2 py-1.5 text-sm`}
+                  />
+                  {errors.customVenue && (
+                    <p className="text-red-500 text-xs mt-1">
+                      <AlertCircleIcon className="h-3 w-3 inline mr-1" />
+                      {errors.customVenue}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
+          
+          {/* Venue Map Upload Section */}
+          {venue && (
+            <div>
+              <p className="text-[#FFAB40] text-sm mb-1">Venue Map (Optional):</p>
+              <div className="bg-[#2A2A2A] border border-[#333333] rounded-lg p-3">
+                <input
+                  type="file"
+                  ref={mapInputRef}
+                  onChange={handleMapUpload}
+                  accept="image/jpeg,image/png,image/gif"
+                  className="hidden"
+                />
+                
+                <div className="flex flex-col space-y-2">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleMapUploadButtonClick}
+                      className="bg-[#FFAB40] text-[#2E2E2E] text-xs font-semibold py-2 px-4 rounded-full hover:bg-[#FF9800] transition-colors duration-200 flex-1"
+                    >
+                      {venueMap ? 'Replace Map' : 'Upload Map'}
+                    </button>
+                    
+                    {venueMapPreview && (
+                      <button
+                        onClick={handlePreviewMap}
+                        className="bg-[#333333] text-white text-xs font-semibold py-2 px-4 rounded-full hover:bg-[#444444] transition-colors duration-200 flex-1"
+                      >
+                        Preview Map
+                      </button>
+                    )}
+                  </div>
+                  
+                  {venueMap && (
+                    <div className="text-[#B8B8B8] text-xs bg-[#1E1E1E] rounded px-2 py-1">
+                      <span className="text-[#FFAB40]">✓</span> Map uploaded: {venueMap.name}
+                    </div>
+                  )}
+                </div>
+                
+            
+              </div>
+            </div>
+          )}
+
           <div>
             <p className="text-[#FFAB40] text-sm mb-1">Time of Event:</p>
             <div className="flex space-x-2 items-center">
@@ -376,13 +556,39 @@ const EventDetails = ({ onNext, initialData }) => {
 
       {/* Hidden button for parent component to trigger submit */}
       <button className="hidden event-submit-button" onClick={handleSubmit} />
+
+      {/* Map Preview Popup */}
+      {showMapPreview && venueMapPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={handleClosePreview}>
+          <div className="relative max-w-4xl max-h-[90vh] p-4">
+            <button
+              onClick={handleClosePreview}
+              className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors duration-200 z-10"
+            >
+              ×
+            </button>
+            <img
+              src={venueMapPreview}
+              alt="Venue Map Preview"
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+              onError={(e) => {
+                console.warn(`Map preview failed to load: ${venueMapPreview}`);
+                setShowMapPreview(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
 // Modified TicketDetails component with validation
 
 const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [venueMapPreview, setVenueMapPreview] = useState(initialData?.mapImage || null);
+
   useEffect(() => {
     console.log("TicketDetails component received initialData:", initialData);
 
@@ -463,6 +669,47 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
       ? initialData.freeSeating.maxPerPerson.toString()
       : ""
   );
+    // Check if map data exists
+    const hasMapData = initialData?.mapImage || initialData?.mapData;
+
+    // Map Modal Component
+    const MapModal = () => {
+      if (!showMapModal) return null;
+  
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1E1E1E] rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-gray-600">
+              <h3 className="text-white text-xl font-semibold">Event Venue Map</h3>
+              <button
+                onClick={() => setShowMapModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 overflow-auto max-h-[calc(90vh-100px)]">
+              {venueMapPreview ? (
+                <img 
+                  src={venueMapPreview} 
+                  alt="Venue Map" 
+                  className="w-full h-auto rounded-lg"
+                />
+              ) : (
+                <div className="text-center text-gray-400 py-8">
+                  <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  <p>No map data available</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
 
   // Initialize ticket tiers
   const defaultTiers = {
@@ -859,7 +1106,29 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
     onNext(ticketDetailsData);
   };
 
-  // For Coming Soon events - show option to add ticket tiers
+  // Add this function before the return statements
+  const renderMapSection = () => {
+    if (!initialData?.mapImage) return null;
+
+    return (
+      <div className=" rounded-lg mb-4">
+        <div className="flex">
+          <div className="flex items-center gap-2">
+            <p className="text-white text-sm font-light">See Venue Map here:</p>
+            <button
+              onClick={() => setShowMapModal(true)}
+              className="bg-[#FFAB40] text-[#2E2E2E] text-xs font-semibold py-1.5 px-3 rounded-full hover:bg-[#FF9800] transition-colors duration-200 flex items-center"
+            >
+              <EyeIcon className="h-3 w-3 mr-1" />
+              View Map
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // For Coming Soon events
   if (eventType === "coming_soon") {
     return (
       <div className="w-full">
@@ -876,6 +1145,8 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
         </div>
 
         <hr className="border-t border-gray-600 my-4" />
+
+        {renderMapSection()}
 
         {Object.keys(errors).length > 0 && (
           <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
@@ -1190,12 +1461,14 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
               Free Event Details
             </p>
             <p className="text-[13px] text-[#B8B8B8] mb-4">
-              Set the number of free tickets available for this event.
+              Configure the details for your free event.
             </p>
           </div>
         </div>
 
         <hr className="border-t border-gray-600 my-4" />
+
+        {renderMapSection()}
 
         {Object.keys(errors).length > 0 && (
           <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
@@ -1267,7 +1540,7 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
     );
   }
 
-  // Regular ticketed event with full ticket details
+  // Regular ticketed event
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-4">
@@ -1276,13 +1549,14 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
             Ticket Details
           </p>
           <p className="text-[13px] text-[#B8B8B8] mb-4">
-            Select ticket types and set the total available tickets, ensuring
-            they match venue capacity and event needs.
+            Configure the ticket tiers and pricing for your event.
           </p>
         </div>
       </div>
 
       <hr className="border-t border-gray-600 my-4" />
+
+      {renderMapSection()}
 
       {Object.keys(errors).length > 0 && (
         <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
@@ -1533,6 +1807,9 @@ const TicketDetails = ({ onBack, onNext, eventType, initialData }) => {
 
       {/* Hidden button for parent component to trigger submit */}
       <button className="hidden ticket-submit-button" onClick={handleSubmit} />
+
+      {/* Map Modal */}
+      {showMapModal && <MapModal />}
     </div>
   );
 };
@@ -1795,9 +2072,7 @@ const ClaimingDetails = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Add a function to automatically calculate the remaining slots needed
 
-  // Helper function to auto-fill the max reservations field with the remaining slots
 
   // Updated handleSubmit function to ensure validation
   const handleSubmit = () => {
@@ -2543,6 +2818,9 @@ const AvailabilityDetails = ({
     initialData?.displayPeriod?.endTime || ""
   );
 
+  // Get today's date in YYYY-MM-DD format for min date validation
+  const today = new Date().toISOString().split('T')[0];
+
   // Reservation period state - only for ticketed events
   const [reservationStartDate, setReservationStartDate] = useState(
     initialData?.reservationPeriod?.startDate || ""
@@ -2581,6 +2859,14 @@ const AvailabilityDetails = ({
     if (!displayEndDate)
       newErrors.displayEndDate = "End display date is required";
 
+    // Validate dates are not before today
+    if (displayStartDate && displayStartDate < today) {
+      newErrors.displayStartDate = "Start display date cannot be before today";
+    }
+    if (displayEndDate && displayEndDate < today) {
+      newErrors.displayEndDate = "End display date cannot be before today";
+    }
+
     // Validate display times
     if (!displayStartTime)
       newErrors.displayStartTime = "Start display time is required";
@@ -2597,6 +2883,14 @@ const AvailabilityDetails = ({
         newErrors.reservationStartTime = "Start reservation time is required";
       if (!reservationEndTime)
         newErrors.reservationEndTime = "End reservation time is required";
+
+      // Validate reservation dates are not before today
+      if (reservationStartDate && reservationStartDate < today) {
+        newErrors.reservationStartDate = "Start reservation date cannot be before today";
+      }
+      if (reservationEndDate && reservationEndDate < today) {
+        newErrors.reservationEndDate = "End reservation date cannot be before today";
+      }
 
       // Validate reservation period is within display period
       if (
@@ -2841,6 +3135,7 @@ const AvailabilityDetails = ({
                       type="date"
                       value={displayStartDate}
                       onChange={(e) => setDisplayStartDate(e.target.value)}
+                      min={today}
                       className={`w-full bg-[#1E1E1E] border ${
                         errors.displayStartDate
                           ? "border-red-500"
@@ -2878,6 +3173,7 @@ const AvailabilityDetails = ({
                       type="date"
                       value={displayEndDate}
                       onChange={(e) => setDisplayEndDate(e.target.value)}
+                      min={today}
                       max={eventDate} // Ensure date picker doesn't allow dates after event
                       className={`w-full bg-[#1E1E1E] border ${
                         errors.displayEndDate || errors.displayEndDateEvent
@@ -3007,6 +3303,7 @@ const AvailabilityDetails = ({
                       type="date"
                       value={displayStartDate}
                       onChange={(e) => setDisplayStartDate(e.target.value)}
+                      min={today}
                       className={`w-full bg-[#1E1E1E] border ${
                         errors.displayStartDate
                           ? "border-red-500"
@@ -3043,6 +3340,7 @@ const AvailabilityDetails = ({
                       type="date"
                       value={displayEndDate}
                       onChange={(e) => setDisplayEndDate(e.target.value)}
+                      min={today}
                       className={`w-full bg-[#1E1E1E] border ${
                         errors.displayEndDate
                           ? "border-red-500"
@@ -3196,6 +3494,7 @@ const AvailabilityDetails = ({
                     type="date"
                     value={displayStartDate}
                     onChange={(e) => setDisplayStartDate(e.target.value)}
+                    min={today}
                     className={`w-full bg-[#1E1E1E] border ${
                       errors.displayStartDate
                         ? "border-red-500"
@@ -3233,6 +3532,7 @@ const AvailabilityDetails = ({
                     type="date"
                     value={displayEndDate}
                     onChange={(e) => setDisplayEndDate(e.target.value)}
+                    min={today}
                     max={eventDate} // Ensure date picker doesn't allow dates after event
                     className={`w-full bg-[#1E1E1E] border ${
                       errors.displayEndDate || errors.displayEndDateEvent
@@ -3306,6 +3606,7 @@ const AvailabilityDetails = ({
                   type="date"
                   value={reservationStartDate}
                   onChange={(e) => setReservationStartDate(e.target.value)}
+                  min={today}
                   className={`w-full bg-[#1E1E1E] border ${
                     errors.reservationStartDate
                       ? "border-red-500"
@@ -3325,6 +3626,7 @@ const AvailabilityDetails = ({
                   type="date"
                   value={reservationEndDate}
                   onChange={(e) => setReservationEndDate(e.target.value)}
+                  min={today}
                   max={eventDate} // Ensure date picker doesn't allow dates after event
                   className={`w-full bg-[#1E1E1E] border ${
                     errors.reservationEndDate || errors.reservationEndDateEvent
@@ -3397,6 +3699,46 @@ const SummaryDetails = ({
 }) => {
   // Get event type
   const eventType = eventDetails?.eventType || "ticketed";
+  const [showMapModal, setShowMapModal] = useState(false);
+
+  // Map Modal Component
+  const MapModal = () => {
+    if (!showMapModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div className="bg-[#1E1E1E] rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden">
+          <div className="flex justify-between items-center p-4 border-b border-gray-600">
+            <h3 className="text-white text-xl font-semibold">Event Venue Map</h3>
+            <button
+              onClick={() => setShowMapModal(false)}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="p-4 overflow-auto max-h-[calc(90vh-100px)]">
+            {eventDetails?.venueMapPreview ? (
+              <img 
+                src={eventDetails.venueMapPreview} 
+                alt="Venue Map" 
+                className="w-full h-auto rounded-lg"
+              />
+            ) : (
+              <div className="text-center text-gray-400 py-8">
+                <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                <p>No map data available</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Calculate total tickets
   const getTotalTickets = () => {
@@ -3516,14 +3858,28 @@ const SummaryDetails = ({
 
                 <div>
                   <p className="text-[#B8B8B8] text-xs">Venue</p>
-                  <p className="text-white">
-                    {eventDetails?.venue || "N/A"}
-                    {eventType === "coming_soon" && (
-                      <span className="text-[#FFAB40] ml-2 text-xs">
-                        (Tentative)
-                      </span>
+                  <div className="flex items-center gap-2">
+                    <p className="text-white">
+                      {eventDetails?.venue || "N/A"}
+                      {eventType === "coming_soon" && (
+                        <span className="text-[#FFAB40] ml-2 text-xs">
+                          (Tentative)
+                        </span>
+                      )}
+                    </p>
+                    {eventDetails?.venueMapPreview && (
+                      <button
+                        onClick={() => setShowMapModal(true)}
+                        className="bg-[#FFAB40] text-[#2E2E2E] text-xs font-semibold py-1.5 px-3 rounded-full hover:bg-[#FF9800] transition-colors duration-200 flex items-center"
+                      >
+                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View Map
+                      </button>
                     )}
-                  </p>
+                  </div>
                 </div>
 
                 <div>
@@ -4046,6 +4402,9 @@ const SummaryDetails = ({
           </div>
         </div>
       </div>
+
+      {/* Map Modal */}
+      {showMapModal && <MapModal />}
     </div>
   );
 };
@@ -4122,6 +4481,11 @@ const Admin_PublishEvent = ({
 
   const handleEventDetailsNext = (details) => {
     setEventDetails(details);
+    // Pass the map data to the ticket details section
+    setTicketDetails(prev => ({
+      ...prev,
+      mapImage: details.venueMapPreview || details.mapImage
+    }));
     setCurrentStep(getNextStep(1, details.eventType));
   };
 

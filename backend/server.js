@@ -15,17 +15,34 @@ const db = require("./models");
 const pool = require("./config/db");
 const { initScheduler } = require("./schedulerService");
 const app = express();
+const { S3Client } = require("@aws-sdk/client-s3");
 const port = process.env.PORT || 5002;
+const bucketName = process.env.BUCKET_NAME;
+const bucketRegion = process.env.BUCKET_REGION;
+const accessKey = process.env.ACCESS_KEY;
+const secretAccessKey = process.env.SECRET_ACCESS_KEY;
+
+
+const s3Client = new S3Client({
+  region: bucketRegion,
+  credentials: {
+    accessKeyId: accessKey,
+    secretAccessKey: secretAccessKey,
+  },
+});
 
 // ========================================================
 // REDIS DATABASE SETUP
 // For caching and fast data retrieval
 // ========================================================
-const redisClient = new Redis();
+const redisClient = require("./config/redis");
+
 redisClient.on("connect", () =>
-  console.log("Connected to Redis successfully! 🔥")
+  console.log("✅ Connected to Redis successfully!")
 );
-redisClient.on("error", (err) => console.error("Redis connection error:", err));
+redisClient.on("error", (err) =>
+  console.error("⚠️ Redis connection error:", err)
+);
 
 // ========================================================
 // SOCKET.IO REAL-TIME COMMUNICATION SETUP
@@ -34,15 +51,18 @@ redisClient.on("error", (err) => console.error("Redis connection error:", err));
 // Create HTTP server instance
 const server = http.createServer(app);
 
-// Initialize Socket.IO with appropriate CORS settings
+// Use environment variable for frontend URL or fallback to localhost
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
+// Initialize Socket.IO with dynamic CORS settings
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173", "*"],
+    origin: [FRONTEND_URL],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   },
-  path: "/socket.io", // Make sure path is consistent with client
+  path: "/socket.io", // Ensure this matches the client configuration
   pingTimeout: 60000,
   pingInterval: 25000,
   transports: ["websocket", "polling"],
@@ -98,18 +118,23 @@ app.use((req, res, next) => {
 });
 
 // ========================================================
+// AWS S3 SETUP
+// ========================================================
+app.use((req, res, next) => {
+  req.s3Client = s3Client;
+  next();
+});
+
+
+// ========================================================
 // EXPRESS MIDDLEWARE CONFIGURATION
 // ========================================================
-// CORS configuration for cross-origin requests
+// CORS middleware configuration
 app.use(
   cors({
-    origin: "http://localhost:5173", // Replace with your frontend's URL
+    origin: FRONTEND_URL,
     credentials: true, // Allow credentials (cookies, authorization headers, etc.)
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "withCredentials", // Add this to allow the withCredentials header
-    ],
+    allowedHeaders: ["Content-Type", "Authorization", "withCredentials"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"], // Allow these HTTP methods
   })
 );
@@ -204,6 +229,46 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server is running" });
 });
 
+// Initialize scheduler
+const schedulerJobs = initScheduler(io);
+console.log("📅 Scheduler jobs initialized:", Object.keys(schedulerJobs));
+
+// Add scheduler status endpoint with detailed logging
+app.get('/api/scheduler/status', (req, res) => {
+  const status = schedulerJobs.getSchedulerStatus();
+  console.log("📊 Scheduler Status Check:", {
+    timestamp: new Date().toISOString(),
+    jobs: Object.keys(status.jobs),
+    uptime: status.uptime,
+    jobDetails: status.jobs
+  });
+  res.json(status);
+});
+
+// Add a test endpoint to manually trigger event status updates
+app.post('/api/scheduler/test-update', async (req, res) => {
+  try {
+    console.log("🔄 Manually triggering event status update...");
+    const updatedEvents = await autoStatusCheck.updateEventStatuses();
+    console.log("✅ Manual update completed:", {
+      updatedCount: updatedEvents?.length || 0,
+      updatedEvents
+    });
+    res.json({
+      success: true,
+      message: "Manual update completed",
+      updatedEvents
+    });
+  } catch (error) {
+    console.error("❌ Error during manual update:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error during manual update",
+      error: error.message
+    });
+  }
+});
+
 // ========================================================
 // ERROR HANDLING
 // ========================================================
@@ -271,19 +336,63 @@ const startServer = async () => {
     }
 
     // Initialize the scheduler with the io instance for event status updates
-    initScheduler(io);
+    const schedulerJobs = initScheduler(io);
+    console.log("Scheduler initialized with jobs:", Object.keys(schedulerJobs));
 
-    
     // Start HTTP server
     server.listen(port, () => {
       console.log(`Server running on port ${port} 🚀`);
     });
+
+    // Handle various process signals for graceful shutdown
+    const shutdown = async (signal) => {
+      console.log(`${signal} received. Shutting down gracefully...`);
+      
+      // Stop all scheduler jobs
+      Object.values(schedulerJobs).forEach(job => {
+        try {
+          job.stop();
+          console.log(`Stopped scheduler job: ${job.name || 'unnamed'}`);
+        } catch (error) {
+          console.error('Error stopping scheduler job:', error);
+        }
+      });
+
+      // Close server
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+
+      // Force exit after 10 seconds if graceful shutdown fails
+      setTimeout(() => {
+        console.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, 10000);
+    };
+
+    // Handle different termination signals
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGHUP', () => shutdown('SIGHUP'));
+
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught Exception:', error);
+      shutdown('UNCAUGHT_EXCEPTION');
+    });
+
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+      shutdown('UNHANDLED_REJECTION');
+    });
+
   } catch (error) {
     console.error("Error during database sync or server startup:", error);
     process.exit(1);
   }
 };
-
 
 // Start the server
 startServer();

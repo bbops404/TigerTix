@@ -9,15 +9,9 @@ const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const { createAuditTrail } = require("./auditTrailController");
 const crypto = require("crypto");
-
-// Nodemailer transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
+const resendhost = process.env.RESEND_HOST;
 
 const authenticate = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -364,7 +358,7 @@ exports.addUser = async (req, res) => {
       return res.status(400).json({ message: "Username is already taken." });
     }
 
-    // Generate a temporary password
+    // Generate a 2
     const temporaryPassword = crypto.randomBytes(8).toString("hex"); // 16-character random password
     const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
@@ -380,8 +374,8 @@ exports.addUser = async (req, res) => {
     });
 
     // Send an email to the user with their temporary password
-    await transporter.sendMail({
-      from: `"TigerTix" <${process.env.EMAIL_USER}>`,
+    await resend.emails.send({
+      from: resendhost, // Use only the verified sender email, no display name or quotes
       to: email,
       subject: "Welcome to TigerTix!",
       html: `

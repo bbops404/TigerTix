@@ -1,26 +1,26 @@
-const nodemailer = require("nodemailer");
-const Redis = require("ioredis");
 const bcrypt = require("bcryptjs");
 const { Sequelize } = require("sequelize");
 const jwt = require("jsonwebtoken");
 const User = require("../models/Users");
 
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
+const resendhost = process.env.RESEND_HOST;
+
 require("dotenv").config();
 
-const redis = new Redis();
+const redis = require("../config/redis");
 
 // Generate a 6-digit OTP
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
-// Nodemailer transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// Password policy: min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special char
+function isPasswordValid(password) {
+  const policy =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>/?]).{8,}$/;
+  return policy.test(password);
+}
 
 // Check if a user exists
 exports.checkUser = async (req, res) => {
@@ -53,11 +53,36 @@ exports.sendOTP = async (req, res) => {
     const otp = generateOTP();
     await redis.set(`otp:${email}`, otp, "EX", 300);
 
-    await transporter.sendMail({
-      from: `"TigerTix OTP Service" <${process.env.EMAIL_USER}>`,
+    // Styled HTML OTP email
+    const otpHtml = `
+      <div style="background: #f6f8fa; min-height: 100vh; padding: 0; margin: 0;">
+        <div style="max-width: 420px; margin: 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px #0001; overflow: hidden;">
+          <div style="background: linear-gradient(90deg, #FFAB40 0%, #FFD699 100%); padding: 24px 0 12px 0; text-align: center;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/UST_seal.png" alt="TigerTix" style="height: 48px; margin-bottom: 8px;" />
+            <div style="font-size: 18px; font-weight: bold; color: #222;">TigerTix</div>
+            <div style="font-size: 13px; color: #333; margin-top: 4px;">${new Date().toLocaleDateString()}</div>
+          </div>
+          <div style="padding: 32px 24px 24px 24px; text-align: center;">
+            <h2 style="font-size: 22px; font-weight: bold; margin-bottom: 8px; color: #222;">Your OTP</h2>
+            <p style="font-size: 16px; color: #444; margin-bottom: 18px;">
+              Thank you for choosing TigerTix.<br>
+              Use the following OTP to complete your registration.<br>
+              OTP is valid for <b>5 minutes</b>.<br>
+              <span style="color: #C15454; font-size: 13px;">Do not share this code with anyone.</span>
+            </p>
+            <div style="font-size: 32px; letter-spacing: 18px; font-weight: bold; color: #C15454; margin: 24px 0 16px 0;">
+              ${otp.split("").join(" ")}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    await resend.emails.send({
+      from: resendhost,
       to: email,
-      subject: "Your One-Time Password (OTP)",
-      text: `Your OTP code is: ${otp}\n\nThis code will expire in 5 minutes. Do not share it with anyone.`,
+      subject: "Your TigerTix OTP Code",
+      html: otpHtml,
     });
 
     res.status(200).json({ message: "OTP sent successfully!" });
@@ -102,6 +127,14 @@ exports.signUp = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    // Enforce password policy
+    if (!isPasswordValid(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.",
+      });
+    }
+
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: "Email is already registered." });
@@ -119,10 +152,9 @@ exports.signUp = async (req, res) => {
       status: "active",
     });
 
-
-     // Send email for successfully creating account
-     await transporter.sendMail({
-      from: `"TigerTix Support" <${process.env.EMAIL_USER}>`,
+    // Send email for successfully creating account
+    resend.emails.send({
+      from: resendhost,
       to: email,
       subject: "Welcome to TigerTix!",
       text: `Hi ${firstName} ${lastName},\n\nYour account has been successfully created on TigerTix.\n\nUsername: ${username}\nRole: ${formattedRole}\n\nThank you for joining us!\n\nBest regards,\nTigerTix Team`,
@@ -224,7 +256,7 @@ exports.login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // Only send over HTTPS
       sameSite: "Lax",
-      maxAge: 24 * 60 * 60 * 1000, 
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     console.log("✅ Cookie set successfully:", req.cookies); // Debug log
@@ -310,8 +342,8 @@ exports.requestPasswordReset = async (req, res) => {
     const otp = generateOTP();
     await redis.set(`password-reset:${email}`, otp, "EX", 300);
 
-    await transporter.sendMail({
-      from: `"TigerTix Support" <${process.env.EMAIL_USER}>`,
+    resend.emails.send({
+      from: resendhost,
       to: email,
       subject: "Password Reset OTP",
       text: `Your password reset OTP is: ${otp}\n\nIt expires in 5 minutes.`,
@@ -327,11 +359,27 @@ exports.requestPasswordReset = async (req, res) => {
 // Validate Password Reset OTP
 exports.validatePasswordResetOTP = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email, otp, newPassword } = req.body;
     const storedOtp = await redis.get(`password-reset:${email}`);
 
     if (!storedOtp || storedOtp !== otp) {
       return res.status(400).json({ message: "Invalid or expired OTP." });
+    }
+
+    // If newPassword is provided, enforce password policy
+    if (newPassword !== undefined) {
+      if (!isPasswordValid(newPassword)) {
+        return res.status(400).json({
+          message:
+            "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.",
+        });
+      }
+      // Update password if needed (assuming you want to reset here)
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await User.update(
+        { password_hash: hashedPassword },
+        { where: { email } }
+      );
     }
 
     await redis.del(`password-reset:${email}`);
@@ -344,3 +392,51 @@ exports.validatePasswordResetOTP = async (req, res) => {
   }
 };
 
+
+
+// Reset Password
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: "Email and new password are required." });
+    }
+
+    // Enforce password policy
+    if (!isPasswordValid(newPassword)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.",
+      });
+    }
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await User.update(
+      { password_hash: hashedPassword },
+      { where: { email } }
+    );
+
+    // Send confirmation email
+    resend.emails.send({
+      from: resendhost,
+      to: email,
+      subject: "Your Password Has Been Reset",
+      text: `Hi ${user.first_name},\n\nYour password has been successfully reset.\n\nIf you did not request this change, please contact support immediately.\n\nBest regards,\nTigerTix Team`,
+      html: `<p>Hi <strong>${user.first_name}</strong>,</p>
+             <p>Your password has been successfully reset.</p>
+             <p>If you did not request this change, please contact support immediately.</p>
+             <p>Best regards,<br><strong>TigerTix Team</strong></p>`,
+    });
+
+    res.status(200).json({ message: "Password reset successfully." });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "Server error, please try again." });
+  }
+};

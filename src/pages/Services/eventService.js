@@ -1,34 +1,30 @@
 // frontend/src/services/eventService.js
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
+const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 const formatImageUrl = (imageUrl) => {
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002";
-
   if (!imageUrl) return null;
 
-  // If the URL is already absolute (with http), return it as is
+  // If the URL is already absolute (S3 URLs are full HTTPS URLs), return it as is
   if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
     return imageUrl;
   }
 
-  // Handle both /api/uploads and /uploads paths consistently
+  // For backward compatibility with local uploads (if any)
+  const API_URL = `${import.meta.env.VITE_API_URL}/api`;
   let formattedUrl = imageUrl;
 
-  // If path includes /api/uploads, remove the /api prefix
+  // Handle local file paths (legacy support)
   if (formattedUrl.startsWith("/api/uploads/")) {
     formattedUrl = formattedUrl.replace("/api/uploads/", "/uploads/");
   }
 
-  // If path doesn't start with /, add it
   if (!formattedUrl.startsWith("/")) {
     formattedUrl = `/${formattedUrl}`;
   }
 
-  // Remove trailing slash from API_URL if it exists
   const baseUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
-
   return `${baseUrl}${formattedUrl}`;
 };
 
@@ -123,31 +119,127 @@ const eventService = {
   },
 
   // Image upload
-  uploadEventImage: async (imageFile) => {
-    const formData = new FormData();
-    formData.append("image", imageFile);
-
+  uploadEventImage: async (file, oldImageKey = null) => {
     try {
-      // Use the post method with multipart/form-data
+      console.log("Starting image upload with file:", file.name, "Size:", file.size, "Type:", file.type);
+      
+      // If there's an old image, delete it first
+      if (oldImageKey) {
+        try {
+          await eventService.deleteEventImage(oldImageKey);
+          console.log("Old image deleted successfully:", oldImageKey);
+        } catch (deleteError) {
+          console.warn("Failed to delete old image:", deleteError);
+          // Continue with upload even if delete fails
+        }
+      }
+      
+      const formData = new FormData();
+      formData.append("image", file);
+
+      console.log("FormData created, sending request...");
+      
       const response = await apiClient.post("/events/upload-image", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        transformRequest: [(data) => data], // Prevent axios from transforming FormData
       });
-
-      // Debug the response
+  
       console.log("Upload image API response:", response.data);
-
+  
       if (response.data && response.data.success && response.data.imageUrl) {
-        // The response from backend returns the raw path - don't modify it
-        // Just return the exact path as received
         return {
           success: true,
           imageUrl: response.data.imageUrl,
+          s3Key: response.data.s3Key,
         };
       } else {
         throw new Error("Image upload failed - No URL returned");
       }
     } catch (error) {
       console.error("Image upload error:", error);
+      if (error.response) {
+        console.error("Error response data:", error.response.data);
+        console.error("Error response status:", error.response.status);
+        console.error("Error response headers:", error.response.headers);
+      }
+      throw error;
+    }
+  },
+
+  // Add method to delete images
+  deleteEventImage: async (s3Key) => {
+    try {
+      const response = await apiClient.delete("/events/delete-image", {
+        data: { key: s3Key }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      throw error;
+    }
+  },
+
+  // Venue map upload
+  uploadVenueMap: async (file, oldMapKey = null) => {
+    try {
+      console.log("Starting venue map upload with file:", file.name, "Size:", file.size, "Type:", file.type);
+      
+      // If there's an old map, delete it first
+      if (oldMapKey) {
+        try {
+          await eventService.deleteVenueMap(oldMapKey);
+          console.log("Old venue map deleted successfully:", oldMapKey);
+        } catch (deleteError) {
+          console.warn("Failed to delete old venue map:", deleteError);
+          // Continue with upload even if delete fails
+        }
+      }
+      
+      const formData = new FormData();
+      formData.append("venueMap", file);
+
+      console.log("FormData created, sending request...");
+      
+      const response = await apiClient.post("/events/upload-venue-map", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        transformRequest: [(data) => data], // Prevent axios from transforming FormData
+      });
+  
+      console.log("Upload venue map API response:", response.data);
+  
+      if (response.data && response.data.success && response.data.imageUrl) {
+        return {
+          success: true,
+          imageUrl: response.data.imageUrl,
+          s3Key: response.data.s3Key,
+        };
+      } else {
+        throw new Error("Venue map upload failed - No URL returned");
+      }
+    } catch (error) {
+      console.error("Venue map upload error:", error);
+      if (error.response) {
+        console.error("Error response data:", error.response.data);
+        console.error("Error response status:", error.response.status);
+        console.error("Error response headers:", error.response.headers);
+      }
+      throw error;
+    }
+  },
+
+  // Add method to delete venue maps
+  deleteVenueMap: async (s3Key) => {
+    try {
+      const response = await apiClient.delete("/events/delete-venue-map", {
+        data: { key: s3Key }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting venue map:", error);
       throw error;
     }
   },
