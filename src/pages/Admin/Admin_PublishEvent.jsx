@@ -1841,6 +1841,7 @@ const ClaimingDetails = ({
   initialData,
   eventDate,
   ticketDetails,
+  eventDetails, // Add eventDetails prop
 }) => {
   useEffect(() => {
     console.log("ClaimingDetails component received initialData:", initialData);
@@ -1943,19 +1944,28 @@ const ClaimingDetails = ({
 
     const eventDateObj = new Date(eventDate);
     const claimingDateObj = new Date(claimingDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
 
-    // Claiming date must be before event date
-    return claimingDateObj < eventDateObj;
+    // Claiming date must be between today and event date
+    return claimingDateObj >= today && claimingDateObj < eventDateObj;
   };
 
   // Add validation for claiming time
   const validateClaimingTime = (date, time) => {
-    if (!date || !time || !eventDate || !eventDetails?.startTime) return true;
-
-    const eventDateTime = new Date(`${eventDate}T${eventDetails.startTime}`);
+    if (!date || !time || !eventDate) return true;
+    
+    // If we have eventDetails and startTime, validate against it
+    if (eventDetails?.startTime) {
+      const eventDateTime = new Date(`${eventDate}T${eventDetails.startTime}`);
+      const claimingDateTime = new Date(`${date}T${time}`);
+      return claimingDateTime < eventDateTime;
+    }
+    
+    // If no eventDetails, just validate against event date
+    const eventDateObj = new Date(eventDate);
     const claimingDateTime = new Date(`${date}T${time}`);
-
-    return claimingDateTime < eventDateTime;
+    return claimingDateTime < eventDateObj;
   };
 
   // Add notification for invalid claiming date
@@ -2066,8 +2076,62 @@ const ClaimingDetails = ({
     setIsEditing(false);
   };
 
+  // Handle adding a new schedule
+  const handleAddSchedule = () => {
+    const dateToUse = claimingDate || selectedDate;
+
+    if (!dateToUse || !claimingVenue || !claimingStartTime || !claimingEndTime) {
+      setErrors({
+        ...errors,
+        incompleteForm: "Please provide all required information (date, venue, and time)",
+      });
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    // Validate claiming time
+    if (!validateClaimingTime(dateToUse, claimingStartTime) || !validateClaimingTime(dateToUse, claimingEndTime)) {
+      setErrors({
+        ...errors,
+        claimingTime: "Claiming time must be before the event time",
+      });
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    // Check for duplicate schedules
+    const isDuplicate = isDuplicateSchedule(
+      dateToUse,
+      claimingStartTime,
+      claimingEndTime,
+      claimingVenue
+    );
+
+    if (isDuplicate) {
+      setErrors({
+        ...errors,
+        duplicateSchedule: "A claiming schedule with the same date, time, and venue already exists",
+      });
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    const summaryData = {
+      id: Date.now(),
+      date: dateToUse,
+      venue: claimingVenue,
+      startTime: claimingStartTime,
+      endTime: claimingEndTime,
+      maxReservations: maxReservations === "" ? 0 : parseInt(maxReservations),
+    };
+
+    const updatedSummaries = [...claimingSummaries, summaryData];
+    setClaimingSummaries(updatedSummaries);
+    syncDateListWithSummaries(updatedSummaries);
+    clearForm();
+  };
+
   // Updated validation function to ensure claiming slots match tickets before proceeding
-  // Updated claiming validation to ensure total slots match tickets before proceeding
   const validate = () => {
     const newErrors = {};
 
@@ -2101,8 +2165,6 @@ const ClaimingDetails = ({
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
-
 
   // Updated handleSubmit function to ensure validation
   const handleSubmit = () => {
@@ -2317,6 +2379,7 @@ const ClaimingDetails = ({
               type="date"
               value={claimingDate}
               onChange={(e) => setClaimingDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]} // Set minimum date to today
               max={eventDate} // Set max date to event date
               className="w-auto max-w-xs bg-[#1E1E1E] border border-[#333333] text-white rounded px-3 py-1 text-sm"
             />
@@ -2543,148 +2606,7 @@ const ClaimingDetails = ({
               )}
 
               <button
-                onClick={() => {
-                  if (isEditing) {
-                    if (
-                      claimingDate &&
-                      claimingVenue &&
-                      claimingStartTime &&
-                      claimingEndTime
-                    ) {
-                      // Validate claiming time
-                      if (!validateClaimingTime(claimingDate, claimingStartTime) || !validateClaimingTime(claimingDate, claimingEndTime)) {
-                        setErrors({
-                          ...errors,
-                          claimingTime: "Claiming time must be before the event time",
-                        });
-                        window.scrollTo(0, 0);
-                        return;
-                      }
-
-                      // Check for duplicate schedules when editing
-                      const isDuplicate = isDuplicateSchedule(
-                        claimingDate,
-                        claimingStartTime,
-                        claimingEndTime,
-                        claimingVenue
-                      );
-
-                      if (isDuplicate) {
-                        setErrors({
-                          ...errors,
-                          duplicateSchedule:
-                            "A claiming schedule with the same date, time, and venue already exists",
-                        });
-                        window.scrollTo(0, 0);
-                        return;
-                      }
-
-                      const summaryData = {
-                        id: selectedSummary.id,
-                        date: claimingDate,
-                        venue: claimingVenue,
-                        startTime: claimingStartTime,
-                        endTime: claimingEndTime,
-                        maxReservations:
-                          maxReservations === ""
-                            ? 0
-                            : parseInt(maxReservations),
-                      };
-
-                      const updatedSummaries = claimingSummaries.map((s) =>
-                        s.id === selectedSummary.id ? summaryData : s
-                      );
-
-                      // Check if total slots match total tickets
-                      const totalTickets = getTotalTickets();
-                      const newTotalClaimingSlots = updatedSummaries.reduce(
-                        (total, summary) =>
-                          total + (summary.maxReservations || 0),
-                        0
-                      );
-
-                      setClaimingSummaries(updatedSummaries);
-                      syncDateListWithSummaries(updatedSummaries);
-                      clearForm();
-                    } else {
-                      setErrors({
-                        ...errors,
-                        incompleteForm:
-                          "Please provide all required information (date, venue, and time)",
-                      });
-                      window.scrollTo(0, 0);
-                    }
-                  } else {
-                    const dateToUse = claimingDate || selectedDate;
-
-                    if (
-                      dateToUse &&
-                      claimingVenue &&
-                      claimingStartTime &&
-                      claimingEndTime
-                    ) {
-                      if (claimingDate && !dateList.includes(claimingDate)) {
-                        setDateList([...dateList, claimingDate]);
-                      }
-
-                      // Validate claiming time
-                      if (!validateClaimingTime(dateToUse, claimingStartTime) || !validateClaimingTime(dateToUse, claimingEndTime)) {
-                        setErrors({
-                          ...errors,
-                          claimingTime: "Claiming time must be before the event time",
-                        });
-                        window.scrollTo(0, 0);
-                        return;
-                      }
-
-                      // Check for duplicate schedules
-                      const isDuplicate = isDuplicateSchedule(
-                        dateToUse,
-                        claimingStartTime,
-                        claimingEndTime,
-                        claimingVenue
-                      );
-
-                      if (isDuplicate) {
-                        setErrors({
-                          ...errors,
-                          duplicateSchedule:
-                            "A claiming schedule with the same date, time, and venue already exists",
-                        });
-                        window.scrollTo(0, 0);
-                        return;
-                      }
-
-                      const summaryData = {
-                        id: Date.now(),
-                        date: dateToUse,
-                        venue: claimingVenue,
-                        startTime: claimingStartTime,
-                        endTime: claimingEndTime,
-                        maxReservations:
-                          maxReservations === ""
-                            ? 0
-                            : parseInt(maxReservations),
-                      };
-
-                      const updatedSummaries = [
-                        ...claimingSummaries,
-                        summaryData,
-                      ];
-
-                      setClaimingSummaries(updatedSummaries);
-                      syncDateListWithSummaries(updatedSummaries);
-                      clearForm();
-                    } else {
-                      setErrors({
-                        ...errors,
-                        incompleteForm:
-                          "Please provide all required information (date, venue, and time)",
-                      });
-                      window.scrollTo(0, 0);
-                    }
-                  }
-                }}
+                onClick={handleAddSchedule}
                 className={`flex items-center px-3 py-1 rounded-full text-sm font-semibold ml-auto ${
                   isEditing
                     ? "bg-green-500 hover:bg-green-600 text-white"
@@ -2845,6 +2767,7 @@ const ClaimingDetails = ({
     </div>
   );
 };
+
 // Enhanced AvailabilityDetails component with validation
 const AvailabilityDetails = ({
   onBack,
@@ -3317,474 +3240,8 @@ const AvailabilityDetails = ({
       </div>
     );
   }
-
-  // For coming soon events, show only display period
-  if (eventType === "coming_soon") {
-    return (
-      <div className="w-full">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
-              "Coming Soon" Display Period
-            </p>
-            <p className="text-[13px] text-[#B8B8B8] mb-4">
-              Set when this "Coming Soon" event should appear on the platform
-            </p>
-          </div>
-        </div>
-
-        <hr className="border-t border-gray-600 my-4" />
-
-        {Object.keys(errors).length > 0 && (
-          <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
-            <div className="flex items-center text-red-500 mb-2">
-              <AlertCircleIcon className="h-5 w-5 mr-2" />
-              <p className="font-semibold">Please fix the following errors:</p>
-            </div>
-            <ul className="list-disc pl-10 text-sm text-red-400">
-              {Object.values(errors).map((error, index) => (
-                <li key={index}>{error}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <div className="flex gap-6">
-          <div className="w-1/3">
-            <p className="text-[#FFAB40] text-sm mb-2">Event Preview</p>
-            <div className="w-full aspect-square bg-[#1E1E1E] border-2 border-dashed border-[#FFAB40] rounded-lg flex items-center justify-center overflow-hidden">
-              {eventDetails?.imagePreview ? (
-                <div className="relative w-full h-full">
-                  <img
-                    src={eventDetails.imagePreview}
-                    alt="Event"
-                    className="w-full h-full object-cover"
-                  />
-                  <span className="absolute top-2 left-2 bg-[#FFAB40] text-black px-2 py-1 rounded text-xs font-medium">
-                    COMING SOON
-                  </span>
-                </div>
-              ) : (
-                <div className="text-center p-4">
-                  <span className="bg-[#FFAB40] text-black px-2 py-1 rounded text-xs font-medium mb-2 inline-block">
-                    COMING SOON
-                  </span>
-                  <div className="text-[#B8B8B8] text-sm mt-2">
-                    Event Image Preview
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="w-2/3 space-y-4">
-            <div className="border border-gray-700 rounded-lg p-4">
-              <p className="text-[#FFAB40] font-medium mb-3">Display Period</p>
-              <div className="space-y-3">
-                {errors.displayDateRange && (
-                  <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-2">
-                    <p className="text-red-400 text-sm flex items-center">
-                      <AlertCircleIcon className="h-4 w-4 mr-1" />
-                      {errors.displayDateRange}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex gap-4">
-                  <div className="w-1/2">
-                    <p className="text-[#FFAB40] text-sm mb-1">
-                      Start Display Date:
-                    </p>
-                    <input
-                      type="date"
-                      value={displayStartDate}
-                      onChange={(e) => setDisplayStartDate(e.target.value)}
-                      min={today}
-                      className={`w-full bg-[#1E1E1E] border ${
-                        errors.displayStartDate
-                          ? "border-red-500"
-                          : "border-[#333333]"
-                      } text-white rounded px-3 py-2 text-sm`}
-                    />
-                    <p className="text-xs text-[#B8B8B8] mt-1">
-                      When should this "Coming Soon" event start appearing?
-                    </p>
-                  </div>
-                  <div className="w-1/2">
-                    <p className="text-[#FFAB40] text-sm mb-1">
-                      Start Display Time:
-                    </p>
-                    <input
-                      type="time"
-                      value={displayStartTime}
-                      onChange={(e) => setDisplayStartTime(e.target.value)}
-                      className={`w-full bg-[#1E1E1E] border ${
-                        errors.displayStartTime
-                          ? "border-red-500"
-                          : "border-[#333333]"
-                      } text-white rounded px-3 py-2 text-sm`}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="w-1/2">
-                    <p className="text-[#FFAB40] text-sm mb-1">
-                      End Display Date:
-                    </p>
-                    <input
-                      type="date"
-                      value={displayEndDate}
-                      onChange={(e) => setDisplayEndDate(e.target.value)}
-                      min={today}
-                      className={`w-full bg-[#1E1E1E] border ${
-                        errors.displayEndDate
-                          ? "border-red-500"
-                          : "border-[#333333]"
-                      } text-white rounded px-3 py-2 text-sm`}
-                    />
-                    <p className="text-xs text-[#B8B8B8] mt-1">
-                      When should the "Coming Soon" notice be removed if not
-                      updated?
-                    </p>
-                  </div>
-                  <div className="w-1/2">
-                    <p className="text-[#FFAB40] text-sm mb-1">
-                      End Display Time:
-                    </p>
-                    <input
-                      type="time"
-                      value={displayEndTime}
-                      onChange={(e) => setDisplayEndTime(e.target.value)}
-                      className={`w-full bg-[#1E1E1E] border ${
-                        errors.displayEndTime
-                          ? "border-red-500"
-                          : "border-[#333333]"
-                      } text-white rounded px-3 py-2 text-sm`}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <p className="text-[#B8B8B8] text-xs mt-4 border-t border-gray-600 pt-4">
-          Note: This event will be displayed with a "COMING SOON" label until
-          you update it with complete information.
-        </p>
-
-        {/* Hidden button for parent component to trigger submit */}
-        <button
-          className="hidden availability-submit-button"
-          onClick={handleSubmit}
-        />
-      </div>
-    );
-  }
-
-  // For ticketed events - full form with both periods
-  return (
-    <div className="w-full">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <p className="text-[#FFAB40] text-3xl font-semibold mb-2">
-            Event Availability
-          </p>
-          <p className="text-[13px] text-[#B8B8B8] mb-4">
-            Set display and reservation periods for this event
-          </p>
-        </div>
-      </div>
-
-      <hr className="border-t border-gray-600 my-4" />
-
-      {Object.keys(errors).length > 0 && (
-        <div className="bg-red-900/30 border border-red-500 rounded-md p-3 mb-4">
-          <div className="flex items-center text-red-500 mb-2">
-            <AlertCircleIcon className="h-5 w-5 mr-2" />
-            <p className="font-semibold">Please fix the following errors:</p>
-          </div>
-          <ul className="list-disc pl-10 text-sm text-red-400">
-            {Object.values(errors).map((error, index) => (
-              <li key={index}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {Object.keys(warnings).length > 0 && (
-        <div className="bg-yellow-900/30 border border-yellow-500 rounded-md p-3 mb-4">
-          <div className="flex items-center text-yellow-500 mb-2">
-            <AlertCircleIcon className="h-5 w-5 mr-2" />
-            <p className="font-semibold">Warnings (you can still continue):</p>
-          </div>
-          <ul className="list-disc pl-10 text-sm text-yellow-400">
-            {Object.values(warnings).map((warning, index) => (
-              <li key={index}>{warning}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="flex gap-6">
-        {/* Event Picture Preview */}
-        <div className="w-1/3">
-          <p className="text-[#FFAB40] text-sm mb-2">Event Preview</p>
-          <div className="w-full aspect-square bg-[#1E1E1E] border-2 border-dashed border-[#FFAB40] rounded-lg flex items-center justify-center overflow-hidden">
-            {eventDetails?.imagePreview ? (
-              <img
-                src={eventDetails.imagePreview}
-                alt="Event"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="text-[#B8B8B8] text-sm">Event Image Preview</div>
-            )}
-          </div>
-
-          {/* Display event date reference */}
-          {eventDate && (
-            <div className="mt-3 p-2 bg-[#2A2A2A] rounded border border-[#FFAB40]">
-              <p className="text-sm text-white">
-                <span className="text-[#FFAB40]">Event Date:</span>{" "}
-                {new Date(eventDate).toLocaleDateString()}
-              </p>
-              <p className="text-xs text-[#B8B8B8] mt-1">
-                All display and reservation periods should end before this date
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Availability Period Inputs */}
-        <div className="w-2/3 space-y-4">
-          {/* Display Period Section */}
-          <div className="border border-gray-700 rounded-lg p-4">
-            <p className="text-[#FFAB40] font-medium mb-3">Display Period</p>
-            <div className="space-y-3">
-              {errors.displayDateRange && (
-                <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-2">
-                  <p className="text-red-400 text-sm flex items-center">
-                    <AlertCircleIcon className="h-4 w-4 mr-1" />
-                    {errors.displayDateRange}
-                  </p>
-                </div>
-              )}
-
-              {errors.displayEndDateEvent && (
-                <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-2">
-                  <p className="text-red-400 text-sm flex items-center">
-                    <AlertCircleIcon className="h-4 w-4 mr-1" />
-                    {errors.displayEndDateEvent}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex gap-4">
-                <div className="w-1/2">
-                  <p className="text-[#FFAB40] text-sm mb-1">
-                    Start Display Date:
-                  </p>
-                  <input
-                    type="date"
-                    value={displayStartDate}
-                    onChange={(e) => setDisplayStartDate(e.target.value)}
-                    min={today}
-                    className={`w-full bg-[#1E1E1E] border ${
-                      errors.displayStartDate
-                        ? "border-red-500"
-                        : "border-[#333333]"
-                    } text-white rounded px-3 py-2 text-sm`}
-                  />
-                </div>
-                <div className="w-1/2">
-                  <p className="text-[#FFAB40] text-sm mb-1">
-                    Start Display Time:
-                  </p>
-                  <input
-                    type="time"
-                    value={displayStartTime}
-                    onChange={(e) => setDisplayStartTime(e.target.value)}
-                    className={`w-full bg-[#1E1E1E] border ${
-                      errors.displayStartTime
-                        ? "border-red-500"
-                        : "border-[#333333]"
-                    } text-white rounded px-3 py-2 text-sm`}
-                    placeholder="00:00"
-                  />
-                </div>
-              </div>
-              <p className="text-[#B8B8B8] text-xs mt-1 mb-3">
-                When should this event appear on the platform?
-              </p>
-
-              <div className="flex gap-4">
-                <div className="w-1/2">
-                  <p className="text-[#FFAB40] text-sm mb-1">
-                    End Display Date:
-                  </p>
-                  <input
-                    type="date"
-                    value={displayEndDate}
-                    onChange={(e) => setDisplayEndDate(e.target.value)}
-                    min={today}
-                    max={eventDate} // Ensure date picker doesn't allow dates after event
-                    className={`w-full bg-[#1E1E1E] border ${
-                      errors.displayEndDate || errors.displayEndDateEvent
-                        ? "border-red-500"
-                        : "border-[#333333]"
-                    } text-white rounded px-3 py-2 text-sm`}
-                  />
-                </div>
-                <div className="w-1/2">
-                  <p className="text-[#FFAB40] text-sm mb-1">
-                    End Display Time:
-                  </p>
-                  <input
-                    type="time"
-                    value={displayEndTime}
-                    onChange={(e) => setDisplayEndTime(e.target.value)}
-                    className={`w-full bg-[#1E1E1E] border ${
-                      errors.displayEndTime
-                        ? "border-red-500"
-                        : "border-[#333333]"
-                    } text-white rounded px-3 py-2 text-sm`}
-                    placeholder="23:59"
-                  />
-                </div>
-              </div>
-              <p className="text-[#B8B8B8] text-xs mt-1 mb-3">
-                When should this event stop showing on the platform? (Must be
-                before the event date)
-              </p>
-            </div>
-          </div>
-
-          {/* Reservation Period Section */}
-          <div className="border border-gray-700 rounded-lg p-4">
-            <p className="text-[#FFAB40] font-medium mb-3">
-              Reservation Period
-            </p>
-            <div className="space-y-3">
-              {errors.reservationDateRange && (
-                <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-2">
-                  <p className="text-red-400 text-sm flex items-center">
-                    <AlertCircleIcon className="h-4 w-4 mr-1" />
-                    {errors.reservationDateRange}
-                  </p>
-                </div>
-              )}
-
-              {errors.reservationEndDateEvent && (
-                <div className="bg-red-900/20 border border-red-500 rounded-md p-2 mb-2">
-                  <p className="text-red-400 text-sm flex items-center">
-                    <AlertCircleIcon className="h-4 w-4 mr-1" />
-                    {errors.reservationEndDateEvent}
-                  </p>
-                </div>
-              )}
-
-              {warnings.shortReservationPeriod && (
-                <div className="bg-yellow-900/20 border border-yellow-500 rounded-md p-2 mb-2">
-                  <p className="text-yellow-400 text-sm flex items-center">
-                    <AlertCircleIcon className="h-4 w-4 mr-1" />
-                    {warnings.shortReservationPeriod}
-                  </p>
-                </div>
-              )}
-
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">
-                  Start Reservation Date:
-                </p>
-                <input
-                  type="date"
-                  value={reservationStartDate}
-                  onChange={(e) => setReservationStartDate(e.target.value)}
-                  min={today}
-                  className={`w-full bg-[#1E1E1E] border ${
-                    errors.reservationStartDate
-                      ? "border-red-500"
-                      : "border-[#333333]"
-                  } text-white rounded px-3 py-2 text-sm`}
-                />
-                <p className="text-[#B8B8B8] text-xs mt-1">
-                  When can users start making reservations?
-                </p>
-              </div>
-
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">
-                  End Reservation Date:
-                </p>
-                <input
-                  type="date"
-                  value={reservationEndDate}
-                  onChange={(e) => setReservationEndDate(e.target.value)}
-                  min={today}
-                  max={eventDate} // Ensure date picker doesn't allow dates after event
-                  className={`w-full bg-[#1E1E1E] border ${
-                    errors.reservationEndDate || errors.reservationEndDateEvent
-                      ? "border-red-500"
-                      : "border-[#333333]"
-                  } text-white rounded px-3 py-2 text-sm`}
-                />
-                <p className="text-[#B8B8B8] text-xs mt-1">
-                  When do reservations close? (Must be before the event date)
-                </p>
-              </div>
-
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">
-                  Reservation Start Time:
-                </p>
-                <input
-                  type="time"
-                  value={reservationStartTime}
-                  onChange={(e) => setReservationStartTime(e.target.value)}
-                  className={`w-full bg-[#1E1E1E] border ${
-                    errors.reservationStartTime
-                      ? "border-red-500"
-                      : "border-[#333333]"
-                  } text-white rounded px-3 py-2 text-sm`}
-                />
-                <p className="text-[#B8B8B8] text-xs mt-1">
-                  Time when reservations become available
-                </p>
-              </div>
-
-              <div>
-                <p className="text-[#FFAB40] text-sm mb-1">
-                  Reservation End Time:
-                </p>
-                <input
-                  type="time"
-                  value={reservationEndTime}
-                  onChange={(e) => setReservationEndTime(e.target.value)}
-                  className={`w-full bg-[#1E1E1E] border ${
-                    errors.reservationEndTime
-                      ? "border-red-500"
-                      : "border-[#333333]"
-                  } text-white rounded px-3 py-2 text-sm`}
-                />
-                <p className="text-[#B8B8B8] text-xs mt-1">
-                  Time when reservations are no longer available
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Hidden button for parent component to trigger submit */}
-      <button
-        className="hidden availability-submit-button"
-        onClick={handleSubmit}
-      />
-    </div>
-  );
 };
+
 const SummaryDetails = ({
   eventDetails,
   ticketDetails,
@@ -4758,6 +4215,7 @@ const Admin_PublishEvent = ({
                 initialData={claimingDetails}
                 eventDate={eventDetails?.eventDate}
                 ticketDetails={ticketDetails} // Pass ticketDetails for validation
+                eventDetails={eventDetails} // Add eventDetails prop
               />
             )}
 
