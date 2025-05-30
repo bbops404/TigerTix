@@ -1,5 +1,4 @@
-import BufferPolyfill from 'buffer/';
+import 'buffer';
 import process from 'process';
 
-window.Buffer = BufferPolyfill;
 window.process = process; 
