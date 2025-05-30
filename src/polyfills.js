@@ -1,5 +1,5 @@
-import { Buffer } from 'buffer/index.js';
+import BufferPolyfill from 'buffer/';
 import process from 'process';
 
-window.Buffer = Buffer;
+window.Buffer = BufferPolyfill;
 window.process = process; 
