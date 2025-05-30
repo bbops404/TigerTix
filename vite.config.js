@@ -17,23 +17,21 @@ export default defineConfig({
     global: 'globalThis',
   },
   optimizeDeps: {
-    include: ['pdfkit', 'blob-stream', 'use-sync-external-store'],
-    esbuildOptions: {
-      define: {
-        global: 'globalThis'
-      }
-    }
+    include: ['use-sync-external-store'],
+    exclude: ['pdfkit', 'blob-stream', 'pdfkit-browserify']
   },
   build: {
     commonjsOptions: {
-      include: [/pdfkit/, /blob-stream/, /node_modules/],
+      include: [/node_modules/],
       transformMixedEsModules: true
     },
     rollupOptions: {
+      external: ['pdfkit', 'blob-stream', 'pdfkit-browserify'],
       output: {
-        manualChunks: {
-          pdfkit: ['pdfkit'],
-          'blob-stream': ['blob-stream']
+        globals: {
+          pdfkit: 'PDFKit',
+          'blob-stream': 'BlobStream',
+          'pdfkit-browserify': 'PDFKitBrowserify'
         }
       }
     }
