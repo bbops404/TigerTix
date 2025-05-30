@@ -10,14 +10,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"), // ← Ito ang import alias
       'react': 'react',
       'react-dom': 'react-dom',
-      'use-sync-external-store': 'use-sync-external-store/shim'
+      'use-sync-external-store': 'use-sync-external-store'
     },
   },
   define: {
     global: 'globalThis',
   },
   optimizeDeps: {
-    include: ['pdfkit', 'blob-stream'],
+    include: ['pdfkit', 'blob-stream', 'use-sync-external-store'],
     esbuildOptions: {
       define: {
         global: 'globalThis'
