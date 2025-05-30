@@ -1,4 +1,4 @@
 import 'buffer';
-import process from 'process';
+import * as process from 'process';
 
 window.process = process; 
